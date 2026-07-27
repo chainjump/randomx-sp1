@@ -15,15 +15,18 @@ use std::sync::Arc;
 fn set_rounding_mode_env(mode: u32) {
     #[cfg(target_arch = "x86_64")]
     unsafe {
-        let fe_mode: u32 = match mode {
-            1 => 0x400,
-            2 => 0x800,
-            3 => 0xC00,
+        // MXCSR rounding control occupies bits 13..14. The earlier values
+        // (0x400/0x800/0xc00) are x87 control-word encodings; masking those
+        // against MXCSR's 0x6000 field silently selected nearest for all modes.
+        let mxcsr_mode: u32 = match mode {
+            1 => 0x2000, // toward negative infinity
+            2 => 0x4000, // toward positive infinity
+            3 => 0x6000, // toward zero
             _ => 0,
         };
         let mut mxcsr: u32 = 0;
         std::arch::asm!("stmxcsr [{0}]", in(reg) &mut mxcsr as *mut u32, options(nostack));
-        mxcsr = (mxcsr & !0x6000) | (fe_mode & 0x6000);
+        mxcsr = (mxcsr & !0x6000) | mxcsr_mode;
         std::arch::asm!("ldmxcsr [{0}]", in(reg) &mxcsr as *const u32, options(nostack));
     }
 

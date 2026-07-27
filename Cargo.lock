@@ -2055,6 +2055,7 @@ name = "randomx-compact-vm-audit"
 version = "0.1.0"
 dependencies = [
  "blake2b_simd",
+ "randomx-softfp",
  "rustdom-x",
  "rustdom-x-compact-vm",
 ]

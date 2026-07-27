@@ -9,10 +9,12 @@ two-lane operations are `FADD`, `FSUB`, `FMUL`, `FDIV`, and `FSQRT`.
 Nearest-even uses the target's existing compiler helpers. A directed operation
 computes that nearest result, compares it with the exact result using bounded
 integer significands, and moves by one representable value only when required.
-This avoids a general software-float package in the VM hot loop. It implements
-the finite RandomX domain; RandomX excludes NaN, infinity, overflow, underflow,
-and denormal results. Signed zero, including exact cancellation under
-round-toward-negative, is handled explicitly.
+This avoids a general software-float package in the VM hot loop. Signed zero,
+including exact cancellation under round-toward-negative, is handled
+explicitly. Finite-input overflow and subsequent infinity propagation are
+also handled: the generic VM state machine can reach them even though the
+initial RandomX floating-point operands are finite. Subnormal and underflow
+results remain excluded by the RandomX operand construction.
 
 ## Validation
 
@@ -20,13 +22,21 @@ round-toward-negative, is handled explicitly.
   randomized finite-normal cases, every operation, both lanes' scalar
   primitive, and all four modes.
 - Explicit oracle tests cover `+0`, `-0`, zero operands, exact cancellation,
-  multiply/divide zero signs, and `sqrt(-0)`.
+  multiply/divide zero signs, `sqrt(-0)`, directed overflow, and infinity
+  propagation.
+- A packed-x86 audit checks 20,000 deterministic cases per operation and mode
+  after setting the corresponding MXCSR rounding control.
 - Official RandomX floating-point vectors pass in all four modes.
 - An actual SP1 RV64IM microguest embeds the official and signed-zero checks
   and exits successfully.
 - The compact full VM matches official RandomX v1.2.3 for an input with 18,442
   executed `CFROUND`s spanning all four modes. The SP1 guest commits
   `c19ae2f2f50a2e33ec737484e6c447d9b0ffe44431a33201026ba9eca70fda95`.
+- A lockstep audit compares the rich and compact register state after every
+  executed instruction across 32 hashes and 256 generated programs.
+
+The current correctness findings and exact post-fix artifacts are frozen in
+`evidence/cfround-correctness-fix.md`.
 
 ## Measured cost
 

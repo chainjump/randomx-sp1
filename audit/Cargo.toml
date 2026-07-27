@@ -7,5 +7,6 @@ publish = false
 
 [dependencies]
 blake2b_simd = "1.0.4"
+randomx-softfp = { path = "../softfp" }
 rustdom-x = { path = "../rustdom-x", features = ["unchecked-superscalar"] }
-rustdom-x-compact-vm = { path = "../compact" }
+rustdom-x-compact-vm = { path = "../compact", features = ["differential-audit"] }

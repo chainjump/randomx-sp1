@@ -5,6 +5,8 @@
 //! instruction into a flat representation before the 2,048-iteration loop.
 
 use std::mem::size_of;
+#[cfg(feature = "differential-audit")]
+use std::sync::Arc;
 
 use blake2b_simd::{blake2b, Hash, Params};
 use randomx_softfp::{add2, div2, mul2, sqrt2, sub2, RoundingMode};
@@ -12,6 +14,10 @@ use rustdom_x::common::{mulh, randomx_reciprocal, smulh, u64_from_i32_imm};
 use rustdom_x::hash::{gen_program_aes_4rx4, hash_aes_1rx4};
 use rustdom_x::m128::{m128d, m128i};
 use rustdom_x::memory::CACHE_LINE_SIZE;
+#[cfg(feature = "differential-audit")]
+use rustdom_x::memory::VmMemory;
+#[cfg(feature = "differential-audit")]
+use rustdom_x::program::{Opcode as RichOpcode, Program as RichProgram};
 use rustdom_x::vm::Vm;
 
 const MAX_REG: usize = 8;
@@ -145,6 +151,162 @@ pub fn calculate_hash(vm: &mut Vm, input: &[u8]) -> Hash {
     let mut params = Params::new();
     params.hash_length(HASH_SIZE);
     params.hash(&vm.reg.to_bytes())
+}
+
+/// Locates the first state divergence between the rich and compact decoders.
+/// This is intentionally excluded from verifier builds.
+#[cfg(feature = "differential-audit")]
+pub fn differential_audit(input: &[u8]) -> Hash {
+    let memory = Arc::new(VmMemory::no_memory());
+    let mut rich = rustdom_x::new_vm(Arc::clone(&memory));
+    let mut compact = rustdom_x::new_vm(memory);
+    let initial_hash = blake2b(input);
+    let mut seed = hash_to_m128i_array(&initial_hash);
+
+    let rich_next = rich.init_scratchpad(&seed);
+    let compact_next = compact.init_scratchpad(&seed);
+    assert_eq!(rich_next, compact_next);
+    assert_eq!(rich.scratchpad, compact.scratchpad);
+    rich.reset_rounding_mode();
+    compact.reset_rounding_mode();
+
+    let mut next_seed = rich_next;
+    for program_index in 0..PROGRAM_COUNT {
+        run_differential(&mut rich, &mut compact, &next_seed, program_index);
+        assert_eq!(rich.reg.to_bytes(), compact.reg.to_bytes());
+        assert_eq!(rich.scratchpad, compact.scratchpad);
+        if program_index + 1 < PROGRAM_COUNT {
+            seed = hash_to_m128i_array(&blake2b(&rich.reg.to_bytes()));
+            next_seed = seed;
+        }
+    }
+
+    let final_hash = hash_aes_1rx4(&rich.scratchpad);
+    for index in 0..MAX_FLOAT_REG {
+        rich.reg.a[index] = final_hash[index].as_m128d();
+        compact.reg.a[index] = final_hash[index].as_m128d();
+    }
+    assert_eq!(rich.reg.to_bytes(), compact.reg.to_bytes());
+    let mut params = Params::new();
+    params.hash_length(HASH_SIZE);
+    params.hash(&rich.reg.to_bytes())
+}
+
+#[cfg(feature = "differential-audit")]
+fn run_differential(rich: &mut Vm, compact: &mut Vm, seed: &[m128i; 4], program_index: usize) {
+    let bytes = gen_program_aes_4rx4(seed, 136);
+    let rich_program = RichProgram::from_bytes(bytes.clone());
+    let compact_program = CompactProgram::from_bytes(&bytes);
+    rich.init_vm(&rich_program);
+    init_vm(compact, &compact_program.entropy);
+
+    let mut rich_sp0 = rich.mem_reg.mx as u32;
+    let mut rich_sp1 = rich.mem_reg.ma as u32;
+    let mut compact_sp0 = compact.mem_reg.mx as u32;
+    let mut compact_sp1 = compact.mem_reg.ma as u32;
+
+    for iteration in 0..PROGRAM_ITERATIONS {
+        prepare_iteration(rich, &mut rich_sp0, &mut rich_sp1);
+        prepare_iteration(compact, &mut compact_sp0, &mut compact_sp1);
+        assert_vm_state(rich, compact, program_index, iteration, -1, None);
+
+        rich.pc = 0;
+        compact.pc = 0;
+        while rich.pc < PROGRAM_SIZE {
+            assert_eq!(rich.pc, compact.pc, "program {program_index} iteration {iteration}");
+            let pc = rich.pc;
+            let rich_instr = &rich_program.program[pc as usize];
+            let compact_instr = &compact_program.instructions[pc as usize];
+            rich_instr.execute(rich);
+            (compact_instr.effect)(compact, compact_instr);
+            assert_vm_state(
+                rich,
+                compact,
+                program_index,
+                iteration,
+                pc,
+                Some(&rich_instr.op),
+            );
+            rich.pc += 1;
+            compact.pc += 1;
+        }
+
+        finish_iteration(rich, rich_sp0 as usize, rich_sp1 as usize);
+        finish_iteration(compact, compact_sp0 as usize, compact_sp1 as usize);
+        assert_vm_state(rich, compact, program_index, iteration, PROGRAM_SIZE, None);
+        rich_sp0 = 0;
+        rich_sp1 = 0;
+        compact_sp0 = 0;
+        compact_sp1 = 0;
+    }
+}
+
+#[cfg(feature = "differential-audit")]
+fn prepare_iteration(vm: &mut Vm, sp_addr_0: &mut u32, sp_addr_1: &mut u32) {
+    let sp_mix = vm.reg.r[vm.config.read_reg[0]] ^ vm.reg.r[vm.config.read_reg[1]];
+    *sp_addr_0 ^= sp_mix as u32;
+    *sp_addr_0 = (*sp_addr_0 & SCRATCHPAD_L3_MASK_U32) >> 3;
+    *sp_addr_1 ^= (sp_mix >> 32) as u32;
+    *sp_addr_1 = (*sp_addr_1 & SCRATCHPAD_L3_MASK_U32) >> 3;
+
+    let addr0 = *sp_addr_0 as usize;
+    let addr1 = *sp_addr_1 as usize;
+    for i in 0..MAX_REG {
+        vm.reg.r[i] ^= vm.scratchpad[addr0 + i];
+    }
+    for i in 0..MAX_FLOAT_REG {
+        vm.reg.f[i] = m128i::from_u64(0, vm.scratchpad[addr1 + i]).lower_to_m128d();
+    }
+    for i in 0..MAX_FLOAT_REG {
+        let value = m128i::from_u64(0, vm.scratchpad[addr1 + i + MAX_FLOAT_REG]).lower_to_m128d();
+        vm.reg.e[i] = mask_register_exponent_mantissa(vm, value);
+    }
+}
+
+#[cfg(feature = "differential-audit")]
+fn finish_iteration(vm: &mut Vm, addr0: usize, addr1: usize) {
+    vm.mem_reg.mx ^=
+        (vm.reg.r[vm.config.read_reg[2]] ^ vm.reg.r[vm.config.read_reg[3]]) as usize;
+    vm.mem_reg.mx &= CACHE_LINE_ALIGN_MASK as usize;
+    vm.mem
+        .dataset_read(vm.dataset_offset + vm.mem_reg.ma as u64, &mut vm.reg.r);
+    std::mem::swap(&mut vm.mem_reg.mx, &mut vm.mem_reg.ma);
+
+    for i in 0..MAX_REG {
+        vm.scratchpad[addr1 + i] = vm.reg.r[i];
+    }
+    for i in 0..MAX_FLOAT_REG {
+        vm.reg.f[i] = vm.reg.f[i] ^ vm.reg.e[i];
+    }
+    for i in 0..MAX_FLOAT_REG {
+        let (high, low) = vm.reg.f[i].as_u64();
+        let ix = addr0 + 2 * i;
+        vm.scratchpad[ix] = low;
+        vm.scratchpad[ix + 1] = high;
+    }
+}
+
+#[cfg(feature = "differential-audit")]
+fn assert_vm_state(
+    rich: &Vm,
+    compact: &Vm,
+    program: usize,
+    iteration: usize,
+    pc: i32,
+    operation: Option<&RichOpcode>,
+) {
+    assert_eq!(
+        rich.reg.to_bytes(),
+        compact.reg.to_bytes(),
+        "register divergence: program {program} iteration {iteration} pc {pc} op {operation:?} rich_mode={} compact_mode={}",
+        rich.get_rounding_mode(),
+        compact.get_rounding_mode(),
+    );
+    assert_eq!(
+        rich.pc,
+        compact.pc,
+        "pc divergence: program {program} iteration {iteration} pc {pc} op {operation:?}"
+    );
 }
 
 fn run(vm: &mut Vm, seed: &[m128i; 4]) {
@@ -894,12 +1056,15 @@ mod tests {
         ];
 
         let memory = Arc::new(VmMemory::light(&seed));
-        let mut nearest_only = new_vm(Arc::clone(&memory));
-        let nearest_only_hash = nearest_only.calculate_hash(&blob);
-        eprintln!("nearest-only control: {}", nearest_only_hash.to_hex());
-        let mut vm = new_vm(memory);
-        assert_eq!(calculate_hash(&mut vm, &blob).as_bytes(), &expected);
-        assert_ne!(nearest_only_hash.as_bytes(), &expected);
+        let mut rich = new_vm(Arc::clone(&memory));
+        let mut compact = new_vm(memory);
+        let rich_hash = rich.calculate_hash(&blob);
+        let compact_hash = calculate_hash(&mut compact, &blob);
+
+        assert_eq!(rich_hash.as_bytes(), &expected);
+        assert_eq!(compact_hash.as_bytes(), &expected);
+        assert_eq!(rich.reg.to_bytes(), compact.reg.to_bytes());
+        assert_eq!(rich.scratchpad, compact.scratchpad);
     }
 
     #[test]

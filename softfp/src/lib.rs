@@ -1,10 +1,10 @@
 //! Exact directed binary64 arithmetic for the RandomX floating-point domain.
 //!
-//! RandomX guarantees finite inputs and excludes NaN, infinity, subnormal
-//! results, overflow, and underflow.  Mode zero uses the target's correctly
-//! rounded nearest-even soft-float helpers.  Directed modes identify which
-//! neighbor contains the exact result and adjust the nearest result by at most
-//! one ULP.
+//! RandomX supplies finite inputs and excludes NaN and subnormal/underflow
+//! results. Mode zero uses the target's correctly rounded nearest-even
+//! soft-float helpers. Directed modes identify which neighbor contains the
+//! exact result and adjust the nearest result by at most one ULP, including
+//! saturation to the signed maximum finite value when overflow requires it.
 
 use core::cmp::Ordering;
 
@@ -145,6 +145,29 @@ fn apply_mode(
     }
 }
 
+/// Adjust a nearest-even infinity produced by finite-input overflow.
+#[inline(always)]
+fn directed_overflow(nearest: u64, mode: RoundingMode) -> Option<u64> {
+    if nearest & ABS_MASK != EXP_MASK {
+        return None;
+    }
+    let negative = nearest & SIGN_MASK != 0;
+    // A positive finite exact result lies below +infinity; a negative finite
+    // exact result lies above -infinity. `apply_mode` therefore selects either
+    // infinity or its adjacent maximum-finite value for every directed mode.
+    let relation = if negative {
+        Ordering::Greater
+    } else {
+        Ordering::Less
+    };
+    Some(apply_mode(nearest, relation, negative, mode))
+}
+
+#[inline(always)]
+fn is_infinite(value: u64) -> bool {
+    value & ABS_MASK == EXP_MASK
+}
+
 #[cfg(target_arch = "riscv64")]
 mod nearest {
     #[inline(always)]
@@ -206,6 +229,16 @@ mod nearest {
 #[inline]
 fn add_inner(a: u64, b: u64, mode: RoundingMode) -> u64 {
     let nearest = nearest::add(a, b);
+    if is_infinite(a) || is_infinite(b) {
+        // RandomX can propagate an infinity produced by an earlier overflow.
+        // Its other operand remains finite, so the result is the same infinity
+        // in every rounding mode.
+        debug_assert!(nearest & ABS_MASK == EXP_MASK);
+        return nearest;
+    }
+    if let Some(overflow) = directed_overflow(nearest, mode) {
+        return overflow;
+    }
     let a_magnitude = magnitude(a);
     let b_magnitude = magnitude(b);
     let a_negative = a & SIGN_MASK != 0;
@@ -317,6 +350,13 @@ pub fn mul(a: u64, b: u64, mode: RoundingMode) -> u64 {
 fn mul_inner(a: u64, b: u64, mode: RoundingMode) -> u64 {
     debug_assert!(mode != RoundingMode::Nearest);
     let nearest = nearest::mul(a, b);
+    if is_infinite(a) || is_infinite(b) {
+        debug_assert!(nearest & ABS_MASK == EXP_MASK);
+        return nearest;
+    }
+    if let Some(overflow) = directed_overflow(nearest, mode) {
+        return overflow;
+    }
     let negative = (a ^ b) & SIGN_MASK != 0;
     let exact = multiply_magnitudes(magnitude(a), magnitude(b));
     let relation = reverse_if_negative(compare_nearby_scaled(exact, magnitude(nearest)), negative);
@@ -335,7 +375,14 @@ pub fn div(a: u64, b: u64, mode: RoundingMode) -> u64 {
 #[inline(always)]
 fn div_inner(a: u64, b: u64, mode: RoundingMode) -> u64 {
     debug_assert!(mode != RoundingMode::Nearest);
+    debug_assert!(b & ABS_MASK != 0, "RandomX excludes a zero divisor");
     let nearest = nearest::div(a, b);
+    if is_infinite(a) || is_infinite(b) {
+        return nearest;
+    }
+    if let Some(overflow) = directed_overflow(nearest, mode) {
+        return overflow;
+    }
     let negative = (a ^ b) & SIGN_MASK != 0;
     let rhs = multiply_magnitudes(magnitude(nearest), magnitude(b));
     let relation = reverse_if_negative(compare_nearby_scaled(magnitude(a), rhs), negative);
@@ -359,6 +406,9 @@ pub fn sqrt(a: u64, mode: RoundingMode) -> u64 {
 fn sqrt_inner(a: u64, mode: RoundingMode) -> u64 {
     debug_assert!(mode != RoundingMode::Nearest);
     let nearest = nearest::sqrt(a);
+    if is_infinite(a) {
+        return nearest;
+    }
     let squared = multiply_magnitudes(magnitude(nearest), magnitude(nearest));
     let relation = compare_nearby_scaled(magnitude(a), squared);
     apply_mode(nearest, relation, false, mode)
@@ -523,22 +573,22 @@ mod tests {
 
             for mode in modes {
                 let expected_add = oracle2('+', a, b, mode);
-                if expected_add & EXP_MASK != 0 && expected_add & EXP_MASK != EXP_MASK {
+                if expected_add & EXP_MASK != 0 {
                     assert_eq!(add(a, b, mode), expected_add, "add case {case} {mode:?}");
                 }
 
                 let expected_sub = oracle2('-', a, b, mode);
-                if expected_sub & EXP_MASK != 0 && expected_sub & EXP_MASK != EXP_MASK {
+                if expected_sub & EXP_MASK != 0 {
                     assert_eq!(sub(a, b, mode), expected_sub, "sub case {case} {mode:?}");
                 }
 
                 let expected_mul = oracle2('*', a, b, mode);
-                if expected_mul & EXP_MASK != 0 && expected_mul & EXP_MASK != EXP_MASK {
+                if expected_mul & EXP_MASK != 0 {
                     assert_eq!(mul(a, b, mode), expected_mul, "mul case {case} {mode:?}");
                 }
 
                 let expected_div = oracle2('/', a, b, mode);
-                if expected_div & EXP_MASK != 0 && expected_div & EXP_MASK != EXP_MASK {
+                if expected_div & EXP_MASK != 0 {
                     assert_eq!(div(a, b, mode), expected_div, "div case {case} {mode:?}");
                 }
 
@@ -564,6 +614,73 @@ mod tests {
         assert_eq!(add(one, minus_one, RoundingMode::Up), 0);
         assert_eq!(sub(one, one, RoundingMode::Down), SIGN_MASK);
         assert_eq!(sub(one, one, RoundingMode::TowardZero), 0);
+    }
+
+    #[test]
+    fn finite_input_overflow_matches_berkeley_softfloat() {
+        let modes = [
+            RoundingMode::Nearest,
+            RoundingMode::Down,
+            RoundingMode::Up,
+            RoundingMode::TowardZero,
+        ];
+        let max = 0x7fef_ffff_ffff_ffff;
+        let negative_max = max | SIGN_MASK;
+        let two = 2.0f64.to_bits();
+        let half = 0.5f64.to_bits();
+        let cases = [
+            ('+', max, max),
+            ('+', negative_max, negative_max),
+            ('-', max, negative_max),
+            ('-', negative_max, max),
+            ('*', max, two),
+            ('*', negative_max, two),
+            ('/', max, half),
+            ('/', negative_max, half),
+        ];
+
+        for mode in modes {
+            for (op, a, b) in cases {
+                let expected = oracle2(op, a, b, mode);
+                let actual = match op {
+                    '+' => add(a, b, mode),
+                    '-' => sub(a, b, mode),
+                    '*' => mul(a, b, mode),
+                    '/' => div(a, b, mode),
+                    _ => unreachable!(),
+                };
+                assert_eq!(actual, expected, "{op} {a:016x} {b:016x} {mode:?}");
+            }
+        }
+    }
+
+    #[test]
+    fn infinity_propagation_matches_berkeley_softfloat() {
+        let modes = [
+            RoundingMode::Nearest,
+            RoundingMode::Down,
+            RoundingMode::Up,
+            RoundingMode::TowardZero,
+        ];
+        let infinity = EXP_MASK;
+        let negative_infinity = SIGN_MASK | EXP_MASK;
+        let finite = 1.5f64.to_bits();
+        let negative_finite = (-1.5f64).to_bits();
+
+        for mode in modes {
+            for infinite in [infinity, negative_infinity] {
+                assert_eq!(add(infinite, finite, mode), oracle2('+', infinite, finite, mode));
+                assert_eq!(sub(infinite, finite, mode), oracle2('-', infinite, finite, mode));
+                assert_eq!(mul(infinite, finite, mode), oracle2('*', infinite, finite, mode));
+                assert_eq!(
+                    mul(infinite, negative_finite, mode),
+                    oracle2('*', infinite, negative_finite, mode)
+                );
+                assert_eq!(div(infinite, finite, mode), oracle2('/', infinite, finite, mode));
+                assert_eq!(div(finite, infinite, mode), oracle2('/', finite, infinite, mode));
+            }
+            assert_eq!(sqrt(infinity, mode), oracle_sqrt(infinity, mode));
+        }
     }
 
     #[test]

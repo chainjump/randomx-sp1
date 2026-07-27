@@ -77,9 +77,9 @@ and floating-register banks. The hot loop therefore has no boxed stores,
 
 - A native differential audit compared rich and compact execution for 32 full
   hashes with `VmMemory::no_memory()`'s deterministic dataset initialization:
-  256 generated programs and
-  524,288 evolving VM iteration states. Final hashes, all register bytes, and
-  the complete 2 MiB scratchpads matched exactly.
+  256 generated programs and 524,288 evolving VM iteration states. Register
+  state matched after every executed instruction, and the complete 2 MiB
+  scratchpads matched after every generated program.
 - The exact full SP1 guest derived the real cache and dataset, produced the
   expected Monero PoW hash, and exited successfully.
 - Locked offline workspace checking and focused unit tests pass.

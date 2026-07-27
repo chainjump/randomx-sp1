@@ -40,6 +40,7 @@ c62186b3a05d99b26879cce2a904c29e970771f9ce0b2b95535a38d635020798  compact/src/li
 a075a90bf8e748a6145b7b5bb7dcb8a891ff38a6e0a0bf2aca9718d9a2bab8ec  rustdom-x/src/memory.rs
 ```
 
-After the import commit, only manifests and repository scaffolding were
-changed to make every path dependency local to this repository. The consensus
-implementation source files remained byte-identical.
+At the self-contained-workspace checkpoint (`426fcd2`), only manifests and
+repository scaffolding had changed and the consensus implementation sources
+remained byte-identical. Subsequent implementation changes are isolated in
+later Git commits and have corresponding records under `evidence/`.
