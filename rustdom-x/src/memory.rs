@@ -45,10 +45,8 @@ impl SeedMemory {
 
     /// Creates a new initialised seed memory.
     pub fn new_initialised(key: &[u8]) -> SeedMemory {
-        let mut mem = argon2::memory::Memory::new(RANDOMX_ARGON_LANES, RANDOMX_ARGON_MEMORY);
-        let context = &create_argon_context(key);
-        argon2::core::initialize(context, &mut mem);
-        argon2::core::fill_memory_blocks_randomx(context, &mut mem);
+        let context = create_argon_context(key);
+        let mem = argon2::core::initialize_memory_randomx(&context);
 
         let mut programs = Vec::with_capacity(RANDOMX_CACHE_ACCESSES);
         let mut generator = Blake2Generator::new(key, 0);

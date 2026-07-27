@@ -34,6 +34,70 @@ pub fn fill_memory_blocks(context: &Context, memory: &mut Memory) {
     fill_memory_blocks_st(context, memory);
 }
 
+const RANDOMX_LANE_LENGTH: u32 = 262_144;
+const RANDOMX_SEGMENT_LENGTH: u32 = 65_536;
+
+fn validate_randomx_context(context: &Context) {
+    assert_eq!(context.config.lanes, 1);
+    assert_eq!(context.config.mem_cost, RANDOMX_LANE_LENGTH);
+    assert_eq!(context.config.time_cost, 3);
+    assert_eq!(context.config.variant, Variant::Argon2d);
+    assert_eq!(context.config.version, Version::Version13);
+    assert_eq!(context.memory_blocks, RANDOMX_LANE_LENGTH);
+    assert_eq!(context.lane_length, RANDOMX_LANE_LENGTH);
+    assert_eq!(context.segment_length, RANDOMX_SEGMENT_LENGTH);
+}
+
+/// Allocates and initializes RandomX's fixed Argon2 memory without eagerly
+/// writing zeroes to all 256 MiB before the first pass overwrites them.
+///
+/// The first two blocks are initialized locally. In the first pass, RandomX's
+/// one-lane Argon2d reference rule reads only earlier blocks, and
+/// `fill_block_raw::<false>` writes all 128 words of the current block without
+/// reading it. Thus the initialized prefix grows by exactly one block on every
+/// iteration. The boxed slice is converted from `MaybeUninit<Block>` only
+/// after that prefix covers the complete allocation; later passes then operate
+/// on ordinary initialized `Block` values.
+pub fn initialize_memory_randomx(context: &Context) -> Memory {
+    validate_randomx_context(context);
+
+    let mut blocks = Box::<[Block]>::new_uninit_slice(RANDOMX_LANE_LENGTH as usize);
+    let blocks_ptr = blocks.as_mut_ptr().cast::<Block>();
+    let mut initial_hash = h0(context);
+    let seed_position = common::PREHASH_DIGEST_LENGTH;
+
+    for block_index in 0..2usize {
+        initial_hash[seed_position..seed_position + 4]
+            .copy_from_slice(&(block_index as u32).to_le_bytes());
+        initial_hash[seed_position + 4..seed_position + 8].copy_from_slice(&0u32.to_le_bytes());
+        let mut block = Block::zero();
+        hprime(block.as_u8_mut(), &initial_hash);
+        // SAFETY: the allocation contains RANDOMX_LANE_LENGTH properly aligned
+        // Block slots. Each of the first two slots is written exactly once.
+        unsafe { blocks_ptr.add(block_index).write(block) };
+    }
+
+    // SAFETY: blocks 0 and 1 are initialized above. The specialized first pass
+    // visits every remaining block in increasing order, reads only the already
+    // initialized prefix, and fully writes each new destination without first
+    // reading it.
+    unsafe { fill_memory_blocks_randomx_pass::<true, false>(blocks_ptr) };
+
+    // SAFETY: the first-pass loop has now initialized every block in the
+    // allocation exactly once, so all bit patterns are valid `Block` values.
+    let initialized = unsafe { blocks.assume_init() };
+    let mut memory = Memory::from_blocks(1, RANDOMX_LANE_LENGTH, initialized);
+    let initialized_ptr = memory.blocks.as_mut_ptr();
+
+    // SAFETY: every block is initialized, and the Argon2 reference formula
+    // keeps both shared inputs distinct from the writable current block.
+    unsafe {
+        fill_memory_blocks_randomx_pass::<false, true>(initialized_ptr);
+        fill_memory_blocks_randomx_pass::<false, true>(initialized_ptr);
+    }
+    memory
+}
+
 /// Fills memory for RandomX's fixed Argon2d v1.3 configuration.
 ///
 /// This preserves the generic implementation above for all public Argon2
@@ -42,40 +106,38 @@ pub fn fill_memory_blocks(context: &Context, memory: &mut Memory) {
 /// explicitly removes per-block lane selection, version/variant branches, and
 /// general integer remainder operations from the zkVM execution.
 pub fn fill_memory_blocks_randomx(context: &Context, memory: &mut Memory) {
-    const LANE_LENGTH: u32 = 262_144;
-    const SEGMENT_LENGTH: u32 = 65_536;
+    validate_randomx_context(context);
+    assert_eq!(memory.blocks.len(), RANDOMX_LANE_LENGTH as usize);
 
-    assert_eq!(context.config.lanes, 1);
-    assert_eq!(context.config.mem_cost, LANE_LENGTH);
-    assert_eq!(context.config.time_cost, 3);
-    assert_eq!(context.config.variant, Variant::Argon2d);
-    assert_eq!(context.config.version, Version::Version13);
-    assert_eq!(context.memory_blocks, LANE_LENGTH);
-    assert_eq!(context.lane_length, LANE_LENGTH);
-    assert_eq!(context.segment_length, SEGMENT_LENGTH);
-    assert_eq!(memory.blocks.len(), LANE_LENGTH as usize);
-
-    fill_memory_blocks_randomx_pass::<true, false>(memory);
-    fill_memory_blocks_randomx_pass::<false, true>(memory);
-    fill_memory_blocks_randomx_pass::<false, true>(memory);
+    let blocks = memory.blocks.as_mut_ptr();
+    // SAFETY: `Memory::new` initialized the complete allocation. The Argon2
+    // reference formula keeps both shared inputs distinct from the current
+    // writable block.
+    unsafe {
+        fill_memory_blocks_randomx_pass::<true, false>(blocks);
+        fill_memory_blocks_randomx_pass::<false, true>(blocks);
+        fill_memory_blocks_randomx_pass::<false, true>(blocks);
+    }
 }
 
 #[inline(always)]
-fn fill_memory_blocks_randomx_pass<const FIRST_PASS: bool, const WITH_XOR: bool>(
-    memory: &mut Memory,
+unsafe fn fill_memory_blocks_randomx_pass<const FIRST_PASS: bool, const WITH_XOR: bool>(
+    blocks: *mut Block,
 ) {
-    fill_memory_blocks_randomx_segment::<FIRST_PASS, WITH_XOR, 0>(memory);
-    fill_memory_blocks_randomx_segment::<FIRST_PASS, WITH_XOR, 1>(memory);
-    fill_memory_blocks_randomx_segment::<FIRST_PASS, WITH_XOR, 2>(memory);
-    fill_memory_blocks_randomx_segment::<FIRST_PASS, WITH_XOR, 3>(memory);
+    unsafe {
+        fill_memory_blocks_randomx_segment::<FIRST_PASS, WITH_XOR, 0>(blocks);
+        fill_memory_blocks_randomx_segment::<FIRST_PASS, WITH_XOR, 1>(blocks);
+        fill_memory_blocks_randomx_segment::<FIRST_PASS, WITH_XOR, 2>(blocks);
+        fill_memory_blocks_randomx_segment::<FIRST_PASS, WITH_XOR, 3>(blocks);
+    }
 }
 
 #[inline(always)]
-fn fill_memory_blocks_randomx_segment<
+unsafe fn fill_memory_blocks_randomx_segment<
     const FIRST_PASS: bool,
     const WITH_XOR: bool,
     const SLICE: u32,
->(memory: &mut Memory) {
+>(blocks: *mut Block) {
     const LANE_LENGTH: u32 = 262_144;
     const SEGMENT_LENGTH: u32 = 65_536;
     const LANE_MASK: u32 = LANE_LENGTH - 1;
@@ -84,8 +146,6 @@ fn fill_memory_blocks_randomx_segment<
     let starting_index = if FIRST_PASS && SLICE == 0 { 2 } else { 0 };
     let segment_start = SLICE * SEGMENT_LENGTH;
     let segment_end = segment_start + SEGMENT_LENGTH;
-    let blocks = memory.blocks.as_mut_ptr();
-
     for curr_offset in segment_start + starting_index..segment_end {
         let index_in_segment = curr_offset - segment_start;
         let prev_offset = curr_offset.wrapping_sub(1) & LANE_MASK;
@@ -120,11 +180,17 @@ fn fill_memory_blocks_randomx_segment<
         } else {
             (absolute_position & LANE_MASK as u64) as usize
         };
+        debug_assert_ne!(prev_offset as usize, curr_offset as usize);
+        debug_assert_ne!(ref_offset, curr_offset as usize);
+        if FIRST_PASS {
+            debug_assert!((prev_offset as usize) < curr_offset as usize);
+            debug_assert!(ref_offset < curr_offset as usize);
+        }
         unsafe {
             fill_block_raw::<WITH_XOR>(
                 &*blocks.add(prev_offset as usize),
                 &*blocks.add(ref_offset),
-                (*blocks.add(curr_offset as usize)).as_mut_word_ptr(),
+                blocks.add(curr_offset as usize).cast::<u64>(),
             );
         }
     }

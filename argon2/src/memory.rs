@@ -32,6 +32,13 @@ impl Memory {
         let blocks = vec![Block::zero(); total].into_boxed_slice();
         Memory { rows, cols, blocks }
     }
+
+    pub(crate) fn from_blocks(lanes: u32, lane_length: u32, blocks: Box<[Block]>) -> Memory {
+        let rows = lanes as usize;
+        let cols = lane_length as usize;
+        assert_eq!(blocks.len(), rows * cols);
+        Memory { rows, cols, blocks }
+    }
 }
 
 impl Debug for Memory {
