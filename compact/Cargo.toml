@@ -12,5 +12,5 @@ nearest-only-audit = []
 
 [dependencies]
 blake2b_simd = "1.0.4"
-randomx-softfp = { path = "../../optimization-cfround-soft/softfp" }
-rustdom-x = { path = "../../vendor/rustdom-x", features = ["unchecked-superscalar"] }
+randomx-softfp = { path = "../softfp" }
+rustdom-x = { path = "../rustdom-x", features = ["unchecked-superscalar"] }

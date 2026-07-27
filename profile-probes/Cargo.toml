@@ -11,7 +11,7 @@ cache-only = []
 no-memory-hash = []
 
 [dependencies]
-rustdom-x = { path = "../../vendor/rustdom-x", features = ["unchecked-superscalar"] }
+rustdom-x = { path = "../rustdom-x", features = ["unchecked-superscalar"] }
 rustdom-x-compact-vm = { path = "../compact" }
 sp1-zkvm = "=6.3.1"
 

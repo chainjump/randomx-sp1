@@ -9,6 +9,6 @@ publish = false
 nearest-only-audit = ["rustdom-x-compact-vm/nearest-only-audit"]
 
 [dependencies]
-rustdom-x = { path = "../../vendor/rustdom-x", features = ["unchecked-superscalar"] }
+rustdom-x = { path = "../rustdom-x", features = ["unchecked-superscalar"] }
 rustdom-x-compact-vm = { path = "../compact" }
 sp1-zkvm = "=6.3.1"

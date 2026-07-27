@@ -1,0 +1,24 @@
+[workspace]
+members = [
+    "argon2",
+    "argon2-native-compare",
+    "audit",
+    "compact",
+    "executor",
+    "profile-probes",
+    "program",
+    "program-cfround",
+    "rustdom-x",
+    "softfp",
+    "softfp-guest",
+    "softfp-runner",
+]
+resolver = "2"
+
+[workspace.package]
+edition = "2021"
+license = "MIT OR Apache-2.0"
+version = "0.1.0"
+
+[profile.release]
+lto = "thin"

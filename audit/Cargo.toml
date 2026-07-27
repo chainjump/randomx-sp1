@@ -7,5 +7,5 @@ publish = false
 
 [dependencies]
 blake2b_simd = "1.0.4"
-rustdom-x = { path = "../../vendor/rustdom-x", features = ["unchecked-superscalar"] }
+rustdom-x = { path = "../rustdom-x", features = ["unchecked-superscalar"] }
 rustdom-x-compact-vm = { path = "../compact" }
