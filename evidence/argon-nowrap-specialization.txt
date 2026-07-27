@@ -1,0 +1,90 @@
+RandomX Argon2 statically non-wrapping reference optimization, actual SP1 RV64IM execution
+UTC date: 2026-07-27
+
+Statement preserved
+-------------------
+The guest derives the complete 256 MiB RandomX Argon2 cache from the epoch
+seed, derives every requested dataset item on demand, executes all eight
+256-instruction programs for 2,048 iterations each, implements every CFROUND
+mode, checks the official hash, and commits the same 32 bytes.
+
+Accepted change
+---------------
+The fixed RandomX cache loop is compile-time specialized by Argon pass and
+slice. In the first pass, every reference precedes the current block and the
+reference start is zero. In the final slice of later passes, the reference
+start is also zero and the reference area is shorter than the 262,144-block
+lane. Therefore `start_position + relative_position` is already in range in
+those specialized cases and does not need a lane mask. The remaining later
+pass slices retain the mask because their reference positions can wrap.
+
+A debug assertion checks the non-wrapping bound in host/debug executions. No
+cache input or commitment was added, no cache block was omitted, and no
+CFROUND path was changed.
+
+Cache-only discriminator
+------------------------
+Accepted slice-specialized + hoisted-pointer baseline:
+  SP1 cycles: 5,250,572,990
+
+After removing only the statically redundant masks:
+  SP1 cycles: 5,250,245,303
+  reduction: 327,687 cycles (0.006240976%)
+  speedup: 1.000062414x
+  committed bytes: dd0da1aa1eee52ee4b3ebfe834f2904c57e62bd91515f2fe0800000000000000
+
+Exact full execution
+--------------------
+$ timeout --signal=INT --kill-after=1s 55s /root/experiment/target/release/execute-fast artifacts/randomx-cfround-argon-nowrap-exact c19ae2f2f50a2e33ec737484e6c447d9b0ffe44431a33201026ba9eca70fda95
+  SP1 cycles: 6,969,759,319
+  public RandomX hash: c19ae2f2f50a2e33ec737484e6c447d9b0ffe44431a33201026ba9eca70fda95
+  guest exit code: 0
+
+The prior hoisted-pointer exact count inferred from its directly measured
+cache delta was 6,970,087,006 cycles. The accepted change saves the same
+327,687 cycles end to end (0.004701333%), confirming that the change is
+confined to cache construction.
+
+Same-input nearest-only negative control
+----------------------------------------
+$ timeout --signal=INT --kill-after=1s 55s /root/experiment/target/release/execute-fast artifacts/randomx-cfround-argon-nowrap-nearest-control fbd2e95d59d092de2c69a3092bd8b571463369a426efefb2bc6e1571978e698b
+  SP1 cycles: 6,729,191,786
+  public RandomX hash: fbd2e95d59d092de2c69a3092bd8b571463369a426efefb2bc6e1571978e698b
+  guest exit code: 0
+
+The control hash remains intentionally wrong. Exact four-mode rounding costs
+240,567,533 cycles (3.574984049% of the control) for this input, demonstrating
+that CFROUND cannot be removed.
+
+Complete-cache differential
+---------------------------
+The native differential constructs and digests every one of the 262,144
+blocks for both the frozen generic implementation and this specialization.
+All three complete 256 MiB caches match:
+
+selected Monero seed  152add6ff4fd241ba703f004dcea77fea6c2d55d8b20100aae1578e7bca88a5c
+32 zero bytes          f303edc0c3dc803869f25bb11178193805d767427e11f519bb2ac123ea1ef63e
+empty key              faf16925e389d546a2ebf79d1329ed4f8f217902ba00a5641447773725306d15
+
+All 61 Argon unit tests also pass. Every build, test, comparison, and
+execution process used a hard 55-second watchdog.
+
+Rejected explicit-round unroll
+------------------------------
+Explicitly expanding the eight column and eight row rounds preserved the
+cache probe bytes but regressed from 5,250,572,990 to 5,507,211,064 cycles:
++256,638,074 cycles (+4.887810806%). Its source change was reverted before
+the accepted candidate was applied. The rejected ELF is retained solely as
+measurement evidence:
+
+0b0d989833c90dc676ce44815e965ca64d3425597597040b33a3d2dbaf9d9b8a  randomx-cache-unrolled-rounds-profile
+
+Accepted artifact SHA-256 and size
+---------------------------------
+02a1e609a25045575d11d5a45c594f88417bfdaf6cd4df789ce71cb99a32e207  randomx-cache-nowrap-profile (216,568 bytes)
+61f69707391e3b0f2e5ea4823c423ba539f42ee4c2f8c03f94a5cbc03894b025  randomx-cfround-argon-nowrap-exact (293,440 bytes)
+7c43e4a5ef439e6bcc477f23d138e2aa1c0700a618f31c674a7b3c2aa63c5256  randomx-cfround-argon-nowrap-nearest-control (287,616 bytes)
+
+Accepted source SHA-256
+----------------------
+f2d2d794cb5ee74bfad47168d2bd6de9b69d9c463a1753ce0fde53effc627d0a  experiments/argon2-randomx-specialized/rustdom-x-argon2/src/core.rs

@@ -1,0 +1,11 @@
+[package]
+name = "argon2-native-compare"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+baseline = { package = "rustdom-x-argon2", version = "=2.1.0" }
+blake2b_simd = "=1.0.4"
+hex = "=0.4.3"
+optimized = { package = "rustdom-x-argon2", path = "../rustdom-x-argon2" }

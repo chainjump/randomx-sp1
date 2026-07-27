@@ -1,0 +1,13 @@
+[package]
+name = "randomx-softfp"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+publish = false
+
+[target.'cfg(not(target_arch = "riscv64"))'.dependencies]
+softfloat = "=1.0.0"
+
+[dev-dependencies]
+softfloat-wrapper = "=0.3.4"
+

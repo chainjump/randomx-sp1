@@ -1,0 +1,11 @@
+[package]
+name = "randomx-compact-vm-audit"
+version = "0.1.0"
+edition = "2021"
+license = "GPL-3.0-only"
+publish = false
+
+[dependencies]
+blake2b_simd = "1.0.4"
+rustdom-x = { path = "../../vendor/rustdom-x", features = ["unchecked-superscalar"] }
+rustdom-x-compact-vm = { path = "../compact" }
