@@ -352,7 +352,7 @@ fn run(vm: &mut Vm, seed: &[m128i; 4]) {
             (r(vm, vm.config.read_reg[2] as u8) ^ r(vm, vm.config.read_reg[3] as u8)) as usize;
         vm.mem_reg.mx &= CACHE_LINE_ALIGN_MASK as usize;
         vm.mem
-            .dataset_read(vm.dataset_offset + vm.mem_reg.ma as u64, &mut vm.reg.r);
+            .dataset_read_light(vm.dataset_offset + vm.mem_reg.ma as u64, &mut vm.reg.r);
         std::mem::swap(&mut vm.mem_reg.mx, &mut vm.mem_reg.ma);
 
         for i in 0..MAX_REG {

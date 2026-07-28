@@ -244,6 +244,20 @@ impl VmMemory {
             }
         }
     }
+
+    /// Derives and mixes a dataset item without consulting the optional full
+    /// dataset cache. The compact verifier is deliberately light-mode only,
+    /// so keeping that hot path separate avoids carrying the locking and
+    /// cache-population branches through every VM iteration.
+    #[inline(always)]
+    pub fn dataset_read_light(&self, offset: u64, reg: &mut [u64; 8]) {
+        debug_assert!(!self.cache);
+        let item_num = offset / CACHE_LINE_SIZE;
+        let rl = init_dataset_item(&self.seed_memory, item_num);
+        for i in 0..8 {
+            reg[i] ^= rl[i];
+        }
+    }
 }
 
 #[cfg(test)]
