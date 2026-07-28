@@ -126,9 +126,16 @@ prover-network request, price quote, or billing receipt.
 
 ## Current validation
 
-- `cargo test --release --locked -p rustdom-x --features unchecked-superscalar --lib`:
-  10 passed, including all 100 paired-handler combinations.
-- `cargo test --release --locked -p rustdom-x-compact-vm --lib`: 7 passed.
+- All 84 portable checks from canonical RandomX v1.2.3 `randomx-tests` pass.
+  The exact mapping and the 11 inapplicable JIT/SIMD checks are documented in
+  `evidence/canonical-v1.2.3-test-port.md`.
+- `cargo test --workspace --release --locked -- --test-threads=1`: 173 passed,
+  0 failed. Of these, 138 exercise the in-tree Argon2 crate: 136 inherited
+  generic tests and two RandomX-specialization invariants.
+- `rustdom-x`: 14 passed, including all 100 paired-handler combinations.
+- `rustdom-x-compact-vm`: 8 passed.
+- Both `rustdom-x --no-default-features` and its `compact-superscalar` feature
+  combination pass release-mode checks.
 - Twenty-real-block rich/compact regression: passed; all official hashes,
   final registers, and complete scratchpads matched.
 - Official RandomX v1.2.3 comparisons for `test key 000` and an empty key:
@@ -136,3 +143,5 @@ prover-network request, price quote, or billing receipt.
 - The final SP1 ELF matched official outputs for `test key 000` with both a
   text blob and an empty blob, plus the empty-key/empty-blob case. The retained
   program is not tied to the benchmark epoch key.
+- Rebuilding after the canonical test port reproduced the retained ELF
+  byte-for-byte: 295352 bytes and SHA-256 `ac3eff37cbae4583f57cdbc193cca776a80672c77a63c09eb507dc35d154c317`.

@@ -55,7 +55,8 @@ stable program identity across arbitrary RandomX keys.
 - `compact/`: compact RandomX decoder and VM executor.
 - `softfp/`: exact four-mode binary64 arithmetic for SP1 RV64IM.
 - `rustdom-x/`: RandomX state, program generation, and dataset derivation.
-- `argon2/`: optimized RandomX Argon2d cache construction.
+- `argon2/`: an in-tree `rust-argon2` fork retaining the generic API and tests,
+  with optimized RandomX Argon2d cache construction for the SP1 guest.
 - `executor/`: lightweight execution and calibrated PGU estimation.
 - `audit/`: official-RandomX and rich/compact differential checks.
 - `argon2-native-compare/`: complete-cache differential checks.
@@ -97,6 +98,9 @@ bounded without changing the PGU result.
 
 The current implementation is checked against:
 
+- all 84 portable checks from the canonical RandomX v1.2.3 `randomx-tests`
+  program (the 11 JIT-, SIMD-, and alternate-implementation checks are not
+  applicable and are itemized in `evidence/canonical-v1.2.3-test-port.md`);
 - 20 consecutive real Monero blocks;
 - 42 official RandomX v1.2.3 light-mode hashes across seven key shapes and six
   blob shapes;

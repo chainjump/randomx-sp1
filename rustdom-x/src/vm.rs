@@ -45,6 +45,69 @@ fn set_rounding_mode_env(mode: u32) {
     }
 }
 
+/// Restores the caller's native floating-point control state when dropped.
+///
+/// RandomX programs change the rounding mode through `CFROUND`. Public hash
+/// entry points must not leak the final program mode into their caller. The
+/// guard is compiled only for native x86-64 and AArch64 builds. SP1's RISC-V
+/// guest implements floating-point in software and does not include it.
+#[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
+pub struct HostRoundingModeGuard {
+    #[cfg(target_arch = "x86_64")]
+    mxcsr: u32,
+    #[cfg(target_arch = "aarch64")]
+    fpcr: u64,
+}
+
+#[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
+impl HostRoundingModeGuard {
+    #[inline(always)]
+    pub fn capture() -> Self {
+        #[cfg(target_arch = "x86_64")]
+        {
+            let mut mxcsr = 0u32;
+            unsafe {
+                std::arch::asm!(
+                    "stmxcsr [{address}]",
+                    address = in(reg) &mut mxcsr as *mut u32,
+                    options(nostack)
+                );
+            }
+            Self { mxcsr }
+        }
+
+        #[cfg(target_arch = "aarch64")]
+        {
+            let fpcr: u64;
+            unsafe {
+                std::arch::asm!("mrs {value}, fpcr", value = out(reg) fpcr);
+            }
+            Self { fpcr }
+        }
+
+    }
+}
+
+#[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
+impl Drop for HostRoundingModeGuard {
+    #[inline(always)]
+    fn drop(&mut self) {
+        #[cfg(target_arch = "x86_64")]
+        unsafe {
+            std::arch::asm!(
+                "ldmxcsr [{address}]",
+                address = in(reg) &self.mxcsr as *const u32,
+                options(nostack)
+            );
+        }
+
+        #[cfg(target_arch = "aarch64")]
+        unsafe {
+            std::arch::asm!("msr fpcr, {value}", value = in(reg) self.fpcr);
+        }
+    }
+}
+
 pub const SCRATCHPAD_L1_MASK: u64 = 0x3ff8;
 pub const SCRATCHPAD_L2_MASK: u64 = 0x3fff8;
 pub const SCRATCHPAD_L3_MASK: u64 = 0x1ffff8;
@@ -205,6 +268,8 @@ impl Vm {
     }
 
     pub fn calculate_hash(&mut self, input: &[u8]) -> Hash {
+        #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
+        let _host_rounding_mode = HostRoundingModeGuard::capture();
         let hash = blake2b(input);
         let seed = hash_to_m128i_array(&hash);
 

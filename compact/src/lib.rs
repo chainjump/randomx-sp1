@@ -168,8 +168,8 @@ impl CompactProgram {
 /// Executes a complete RandomX hash with the same memory provider and VM state
 /// used by `rustdom_x::Vm::calculate_hash`.
 pub fn calculate_hash(vm: &mut Vm, input: &[u8]) -> Hash {
-    // This single public-boundary check establishes the allocation invariant
-    // used by unchecked scratchpad accesses throughout all eight programs.
+    #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))] let _host_rounding_mode = rustdom_x::vm::HostRoundingModeGuard::capture();
+    // Establish the allocation invariant used by unchecked accesses throughout all eight programs.
     assert_eq!(vm.scratchpad.len(), SCRATCHPAD_WORDS);
     let initial_hash = blake2b(input);
     let mut seed = hash_to_m128i_array(&initial_hash);
@@ -1482,5 +1482,129 @@ mod tests {
         assert_eq!(rich_hash.as_bytes(), &expected);
         assert_eq!(compact_hash.as_bytes(), &expected);
         assert_complete_vm_state(&rich, &compact);
+    }
+
+    fn decode_hex(value: &str) -> Vec<u8> {
+        assert_eq!(value.len() % 2, 0);
+        value
+            .as_bytes()
+            .chunks_exact(2)
+            .map(|pair| {
+                let digit = |byte| match byte {
+                    b'0'..=b'9' => byte - b'0',
+                    b'a'..=b'f' => byte - b'a' + 10,
+                    b'A'..=b'F' => byte - b'A' + 10,
+                    _ => panic!("invalid hexadecimal digit"),
+                };
+                (digit(pair[0]) << 4) | digit(pair[1])
+            })
+            .collect()
+    }
+
+    #[cfg(target_arch = "x86_64")]
+    fn host_rounding_mode() -> Option<u32> {
+        let mut mxcsr = 0u32;
+        unsafe {
+            std::arch::asm!(
+                "stmxcsr [{address}]",
+                address = in(reg) &mut mxcsr as *mut u32,
+                options(nostack)
+            );
+        }
+        Some((mxcsr >> 13) & 3)
+    }
+
+    #[cfg(target_arch = "aarch64")]
+    fn host_rounding_mode() -> Option<u32> {
+        let fpcr: u64;
+        unsafe {
+            std::arch::asm!("mrs {value}, fpcr", value = out(reg) fpcr);
+        }
+        Some(match (fpcr >> 22) & 3 {
+            0 => 0,
+            1 => 2,
+            2 => 1,
+            3 => 3,
+            _ => unreachable!(),
+        })
+    }
+
+    #[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
+    fn host_rounding_mode() -> Option<u32> {
+        None
+    }
+
+    fn assert_canonical_hashes(key: &[u8], cases: &[(&[u8], &str)]) {
+        let memory = Arc::new(VmMemory::light(key));
+        let mut rich = new_vm(Arc::clone(&memory));
+        let mut compact = new_vm(memory);
+
+        for &(input, expected) in cases {
+            rich.reset_rounding_mode();
+            let rich_hash = rich.calculate_hash(input);
+            assert_eq!(rich_hash.as_bytes(), decode_hex(expected));
+            if let Some(mode) = host_rounding_mode() {
+                assert_eq!(mode, 0, "rich hash did not preserve caller rounding mode");
+            }
+
+            compact.reset_rounding_mode();
+            let compact_hash = calculate_hash(&mut compact, input);
+            assert_eq!(compact_hash.as_bytes(), decode_hex(expected));
+            if let Some(mode) = host_rounding_mode() {
+                assert_eq!(mode, 0, "compact hash did not preserve caller rounding mode");
+            }
+            assert_complete_vm_state(&rich, &compact);
+        }
+    }
+
+    #[test]
+    fn canonical_v1_interpreter_hash_and_rounding_vectors() {
+        let key_000_cases: [(&[u8], &str); 3] = [
+            (
+                b"This is a test",
+                "639183aae1bf4c9a35884cb46b09cad9175f04efd7684e7262a0ac1c2f0b4e3f",
+            ),
+            (
+                b"Lorem ipsum dolor sit amet",
+                "300a0adb47603dedb42228ccb2b211104f4da45af709cd7547cd049e9489c969",
+            ),
+            (
+                b"sed do eiusmod tempor incididunt ut labore et dolore magna aliqua",
+                "c36d4ed4191e617309867ed66a443be4075014e2b061bcdaf9ce7b721d2b77a8",
+            ),
+        ];
+        assert_canonical_hashes(b"test key 000", &key_000_cases);
+
+        let input_e = decode_hex(
+            "0b0b98bea7e805e0010a2126d287a2a0cc833d312cb786385a7c2f9de69d2553\
+             7f584a9bc9977b00000000666fd8753bf61a8631f12984e3fd44f4014eca6292\
+             76817b56f32e9b68bd82f416",
+        );
+        let key_001_cases: [(&[u8], &str); 2] = [
+            (
+                b"sed do eiusmod tempor incididunt ut labore et dolore magna aliqua",
+                "e9ff4503201c0c2cca26d285c93ae883f9b1d30c9eb240b820756f2d5a7905fc",
+            ),
+            (
+                &input_e,
+                "c56414121acda1713c2f2a819d8ae38aed7c80c35c2a769298d34f03833cd5f1",
+            ),
+        ];
+        assert_canonical_hashes(b"test key 001", &key_001_cases);
+
+        let key_f = [
+            0x77, 0x97, 0x37, 0x3e, 0xa4, 0x63, 0x31, 0x94, 0x64, 0x0b, 0xf8, 0xd8, 0xc3,
+            0xb6, 0x67, 0x24, 0xd6, 0xaa, 0x7b, 0xd2, 0xdc, 0x20, 0xe0, 0x09, 0xdf, 0x2f,
+            0x8f, 0x17, 0x10, 0xab, 0xe8,
+        ];
+        let input_f = decode_hex(
+            "1010e1eaf8cf067b37b5f0ee031ab23ed1755e090a3af4415830145853e2be3e\
+             1f6821fed84dae58d00e00da5214d6c1f2d0622e0abd51f9373d04e0b0f8e6d\
+             6514d90689721c4aac5a9bb0d",
+        );
+        assert_canonical_hashes(
+            &key_f,
+            &[(&input_f, "78af2a1864c42abce36d2e8983e13df99b2af0ce1362999af09fab004d4435a8")],
+        );
     }
 }
