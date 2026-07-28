@@ -61,7 +61,9 @@ type Effect = fn(&mut Vm, &CompactInstr);
 /// A decoded RandomX instruction with no enums, boxes, or optional operands.
 ///
 /// `imm` is already sign-extended, masked, converted to a reciprocal, or
-/// transformed into a branch increment as appropriate for `effect`.
+/// transformed into a branch increment as appropriate for `effect`. The
+/// power-of-two stride lets the 4.2-million-dispatch hot path address an
+/// instruction with one shift.
 #[repr(C)]
 #[derive(Clone, Copy)]
 struct CompactInstr {
@@ -71,11 +73,11 @@ struct CompactInstr {
     dst: u8,
     src: u8,
     mode: u8,
-    _reserved: u8,
+    _reserved: [u8; 9],
 }
 
 const _: () = {
-    assert!(size_of::<CompactInstr>() == 24);
+    assert!(size_of::<CompactInstr>() == 32);
     // Instruction memory operands select one u64 from the full scratchpad.
     assert!((SCRATCHPAD_L3_MASK as usize >> 3) + 1 == SCRATCHPAD_WORDS);
     // Iteration mixing selects an aligned group of eight u64 words.
@@ -97,7 +99,7 @@ impl CompactInstr {
             dst,
             src,
             mode,
-            _reserved: 0,
+            _reserved: [0; 9],
         }
     }
 }
@@ -1076,8 +1078,8 @@ mod tests {
     }
 
     #[test]
-    fn compact_instruction_is_24_bytes() {
-        assert_eq!(size_of::<CompactInstr>(), 24);
+    fn compact_instruction_is_32_bytes() {
+        assert_eq!(size_of::<CompactInstr>(), 32);
     }
 
     #[test]
