@@ -112,6 +112,42 @@ pub fn validate_recent_mainnet_blocks() -> ValidationSummary {
             "final scratchpad mismatch at block {}",
             block.height
         );
+        assert_eq!(
+            rich.mem_reg.mx, compact.mem_reg.mx,
+            "final mx mismatch at block {}",
+            block.height
+        );
+        assert_eq!(
+            rich.mem_reg.ma, compact.mem_reg.ma,
+            "final ma mismatch at block {}",
+            block.height
+        );
+        assert_eq!(
+            rich.pc, compact.pc,
+            "final PC mismatch at block {}",
+            block.height
+        );
+        assert_eq!(
+            rich.config.read_reg, compact.config.read_reg,
+            "final read-register mismatch at block {}",
+            block.height
+        );
+        assert_eq!(
+            rich.config.e_mask, compact.config.e_mask,
+            "final exponent-mask mismatch at block {}",
+            block.height
+        );
+        assert_eq!(
+            rich.dataset_offset, compact.dataset_offset,
+            "final dataset-offset mismatch at block {}",
+            block.height
+        );
+        assert_eq!(
+            rich.get_rounding_mode(),
+            compact.get_rounding_mode(),
+            "final rounding-mode mismatch at block {}",
+            block.height
+        );
         compact.reset_rounding_mode();
 
         for mode in 0..4 {

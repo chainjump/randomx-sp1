@@ -349,6 +349,31 @@ fn assert_vm_state(
         compact.pc,
         "pc divergence: program {program} iteration {iteration} pc {pc} op {operation:?}"
     );
+    assert_eq!(
+        rich.mem_reg.mx, compact.mem_reg.mx,
+        "mx divergence: program {program} iteration {iteration} pc {pc} op {operation:?}"
+    );
+    assert_eq!(
+        rich.mem_reg.ma, compact.mem_reg.ma,
+        "ma divergence: program {program} iteration {iteration} pc {pc} op {operation:?}"
+    );
+    assert_eq!(
+        rich.config.read_reg, compact.config.read_reg,
+        "read-register divergence: program {program} iteration {iteration} pc {pc} op {operation:?}"
+    );
+    assert_eq!(
+        rich.config.e_mask, compact.config.e_mask,
+        "exponent-mask divergence: program {program} iteration {iteration} pc {pc} op {operation:?}"
+    );
+    assert_eq!(
+        rich.dataset_offset, compact.dataset_offset,
+        "dataset-offset divergence: program {program} iteration {iteration} pc {pc} op {operation:?}"
+    );
+    assert_eq!(
+        rich.get_rounding_mode(),
+        compact.get_rounding_mode(),
+        "rounding divergence: program {program} iteration {iteration} pc {pc} op {operation:?}"
+    );
 }
 
 fn run(vm: &mut Vm, seed: &[m128i; 4]) {
@@ -357,12 +382,20 @@ fn run(vm: &mut Vm, seed: &[m128i; 4]) {
     init_vm(vm, &program.entropy);
     debug_assert_eq!(vm.scratchpad.len(), SCRATCHPAD_WORDS);
 
-    let mut sp_addr_0 = vm.mem_reg.mx as u32;
-    let mut sp_addr_1 = vm.mem_reg.ma as u32;
+    let mut mx = vm.mem_reg.mx;
+    let mut ma = vm.mem_reg.ma;
+    let dataset_offset = vm.dataset_offset;
+    let read_reg = [
+        register_byte_offset(vm.config.read_reg[0] as u8, size_of::<u64>() as u8),
+        register_byte_offset(vm.config.read_reg[1] as u8, size_of::<u64>() as u8),
+        register_byte_offset(vm.config.read_reg[2] as u8, size_of::<u64>() as u8),
+        register_byte_offset(vm.config.read_reg[3] as u8, size_of::<u64>() as u8),
+    ];
+    let mut sp_addr_0 = mx as u32;
+    let mut sp_addr_1 = ma as u32;
 
     for _ in 0..PROGRAM_ITERATIONS {
-        let sp_mix = r(vm, (vm.config.read_reg[0] * size_of::<u64>()) as u8)
-            ^ r(vm, (vm.config.read_reg[1] * size_of::<u64>()) as u8);
+        let sp_mix = r(vm, read_reg[0]) ^ r(vm, read_reg[1]);
 
         sp_addr_0 ^= sp_mix as u32;
         sp_addr_0 = (sp_addr_0 & SCRATCHPAD_L3_MASK_U32) >> 3;
@@ -392,13 +425,11 @@ fn run(vm: &mut Vm, seed: &[m128i; 4]) {
             vm.pc += 1;
         }
 
-        vm.mem_reg.mx ^=
-            (r(vm, (vm.config.read_reg[2] * size_of::<u64>()) as u8)
-                ^ r(vm, (vm.config.read_reg[3] * size_of::<u64>()) as u8)) as usize;
-        vm.mem_reg.mx &= CACHE_LINE_ALIGN_MASK as usize;
+        mx ^= (r(vm, read_reg[2]) ^ r(vm, read_reg[3])) as usize;
+        mx &= CACHE_LINE_ALIGN_MASK as usize;
         vm.mem
-            .dataset_read_light(vm.dataset_offset + vm.mem_reg.ma as u64, &mut vm.reg.r);
-        std::mem::swap(&mut vm.mem_reg.mx, &mut vm.mem_reg.ma);
+            .dataset_read_light(dataset_offset + ma as u64, &mut vm.reg.r);
+        std::mem::swap(&mut mx, &mut ma);
 
         for i in 0..MAX_REG {
             set_scratch(vm, addr1 + i, vm.reg.r[i]);
@@ -416,6 +447,9 @@ fn run(vm: &mut Vm, seed: &[m128i; 4]) {
         sp_addr_0 = 0;
         sp_addr_1 = 0;
     }
+
+    vm.mem_reg.mx = mx;
+    vm.mem_reg.ma = ma;
 }
 
 fn init_vm(vm: &mut Vm, entropy: &[u64; 16]) {
@@ -1244,6 +1278,18 @@ mod tests {
         vm.set_rounding_mode(mode);
     }
 
+    fn assert_complete_vm_state(rich: &Vm, compact: &Vm) {
+        assert_eq!(rich.reg.to_bytes(), compact.reg.to_bytes());
+        assert_eq!(rich.scratchpad, compact.scratchpad);
+        assert_eq!(rich.mem_reg.mx, compact.mem_reg.mx);
+        assert_eq!(rich.mem_reg.ma, compact.mem_reg.ma);
+        assert_eq!(rich.pc, compact.pc);
+        assert_eq!(rich.config.read_reg, compact.config.read_reg);
+        assert_eq!(rich.config.e_mask, compact.config.e_mask);
+        assert_eq!(rich.dataset_offset, compact.dataset_offset);
+        assert_eq!(rich.get_rounding_mode(), compact.get_rounding_mode());
+    }
+
     #[test]
     fn compact_instruction_is_32_bytes() {
         assert_eq!(size_of::<CompactInstr>(), 32);
@@ -1410,8 +1456,7 @@ mod tests {
 
         assert_eq!(rich_hash.as_bytes(), &expected);
         assert_eq!(compact_hash.as_bytes(), &expected);
-        assert_eq!(rich.reg.to_bytes(), compact.reg.to_bytes());
-        assert_eq!(rich.scratchpad, compact.scratchpad);
+        assert_complete_vm_state(&rich, &compact);
     }
 
     #[test]
@@ -1445,7 +1490,6 @@ mod tests {
 
         assert_eq!(rich_hash.as_bytes(), &expected);
         assert_eq!(compact_hash.as_bytes(), &expected);
-        assert_eq!(rich.reg.to_bytes(), compact.reg.to_bytes());
-        assert_eq!(rich.scratchpad, compact.scratchpad);
+        assert_complete_vm_state(&rich, &compact);
     }
 }
