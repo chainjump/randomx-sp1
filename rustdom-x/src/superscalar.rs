@@ -1224,8 +1224,10 @@ fn execute_compact_instruction_known<const OPCODE: u8>(ds: &mut [u64; 8], instr:
 		7 => mulh(dst_value, exec_read_register(ds, instr.src_offset)),
 		8 => smulh(dst_value, exec_read_register(ds, instr.src_offset)),
 		9 => dst_value.wrapping_mul(instr.immediate),
-		// Every monomorphization stored in `PAIR_HANDLERS` uses 0..=9.
-		_ => unsafe { std::hint::unreachable_unchecked() },
+		// Every monomorphization stored in `PAIR_HANDLERS` uses 0..=9. Keep the
+		// fallback defined anyway: an accidental future table entry must trap,
+		// not turn into undefined behavior inside a proving guest.
+		_ => unreachable!("invalid statically dispatched superscalar opcode"),
 	};
 	exec_write_register(ds, instr.dst_offset, result);
 }

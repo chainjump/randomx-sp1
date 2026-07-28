@@ -110,7 +110,9 @@ The current implementation is checked against:
 - complete 256 MiB cache digests for multiple keys; and
 - software-floating-point comparisons against Berkeley SoftFloat.
 
-Current evidence is under `evidence/`. Rejected candidates and earlier
+Current evidence is under `evidence/`. The SP1-specific unsafe-code, syscall,
+ELF-layout, dependency, and provenance review is recorded in
+`evidence/sp1-program-safety-review.md`. Rejected candidates and earlier
 artifacts remain recoverable from local Git history. There is no configured
 Git remote, so preserving or backing up this repository's `.git` directory is
 required for that recovery path.
