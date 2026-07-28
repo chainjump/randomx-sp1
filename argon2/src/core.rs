@@ -146,9 +146,10 @@ unsafe fn fill_memory_blocks_randomx_segment<
     let starting_index = if FIRST_PASS && SLICE == 0 { 2 } else { 0 };
     let segment_start = SLICE * SEGMENT_LENGTH;
     let segment_end = segment_start + SEGMENT_LENGTH;
-    for curr_offset in segment_start + starting_index..segment_end {
+    let first_offset = segment_start + starting_index;
+    let mut prev_offset = first_offset.wrapping_sub(1) & LANE_MASK;
+    for curr_offset in first_offset..segment_end {
         let index_in_segment = curr_offset - segment_start;
-        let prev_offset = curr_offset.wrapping_sub(1) & LANE_MASK;
         // SAFETY: all three offsets are masked or constructed within the
         // validated 262,144-block RandomX lane. Argon2's reference formula
         // excludes the current block from both read operands.
@@ -193,6 +194,7 @@ unsafe fn fill_memory_blocks_randomx_segment<
                 blocks.add(curr_offset as usize).cast::<u64>(),
             );
         }
+        prev_offset = curr_offset;
     }
 }
 
