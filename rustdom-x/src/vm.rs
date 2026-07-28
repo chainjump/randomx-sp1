@@ -155,7 +155,7 @@ pub struct Vm {
     pub config: VmConfig,
     pub mem: Arc<VmMemory>,
     pub dataset_offset: u64,
-    rounding_mode: u32,
+    rounding_mode: u8,
     #[cfg(feature = "cfround-audit")]
     cfround_counts: [u64; 4],
 }
@@ -306,12 +306,12 @@ impl Vm {
 
     pub fn set_rounding_mode(&mut self, mode: u32) {
         assert!(mode < 4);
-        self.rounding_mode = mode;
+        self.rounding_mode = mode as u8;
         set_rounding_mode_env(mode);
     }
 
     pub fn get_rounding_mode(&self) -> u32 {
-        self.rounding_mode
+        self.rounding_mode as u32
     }
 
     #[cfg(feature = "cfround-audit")]
