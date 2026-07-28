@@ -51,7 +51,6 @@ pub const SCRATCHPAD_L3_MASK: u64 = 0x1ffff8;
 const SCRATCHPAD_L3_MASK_U32: u32 = 0x1fffc0;
 
 const SCRATCHPAD_SIZE: usize = 262144;
-const MXCSR_DEFAULT: u32 = 0x9FC0;
 const CONDITION_OFFSET: u64 = 8;
 const CONDITION_MASK: u64 = (1 << CONDITION_OFFSET) - 1;
 
@@ -156,7 +155,7 @@ pub struct Vm {
     pub config: VmConfig,
     pub mem: Arc<VmMemory>,
     pub dataset_offset: u64,
-    mxcsr: u32,
+    rounding_mode: u32,
     #[cfg(feature = "cfround-audit")]
     cfround_counts: [u64; 4],
 }
@@ -301,17 +300,18 @@ impl Vm {
     }
 
     pub fn reset_rounding_mode(&mut self) {
-        self.mxcsr = MXCSR_DEFAULT;
+        self.rounding_mode = 0;
         set_rounding_mode_env(0);
     }
 
     pub fn set_rounding_mode(&mut self, mode: u32) {
-        self.mxcsr = MXCSR_DEFAULT | (mode << 13);
+        debug_assert!(mode < 4);
+        self.rounding_mode = mode;
         set_rounding_mode_env(mode);
     }
 
     pub fn get_rounding_mode(&self) -> u32 {
-        (self.mxcsr >> 13) & 3
+        self.rounding_mode
     }
 
     #[cfg(feature = "cfround-audit")]
@@ -694,7 +694,7 @@ pub fn new_vm(mem: Arc<VmMemory>) -> Vm {
         },
         mem,
         dataset_offset: 0,
-        mxcsr: MXCSR_DEFAULT,
+        rounding_mode: 0,
         #[cfg(feature = "cfround-audit")]
         cfround_counts: [0; 4],
     }
