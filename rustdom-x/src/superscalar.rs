@@ -389,6 +389,7 @@ impl ExecutionPort {
 #[derive(Debug)]
 pub struct ScMacroOp {
 	#[cfg(any(not(feature = "compact-superscalar"), test))]
+	#[allow(dead_code)]
 	name: &'static str,
 	#[cfg(any(not(feature = "compact-superscalar"), test))]
 	size: usize,
