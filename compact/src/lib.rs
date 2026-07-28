@@ -748,20 +748,20 @@ fn memory_mask(mode: u8) -> u32 {
 }
 
 #[inline(always)]
-fn scratchpad_src_ix(vm: &Vm, instr: &CompactInstr) -> usize {
+fn scratchpad_src_offset(vm: &Vm, instr: &CompactInstr) -> usize {
     debug_assert_ne!(instr.memory_mask, 0);
     let address = if instr.src == NO_REG {
         instr.imm
     } else {
         r(vm, instr.src).wrapping_add(instr.imm)
     };
-    ((address & instr.memory_mask as u64) >> 3) as usize
+    (address & instr.memory_mask as u64) as usize
 }
 
 #[inline(always)]
-fn scratchpad_dst_ix(vm: &Vm, instr: &CompactInstr) -> usize {
+fn scratchpad_dst_offset(vm: &Vm, instr: &CompactInstr) -> usize {
     debug_assert_ne!(instr.memory_mask, 0);
-    ((r(vm, instr.dst).wrapping_add(instr.imm) & instr.memory_mask as u64) >> 3) as usize
+    (r(vm, instr.dst).wrapping_add(instr.imm) & instr.memory_mask as u64) as usize
 }
 
 #[inline(always)]
@@ -776,6 +776,37 @@ fn set_scratch(vm: &mut Vm, index: usize, value: u64) {
     unsafe { *vm.scratchpad.get_unchecked_mut(index) = value }
 }
 
+#[inline(always)]
+fn scratch_at_offset(vm: &Vm, byte_offset: usize) -> u64 {
+    debug_assert_eq!(byte_offset & (size_of::<u64>() - 1), 0);
+    debug_assert!(byte_offset + size_of::<u64>() <= vm.scratchpad.len() * size_of::<u64>());
+    // SAFETY: decoded memory masks clear the low three bits and limit the
+    // offset to at most `SCRATCHPAD_L3_MASK`. `calculate_hash` validates the
+    // exact allocation length before execution.
+    unsafe {
+        *vm.scratchpad
+            .as_ptr()
+            .cast::<u8>()
+            .add(byte_offset)
+            .cast::<u64>()
+    }
+}
+
+#[inline(always)]
+fn set_scratch_at_offset(vm: &mut Vm, byte_offset: usize, value: u64) {
+    debug_assert_eq!(byte_offset & (size_of::<u64>() - 1), 0);
+    debug_assert!(byte_offset + size_of::<u64>() <= vm.scratchpad.len() * size_of::<u64>());
+    // SAFETY: same mask, alignment, and allocation invariant as
+    // `scratch_at_offset`; `&mut Vm` provides exclusive access.
+    unsafe {
+        *vm.scratchpad
+            .as_mut_ptr()
+            .cast::<u8>()
+            .add(byte_offset)
+            .cast::<u64>() = value
+    }
+}
+
 fn exec_nop(_: &mut Vm, _: &CompactInstr) {}
 
 fn exec_iadd_rs(vm: &mut Vm, instr: &CompactInstr) {
@@ -784,7 +815,7 @@ fn exec_iadd_rs(vm: &mut Vm, instr: &CompactInstr) {
 }
 
 fn exec_iadd_m(vm: &mut Vm, instr: &CompactInstr) {
-    let value = scratch(vm, scratchpad_src_ix(vm, instr));
+    let value = scratch_at_offset(vm, scratchpad_src_offset(vm, instr));
     set_r(vm, instr.dst, r(vm, instr.dst).wrapping_add(value));
 }
 
@@ -801,7 +832,7 @@ fn exec_isub_imm(vm: &mut Vm, instr: &CompactInstr) {
 }
 
 fn exec_isub_m(vm: &mut Vm, instr: &CompactInstr) {
-    let value = scratch(vm, scratchpad_src_ix(vm, instr));
+    let value = scratch_at_offset(vm, scratchpad_src_offset(vm, instr));
     set_r(vm, instr.dst, r(vm, instr.dst).wrapping_sub(value));
 }
 
@@ -818,7 +849,7 @@ fn exec_imul_imm(vm: &mut Vm, instr: &CompactInstr) {
 }
 
 fn exec_imul_m(vm: &mut Vm, instr: &CompactInstr) {
-    let value = scratch(vm, scratchpad_src_ix(vm, instr));
+    let value = scratch_at_offset(vm, scratchpad_src_offset(vm, instr));
     set_r(vm, instr.dst, r(vm, instr.dst).wrapping_mul(value));
 }
 
@@ -827,7 +858,7 @@ fn exec_imulh_r(vm: &mut Vm, instr: &CompactInstr) {
 }
 
 fn exec_imulh_m(vm: &mut Vm, instr: &CompactInstr) {
-    let source = scratch(vm, scratchpad_src_ix(vm, instr));
+    let source = scratch_at_offset(vm, scratchpad_src_offset(vm, instr));
     set_r(vm, instr.dst, mulh(source, r(vm, instr.dst)));
 }
 
@@ -836,7 +867,7 @@ fn exec_ismulh_r(vm: &mut Vm, instr: &CompactInstr) {
 }
 
 fn exec_ismulh_m(vm: &mut Vm, instr: &CompactInstr) {
-    let source = scratch(vm, scratchpad_src_ix(vm, instr));
+    let source = scratch_at_offset(vm, scratchpad_src_offset(vm, instr));
     set_r(vm, instr.dst, smulh(source, r(vm, instr.dst)));
 }
 
@@ -859,7 +890,7 @@ fn exec_ixor_imm(vm: &mut Vm, instr: &CompactInstr) {
 }
 
 fn exec_ixor_m(vm: &mut Vm, instr: &CompactInstr) {
-    let source = scratch(vm, scratchpad_src_ix(vm, instr));
+    let source = scratch_at_offset(vm, scratchpad_src_offset(vm, instr));
     set_r(vm, instr.dst, r(vm, instr.dst) ^ source);
 }
 
@@ -925,7 +956,8 @@ fn exec_fadd_r(vm: &mut Vm, instr: &CompactInstr) {
 }
 
 fn exec_fadd_m(vm: &mut Vm, instr: &CompactInstr) {
-    let source = m128i::from_u64(0, scratch(vm, scratchpad_src_ix(vm, instr))).lower_to_m128d();
+    let source =
+        m128i::from_u64(0, scratch_at_offset(vm, scratchpad_src_offset(vm, instr))).lower_to_m128d();
     let destination = f(vm, instr.dst);
     let mode = rounding_mode(vm);
     let result = if mode == RoundingMode::Nearest {
@@ -949,7 +981,8 @@ fn exec_fsub_r(vm: &mut Vm, instr: &CompactInstr) {
 }
 
 fn exec_fsub_m(vm: &mut Vm, instr: &CompactInstr) {
-    let source = m128i::from_u64(0, scratch(vm, scratchpad_src_ix(vm, instr))).lower_to_m128d();
+    let source =
+        m128i::from_u64(0, scratch_at_offset(vm, scratchpad_src_offset(vm, instr))).lower_to_m128d();
     let destination = f(vm, instr.dst);
     let mode = rounding_mode(vm);
     let result = if mode == RoundingMode::Nearest {
@@ -978,7 +1011,8 @@ fn exec_fmul_r(vm: &mut Vm, instr: &CompactInstr) {
 }
 
 fn exec_fdiv_m(vm: &mut Vm, instr: &CompactInstr) {
-    let source = m128i::from_u64(0, scratch(vm, scratchpad_src_ix(vm, instr))).lower_to_m128d();
+    let source =
+        m128i::from_u64(0, scratch_at_offset(vm, scratchpad_src_offset(vm, instr))).lower_to_m128d();
     let source = mask_register_exponent_mantissa(vm, source);
     let destination = e(vm, instr.dst);
     let mode = rounding_mode(vm);
@@ -1015,8 +1049,8 @@ fn exec_cfround(vm: &mut Vm, instr: &CompactInstr) {
 }
 
 fn exec_istore(vm: &mut Vm, instr: &CompactInstr) {
-    let index = scratchpad_dst_ix(vm, instr);
-    set_scratch(vm, index, r(vm, instr.src));
+    let byte_offset = scratchpad_dst_offset(vm, instr);
+    set_scratch_at_offset(vm, byte_offset, r(vm, instr.src));
 }
 
 #[inline(always)]
