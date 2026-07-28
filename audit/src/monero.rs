@@ -38,7 +38,6 @@ pub struct MoneroBlockFixture {
     pub wide_difficulty: String,
     pub hashing_blob: String,
     pub pow_hash: String,
-    pub cfround_counts: [u64; 4],
 }
 
 pub fn decode_hex<const N: usize>(value: &str) -> Result<[u8; N], String> {

@@ -65,9 +65,7 @@ fn main() {
             "official RandomX hash does not meet network difficulty at block {}",
             record.height
         );
-        let before = rich.cfround_counts();
         let actual = rich.calculate_hash(&blob);
-        let after = rich.cfround_counts();
         assert_eq!(
             actual.as_bytes(),
             &expected,
@@ -83,7 +81,6 @@ fn main() {
             wide_difficulty: record.wide_difficulty.clone(),
             hashing_blob: encode_hex(&blob),
             pow_hash: encode_hex(&expected),
-            cfround_counts: std::array::from_fn(|mode| after[mode] - before[mode]),
         });
     }
 

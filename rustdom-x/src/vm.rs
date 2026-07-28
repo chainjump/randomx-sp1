@@ -156,8 +156,6 @@ pub struct Vm {
     pub mem: Arc<VmMemory>,
     pub dataset_offset: u64,
     rounding_mode: u8,
-    #[cfg(feature = "cfround-audit")]
-    cfround_counts: [u64; 4],
 }
 
 impl Vm {
@@ -312,11 +310,6 @@ impl Vm {
 
     pub fn get_rounding_mode(&self) -> u32 {
         self.rounding_mode as u32
-    }
-
-    #[cfg(feature = "cfround-audit")]
-    pub fn cfround_counts(&self) -> [u64; 4] {
-        self.cfround_counts
     }
 
     //f...
@@ -510,10 +503,6 @@ impl Vm {
     pub fn exec_cfround(&mut self, instr: &Instr) {
         let v_src = self.read_r(&instr.src);
         let mode = (v_src.rotate_right(instr.imm.unwrap() as u32) % 4) as u32;
-        #[cfg(feature = "cfround-audit")]
-        {
-            self.cfround_counts[mode as usize] += 1;
-        }
         self.set_rounding_mode(mode);
     }
 
@@ -695,7 +684,5 @@ pub fn new_vm(mem: Arc<VmMemory>) -> Vm {
         mem,
         dataset_offset: 0,
         rounding_mode: 0,
-        #[cfg(feature = "cfround-audit")]
-        cfround_counts: [0; 4],
     }
 }

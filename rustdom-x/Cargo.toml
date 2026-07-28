@@ -29,7 +29,6 @@ path = "src/lib.rs"
 
 [features]
 default = ["unchecked-superscalar"]
-cfround-audit = []
 compact-superscalar = ["precompute-reciprocal"]
 precompute-reciprocal = []
 unchecked-superscalar = ["compact-superscalar"]

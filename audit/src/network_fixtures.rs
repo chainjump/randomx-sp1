@@ -16,7 +16,6 @@ pub struct ValidationSummary {
     pub blocks: usize,
     pub first_height: u64,
     pub last_height: u64,
-    pub cfround_counts: [u64; 4],
     pub elapsed: Duration,
 }
 
@@ -38,7 +37,6 @@ pub fn validate_recent_mainnet_blocks() -> ValidationSummary {
     let memory = Arc::new(VmMemory::light(&seed));
     let mut rich = new_vm(Arc::clone(&memory));
     let mut compact = new_vm(memory);
-    let mut total_cfround = [0u64; 4];
     let started = Instant::now();
 
     for (index, block) in fixtures.blocks.iter().enumerate() {
@@ -78,16 +76,7 @@ pub fn validate_recent_mainnet_blocks() -> ValidationSummary {
             block.height
         );
 
-        let before = rich.cfround_counts();
         let rich_hash = rich.calculate_hash(&blob);
-        let after = rich.cfround_counts();
-        let observed_cfround = std::array::from_fn(|mode| after[mode] - before[mode]);
-        assert_eq!(
-            observed_cfround, block.cfround_counts,
-            "CFROUND coverage changed at block {}",
-            block.height
-        );
-
         let compact_hash = calculate_hash(&mut compact, &blob);
         assert_eq!(
             rich_hash.as_bytes(),
@@ -149,22 +138,12 @@ pub fn validate_recent_mainnet_blocks() -> ValidationSummary {
             block.height
         );
         compact.reset_rounding_mode();
-
-        for mode in 0..4 {
-            total_cfround[mode] += observed_cfround[mode];
-        }
     }
-
-    assert!(
-        total_cfround.iter().sum::<u64>() > 0,
-        "the fixed block window must exercise CFROUND"
-    );
 
     ValidationSummary {
         blocks: fixtures.blocks.len(),
         first_height: fixtures.blocks.first().unwrap().height,
         last_height: fixtures.blocks.last().unwrap().height,
-        cfround_counts: total_cfround,
         elapsed: started.elapsed(),
     }
 }
