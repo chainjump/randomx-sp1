@@ -9,7 +9,7 @@ const MONERO_SEED: [u8; 32] = [
 fn cache_digest(key: &[u8]) -> String {
     let memory = VmMemory::light(key);
     let mut digest = Params::new().hash_length(32).to_state();
-    for block in memory.seed_memory.blocks.iter() {
+    for block in memory.seed_memory.blocks().iter() {
         digest.update(block.as_u8());
     }
     hex::encode(digest.finalize().as_bytes())

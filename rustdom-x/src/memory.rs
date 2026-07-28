@@ -2,6 +2,7 @@ extern crate argon2;
 
 use std::sync::{Arc, RwLock};
 use std::time::Instant;
+use std::{mem::align_of, mem::size_of};
 
 use self::argon2::block::Block;
 
@@ -16,9 +17,23 @@ const RANDOMX_CACHE_ACCESSES: usize = 8;
 
 const ARGON2_SYNC_POINTS: u32 = 4;
 const ARGON_BLOCK_SIZE: u32 = 1024;
+const ARGON_BLOCK_WORDS: usize = ARGON_BLOCK_SIZE as usize / size_of::<u64>();
 
 pub const CACHE_LINE_SIZE: u64 = 64;
 pub const DATASET_ITEM_COUNT: usize = (2147483648 + 33554368) / 64; //34.078.719
+const CACHE_LINE_WORDS: usize = CACHE_LINE_SIZE as usize / size_of::<u64>();
+const CACHE_LINE_COUNT: u64 =
+    (RANDOMX_ARGON_MEMORY as u64 * ARGON_BLOCK_SIZE as u64) / CACHE_LINE_SIZE;
+const CACHE_LINE_MASK: u64 = CACHE_LINE_COUNT - 1;
+const CACHE_WORD_COUNT: usize = RANDOMX_ARGON_MEMORY as usize * ARGON_BLOCK_WORDS;
+
+const _: () = {
+    assert!(size_of::<Block>() == ARGON_BLOCK_SIZE as usize);
+    assert!(align_of::<Block>() == align_of::<u64>());
+    assert!(CACHE_LINE_SIZE as usize == CACHE_LINE_WORDS * size_of::<u64>());
+    assert!(CACHE_LINE_COUNT.is_power_of_two());
+    assert!(CACHE_WORD_COUNT == CACHE_LINE_COUNT as usize * CACHE_LINE_WORDS);
+};
 
 const SUPERSCALAR_MUL_0: u64 = 6364136223846793005;
 const SUPERSCALAR_ADD_1: u64 = 9298411001130361340;
@@ -31,8 +46,8 @@ const SUPERSCALAR_ADD_7: u64 = 9549104520008361294;
 
 //256MiB, always used, named randomx_cache in the reference implementation
 pub struct SeedMemory {
-    pub blocks: Box<[Block]>,
-    pub programs: Vec<ScProgram<'static>>,
+    blocks: Box<[Block]>,
+    programs: Vec<ScProgram<'static>>,
 }
 
 impl SeedMemory {
@@ -59,6 +74,14 @@ impl SeedMemory {
             programs,
         }
     }
+
+    pub fn blocks(&self) -> &[Block] {
+        &self.blocks
+    }
+
+    pub fn program_count(&self) -> usize {
+        self.programs.len()
+    }
 }
 
 fn create_argon_context<'a>(key: &'a [u8]) -> argon2::context::Context<'a> {
@@ -83,13 +106,27 @@ fn create_argon_context<'a>(key: &'a [u8]) -> argon2::context::Context<'a> {
     }
 }
 
-fn mix_block_value(seed_mem: &SeedMemory, reg_value: u64, r: usize) -> u64 {
-    let mask = (((RANDOMX_ARGON_MEMORY * ARGON_BLOCK_SIZE) as u64) / CACHE_LINE_SIZE) - 1;
-    let byte_offset = ((reg_value & mask) * CACHE_LINE_SIZE) + (8 * r as u64);
+#[inline(always)]
+fn mix_word_index(reg_value: u64, r: usize) -> usize {
+    debug_assert!(r < CACHE_LINE_WORDS);
+    (reg_value & CACHE_LINE_MASK) as usize * CACHE_LINE_WORDS + r
+}
 
-    let block_ix = byte_offset / ARGON_BLOCK_SIZE as u64;
-    let block_v_ix = (byte_offset - (block_ix * ARGON_BLOCK_SIZE as u64)) / 8;
-    seed_mem.blocks[block_ix as usize][block_v_ix as usize]
+#[inline(always)]
+fn mix_block_value(seed_mem: &SeedMemory, reg_value: u64, r: usize) -> u64 {
+    debug_assert_eq!(seed_mem.blocks.len() * ARGON_BLOCK_WORDS, CACHE_WORD_COUNT);
+    let word_index = mix_word_index(reg_value, r);
+    debug_assert!(word_index < CACHE_WORD_COUNT);
+
+    // SAFETY: `SeedMemory`'s fields are private, and `new_initialised` always
+    // installs exactly `RANDOMX_ARGON_MEMORY` blocks before generating the
+    // nonempty program list. `no_memory` has no programs, so this helper is
+    // never called for its empty block slice. `Block` is `repr(transparent)`
+    // over `[u64; 128]`; the size/alignment assertions above and contiguous
+    // boxed-slice layout therefore make the allocation one flat array of
+    // `CACHE_WORD_COUNT` valid `u64`s. Masking selects one of all cache lines,
+    // and `r` selects one of that line's eight words.
+    unsafe { *seed_mem.blocks.as_ptr().cast::<u64>().add(word_index) }
 }
 
 pub fn init_dataset_item(seed_mem: &SeedMemory, item_num: u64) -> [u64; 8] {
@@ -204,6 +241,46 @@ impl VmMemory {
             let rl = init_dataset_item(&self.seed_memory, item_num);
             for i in 0..8 {
                 reg[i] ^= rl[i];
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn flattened_mix_index_matches_block_and_word_addressing() {
+        let mut values = vec![
+            0,
+            1,
+            CACHE_LINE_WORDS as u64 - 1,
+            CACHE_LINE_WORDS as u64,
+            CACHE_LINE_COUNT - 1,
+            CACHE_LINE_COUNT,
+            u32::MAX as u64,
+            u64::MAX,
+        ];
+        let mut state = 0x243f_6a88_85a3_08d3u64;
+        for _ in 0..10_000 {
+            state ^= state >> 12;
+            state ^= state << 25;
+            state ^= state >> 27;
+            state = state.wrapping_mul(0x2545_f491_4f6c_dd1d);
+            values.push(state);
+        }
+
+        for reg_value in values {
+            for r in 0..CACHE_LINE_WORDS {
+                let byte_offset = ((reg_value & CACHE_LINE_MASK) * CACHE_LINE_SIZE)
+                    + size_of::<u64>() as u64 * r as u64;
+                let block_index = byte_offset / ARGON_BLOCK_SIZE as u64;
+                let block_word =
+                    (byte_offset - block_index * ARGON_BLOCK_SIZE as u64) / size_of::<u64>() as u64;
+                let reference = block_index as usize * ARGON_BLOCK_WORDS + block_word as usize;
+                assert_eq!(mix_word_index(reg_value, r), reference);
+                assert!(reference < CACHE_WORD_COUNT);
             }
         }
     }

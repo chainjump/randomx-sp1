@@ -32,12 +32,12 @@ compile_error!("select exactly one profiling probe");
 #[cfg(feature = "cache-only")]
 pub fn main() {
     let memory = VmMemory::light(&RANDOMX_SEED);
-    let blocks = &memory.seed_memory.blocks;
+    let blocks = memory.seed_memory.blocks();
     let words = [
         blocks[0][0],
         blocks[blocks.len() / 2][64],
         blocks[blocks.len() - 1][127],
-        memory.seed_memory.programs.len() as u64,
+        memory.seed_memory.program_count() as u64,
     ];
     let mut output = [0u8; 32];
     for (chunk, word) in output.chunks_exact_mut(8).zip(words) {
