@@ -690,6 +690,7 @@ enum ScExecOpcode {
 #[derive(Copy, Clone)]
 struct ScExecInstr {
 	immediate: u64,
+	pair_handler_offset: u16,
 	dst_offset: u8,
 	src_offset: u8,
 	opcode: ScExecOpcode,
@@ -724,6 +725,7 @@ impl ScExecInstr {
 		}
 		ScExecInstr {
 			immediate,
+			pair_handler_offset: 0,
 			dst_offset: instr.dst as u8 * std::mem::size_of::<u64>() as u8,
 			src_offset: if instr.src < 0 {
 				0
@@ -953,7 +955,13 @@ impl ScProgram<'_> {
 		}
 
 		#[cfg(feature = "compact-superscalar")]
-		let exec = prog.iter().map(ScExecInstr::decode).collect();
+		let mut exec: Vec<_> = prog.iter().map(ScExecInstr::decode).collect();
+		#[cfg(feature = "compact-superscalar")]
+		for pair in exec.chunks_exact_mut(2) {
+			let pair_index = pair[0].opcode as usize * 10 + pair[1].opcode as usize;
+			pair[0].pair_handler_offset =
+				(pair_index * std::mem::size_of::<PairHandler>()) as u16;
+		}
 
 		ScProgram {
 			#[cfg(all(feature = "compact-superscalar", not(test)))]
@@ -1066,29 +1074,32 @@ impl ScProgram<'_> {
 
 	#[cfg(feature = "unchecked-superscalar")]
 	fn execute_compact_unchecked(&self, ds: &mut [u64; 8]) {
-		let mut chunks = self.exec.chunks_exact(8);
+		let mut chunks = self.exec.chunks_exact(32);
 		for chunk in &mut chunks {
-			execute_compact_instruction_unchecked(ds, &chunk[0]);
-			execute_compact_instruction_unchecked(ds, &chunk[1]);
-			execute_compact_instruction_unchecked(ds, &chunk[2]);
-			execute_compact_instruction_unchecked(ds, &chunk[3]);
-			execute_compact_instruction_unchecked(ds, &chunk[4]);
-			execute_compact_instruction_unchecked(ds, &chunk[5]);
-			execute_compact_instruction_unchecked(ds, &chunk[6]);
-			execute_compact_instruction_unchecked(ds, &chunk[7]);
+			execute_compact_pair_unchecked(ds, &chunk[0], &chunk[1]);
+			execute_compact_pair_unchecked(ds, &chunk[2], &chunk[3]);
+			execute_compact_pair_unchecked(ds, &chunk[4], &chunk[5]);
+			execute_compact_pair_unchecked(ds, &chunk[6], &chunk[7]);
+			execute_compact_pair_unchecked(ds, &chunk[8], &chunk[9]);
+			execute_compact_pair_unchecked(ds, &chunk[10], &chunk[11]);
+			execute_compact_pair_unchecked(ds, &chunk[12], &chunk[13]);
+			execute_compact_pair_unchecked(ds, &chunk[14], &chunk[15]);
+			execute_compact_pair_unchecked(ds, &chunk[16], &chunk[17]);
+			execute_compact_pair_unchecked(ds, &chunk[18], &chunk[19]);
+			execute_compact_pair_unchecked(ds, &chunk[20], &chunk[21]);
+			execute_compact_pair_unchecked(ds, &chunk[22], &chunk[23]);
+			execute_compact_pair_unchecked(ds, &chunk[24], &chunk[25]);
+			execute_compact_pair_unchecked(ds, &chunk[26], &chunk[27]);
+			execute_compact_pair_unchecked(ds, &chunk[28], &chunk[29]);
+			execute_compact_pair_unchecked(ds, &chunk[30], &chunk[31]);
 		}
 		let remainder = chunks.remainder();
-		let tail = if remainder.len() >= 4 {
-			execute_compact_instruction_unchecked(ds, &remainder[0]);
-			execute_compact_instruction_unchecked(ds, &remainder[1]);
-			execute_compact_instruction_unchecked(ds, &remainder[2]);
-			execute_compact_instruction_unchecked(ds, &remainder[3]);
-			&remainder[4..]
-		} else {
-			remainder
-		};
-		for instr in tail {
-			execute_compact_instruction_unchecked(ds, instr);
+		let mut pairs = remainder.chunks_exact(2);
+		for pair in &mut pairs {
+			execute_compact_pair_unchecked(ds, &pair[0], &pair[1]);
+		}
+		if let Some(instruction) = pairs.remainder().first() {
+			execute_compact_instruction_unchecked(ds, instruction);
 		}
 	}
 
@@ -1105,6 +1116,118 @@ impl ScProgram<'_> {
 		#[cfg(feature = "unchecked-superscalar")]
 		self.execute_compact_unchecked(ds);
 	}
+}
+
+#[cfg(feature = "compact-superscalar")]
+type PairHandler = fn(&mut [u64; 8], &ScExecInstr, &ScExecInstr);
+
+#[cfg(feature = "unchecked-superscalar")]
+static PAIR_HANDLERS: [PairHandler; 100] = [
+	execute_compact_pair_known::<0, 0>, execute_compact_pair_known::<0, 1>,
+	execute_compact_pair_known::<0, 2>, execute_compact_pair_known::<0, 3>,
+	execute_compact_pair_known::<0, 4>, execute_compact_pair_known::<0, 5>,
+	execute_compact_pair_known::<0, 6>, execute_compact_pair_known::<0, 7>,
+	execute_compact_pair_known::<0, 8>, execute_compact_pair_known::<0, 9>,
+	execute_compact_pair_known::<1, 0>, execute_compact_pair_known::<1, 1>,
+	execute_compact_pair_known::<1, 2>, execute_compact_pair_known::<1, 3>,
+	execute_compact_pair_known::<1, 4>, execute_compact_pair_known::<1, 5>,
+	execute_compact_pair_known::<1, 6>, execute_compact_pair_known::<1, 7>,
+	execute_compact_pair_known::<1, 8>, execute_compact_pair_known::<1, 9>,
+	execute_compact_pair_known::<2, 0>, execute_compact_pair_known::<2, 1>,
+	execute_compact_pair_known::<2, 2>, execute_compact_pair_known::<2, 3>,
+	execute_compact_pair_known::<2, 4>, execute_compact_pair_known::<2, 5>,
+	execute_compact_pair_known::<2, 6>, execute_compact_pair_known::<2, 7>,
+	execute_compact_pair_known::<2, 8>, execute_compact_pair_known::<2, 9>,
+	execute_compact_pair_known::<3, 0>, execute_compact_pair_known::<3, 1>,
+	execute_compact_pair_known::<3, 2>, execute_compact_pair_known::<3, 3>,
+	execute_compact_pair_known::<3, 4>, execute_compact_pair_known::<3, 5>,
+	execute_compact_pair_known::<3, 6>, execute_compact_pair_known::<3, 7>,
+	execute_compact_pair_known::<3, 8>, execute_compact_pair_known::<3, 9>,
+	execute_compact_pair_known::<4, 0>, execute_compact_pair_known::<4, 1>,
+	execute_compact_pair_known::<4, 2>, execute_compact_pair_known::<4, 3>,
+	execute_compact_pair_known::<4, 4>, execute_compact_pair_known::<4, 5>,
+	execute_compact_pair_known::<4, 6>, execute_compact_pair_known::<4, 7>,
+	execute_compact_pair_known::<4, 8>, execute_compact_pair_known::<4, 9>,
+	execute_compact_pair_known::<5, 0>, execute_compact_pair_known::<5, 1>,
+	execute_compact_pair_known::<5, 2>, execute_compact_pair_known::<5, 3>,
+	execute_compact_pair_known::<5, 4>, execute_compact_pair_known::<5, 5>,
+	execute_compact_pair_known::<5, 6>, execute_compact_pair_known::<5, 7>,
+	execute_compact_pair_known::<5, 8>, execute_compact_pair_known::<5, 9>,
+	execute_compact_pair_known::<6, 0>, execute_compact_pair_known::<6, 1>,
+	execute_compact_pair_known::<6, 2>, execute_compact_pair_known::<6, 3>,
+	execute_compact_pair_known::<6, 4>, execute_compact_pair_known::<6, 5>,
+	execute_compact_pair_known::<6, 6>, execute_compact_pair_known::<6, 7>,
+	execute_compact_pair_known::<6, 8>, execute_compact_pair_known::<6, 9>,
+	execute_compact_pair_known::<7, 0>, execute_compact_pair_known::<7, 1>,
+	execute_compact_pair_known::<7, 2>, execute_compact_pair_known::<7, 3>,
+	execute_compact_pair_known::<7, 4>, execute_compact_pair_known::<7, 5>,
+	execute_compact_pair_known::<7, 6>, execute_compact_pair_known::<7, 7>,
+	execute_compact_pair_known::<7, 8>, execute_compact_pair_known::<7, 9>,
+	execute_compact_pair_known::<8, 0>, execute_compact_pair_known::<8, 1>,
+	execute_compact_pair_known::<8, 2>, execute_compact_pair_known::<8, 3>,
+	execute_compact_pair_known::<8, 4>, execute_compact_pair_known::<8, 5>,
+	execute_compact_pair_known::<8, 6>, execute_compact_pair_known::<8, 7>,
+	execute_compact_pair_known::<8, 8>, execute_compact_pair_known::<8, 9>,
+	execute_compact_pair_known::<9, 0>, execute_compact_pair_known::<9, 1>,
+	execute_compact_pair_known::<9, 2>, execute_compact_pair_known::<9, 3>,
+	execute_compact_pair_known::<9, 4>, execute_compact_pair_known::<9, 5>,
+	execute_compact_pair_known::<9, 6>, execute_compact_pair_known::<9, 7>,
+	execute_compact_pair_known::<9, 8>, execute_compact_pair_known::<9, 9>,
+];
+
+#[cfg(feature = "unchecked-superscalar")]
+#[inline(always)]
+fn execute_compact_pair_unchecked(
+	ds: &mut [u64; 8],
+	first: &ScExecInstr,
+	second: &ScExecInstr,
+) {
+	debug_assert_eq!(first.pair_handler_offset as usize % std::mem::size_of::<PairHandler>(), 0);
+	debug_assert!(
+		first.pair_handler_offset as usize
+			<= std::mem::size_of_val(&PAIR_HANDLERS) - std::mem::size_of::<PairHandler>()
+	);
+	// `pair_handler_offset` is private and is derived during program generation
+	// from two validated `ScExecOpcode` discriminants in the range 0..10.
+	let handler = unsafe {
+		*PAIR_HANDLERS
+			.as_ptr()
+			.cast::<u8>()
+			.add(first.pair_handler_offset as usize)
+			.cast::<PairHandler>()
+	};
+	handler(ds, first, second);
+}
+
+#[cfg(feature = "unchecked-superscalar")]
+fn execute_compact_pair_known<const FIRST: u8, const SECOND: u8>(
+	ds: &mut [u64; 8],
+	first: &ScExecInstr,
+	second: &ScExecInstr,
+) {
+	execute_compact_instruction_known::<FIRST>(ds, first);
+	execute_compact_instruction_known::<SECOND>(ds, second);
+}
+
+#[cfg(feature = "unchecked-superscalar")]
+#[inline(always)]
+fn execute_compact_instruction_known<const OPCODE: u8>(ds: &mut [u64; 8], instr: &ScExecInstr) {
+	let dst_value = exec_read_register(ds, instr.dst_offset);
+	let result = match OPCODE {
+		0 => dst_value.wrapping_sub(exec_read_register(ds, instr.src_offset)),
+		1 => dst_value ^ exec_read_register(ds, instr.src_offset),
+		2 => dst_value.wrapping_add(exec_read_register(ds, instr.src_offset) << instr.immediate),
+		3 => dst_value.wrapping_mul(exec_read_register(ds, instr.src_offset)),
+		4 => dst_value.rotate_right(instr.immediate as u32),
+		5 => dst_value.wrapping_add(instr.immediate),
+		6 => dst_value ^ instr.immediate,
+		7 => mulh(dst_value, exec_read_register(ds, instr.src_offset)),
+		8 => smulh(dst_value, exec_read_register(ds, instr.src_offset)),
+		9 => dst_value.wrapping_mul(instr.immediate),
+		// Every monomorphization stored in `PAIR_HANDLERS` uses 0..=9.
+		_ => unsafe { std::hint::unreachable_unchecked() },
+	};
+	exec_write_register(ds, instr.dst_offset, result);
 }
 
 #[cfg(feature = "unchecked-superscalar")]
@@ -1139,7 +1262,10 @@ fn execute_compact_instruction_unchecked(ds: &mut [u64; 8], instr: &ScExecInstr)
 #[inline(always)]
 fn exec_read_register(registers: &[u64; 8], byte_offset: u8) -> u64 {
 	debug_assert_eq!(byte_offset as usize % std::mem::size_of::<u64>(), 0);
-	debug_assert!(byte_offset as usize <= std::mem::size_of_val(registers) - std::mem::size_of::<u64>());
+	debug_assert!(
+		byte_offset as usize
+			<= std::mem::size_of_val(registers) - std::mem::size_of::<u64>()
+	);
 	unsafe {
 		*registers
 			.as_ptr()
@@ -1153,7 +1279,10 @@ fn exec_read_register(registers: &[u64; 8], byte_offset: u8) -> u64 {
 #[inline(always)]
 fn exec_write_register(registers: &mut [u64; 8], byte_offset: u8, value: u64) {
 	debug_assert_eq!(byte_offset as usize % std::mem::size_of::<u64>(), 0);
-	debug_assert!(byte_offset as usize <= std::mem::size_of_val(registers) - std::mem::size_of::<u64>());
+	debug_assert!(
+		byte_offset as usize
+			<= std::mem::size_of_val(registers) - std::mem::size_of::<u64>()
+	);
 	unsafe {
 		*registers
 			.as_mut_ptr()
@@ -1325,5 +1454,61 @@ mod compact_tests {
 			}
 		}
 		assert_eq!(address_registers_seen, u8::MAX);
+	}
+
+	#[cfg(feature = "unchecked-superscalar")]
+	#[test]
+	fn every_paired_handler_matches_sequential_dispatch() {
+		let opcodes = [
+			ScExecOpcode::IsubR,
+			ScExecOpcode::IxorR,
+			ScExecOpcode::IaddRs,
+			ScExecOpcode::ImulR,
+			ScExecOpcode::IrorC,
+			ScExecOpcode::IaddC,
+			ScExecOpcode::IxorC,
+			ScExecOpcode::ImulhR,
+			ScExecOpcode::IsmulhR,
+			ScExecOpcode::ImulRcp,
+		];
+		let instruction = |opcode, dst_offset, src_offset| ScExecInstr {
+			immediate: match opcode {
+				ScExecOpcode::IaddRs => 3,
+				ScExecOpcode::IrorC => 29,
+				ScExecOpcode::IaddC | ScExecOpcode::IxorC => 0xffff_ffff_8123_4567,
+				ScExecOpcode::ImulRcp => 0xd6e8_feb8_6659_fd93,
+				_ => 0,
+			},
+			pair_handler_offset: 0,
+			dst_offset,
+			src_offset,
+			opcode,
+		};
+
+		for (first_index, &first_opcode) in opcodes.iter().enumerate() {
+			for (second_index, &second_opcode) in opcodes.iter().enumerate() {
+				let mut first = instruction(first_opcode, 3 * 8, 5 * 8);
+				let second = instruction(second_opcode, 5 * 8, 3 * 8);
+				first.pair_handler_offset = ((first_index * 10 + second_index)
+					* std::mem::size_of::<PairHandler>())
+					as u16;
+				let input = [
+					0,
+					1,
+					u64::MAX,
+					0x0123_4567_89ab_cdef,
+					0x8000_0000_0000_0000,
+					0xfedc_ba98_7654_3210,
+					0x5555_aaaa_5555_aaaa,
+					0xaaaa_5555_aaaa_5555,
+				];
+				let mut sequential = input;
+				execute_compact_instruction_unchecked(&mut sequential, &first);
+				execute_compact_instruction_unchecked(&mut sequential, &second);
+				let mut paired = input;
+				execute_compact_pair_unchecked(&mut paired, &first, &second);
+				assert_eq!(paired, sequential, "pair {first_index}/{second_index}");
+			}
+		}
 	}
 }
