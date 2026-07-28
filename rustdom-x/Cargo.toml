@@ -32,6 +32,7 @@ default = ["unchecked-superscalar"]
 cfround-audit = []
 compact-superscalar = ["precompute-reciprocal"]
 precompute-reciprocal = []
+superscalar-codegen = ["compact-superscalar"]
 unchecked-superscalar = ["compact-superscalar"]
 
 [dependencies.blake2b_simd]
