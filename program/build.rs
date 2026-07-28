@@ -20,7 +20,7 @@ fn main() {
     let mut source = String::from(
         "use rustdom_x::common::{mulh, smulh};\n\
          use rustdom_x::memory::SeedMemory;\n\n\
-         #[inline(never)]\n\
+         #[inline(always)]\n\
          pub fn init_dataset_item(seed_memory: &SeedMemory, item_num: u64) -> [u64; 8] {\n\
              let mut registers = [0u64; 8];\n\
              let mut register_value = item_num;\n\

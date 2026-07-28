@@ -50,8 +50,6 @@ pub struct SeedMemory {
     programs: Vec<ScProgram<'static>>,
 }
 
-pub type DatasetItemInitializer = fn(&SeedMemory, u64) -> [u64; 8];
-
 impl SeedMemory {
     pub fn no_memory() -> SeedMemory {
         SeedMemory {
@@ -74,6 +72,17 @@ impl SeedMemory {
         SeedMemory {
             blocks: mem.blocks,
             programs,
+        }
+    }
+
+    /// Constructs only the epoch cache when its superscalar programs have
+    /// already been compiled into the verifier at build time.
+    pub fn new_initialised_cache_only(key: &[u8]) -> SeedMemory {
+        let context = create_argon_context(key);
+        let mem = argon2::core::initialize_memory_randomx(&context);
+        SeedMemory {
+            blocks: mem.blocks,
+            programs: Vec::new(),
         }
     }
 
@@ -198,7 +207,6 @@ pub struct VmMemory {
     pub seed_memory: SeedMemory,
     pub dataset_memory: RwLock<Vec<Option<[u64; 8]>>>,
     pub cache: bool,
-    dataset_item_initializer: DatasetItemInitializer,
 }
 
 impl VmMemory {
@@ -208,23 +216,22 @@ impl VmMemory {
             seed_memory: SeedMemory::no_memory(),
             cache: false,
             dataset_memory: RwLock::new(Vec::with_capacity(0)),
-            dataset_item_initializer: init_dataset_item,
         }
     }
 
     pub fn light(key: &[u8]) -> VmMemory {
-        Self::light_with_dataset_item_initializer(key, init_dataset_item)
-    }
-
-    pub fn light_with_dataset_item_initializer(
-        key: &[u8],
-        dataset_item_initializer: DatasetItemInitializer,
-    ) -> VmMemory {
         VmMemory {
             seed_memory: SeedMemory::new_initialised(key),
             cache: false,
             dataset_memory: RwLock::new(Vec::with_capacity(0)),
-            dataset_item_initializer,
+        }
+    }
+
+    pub fn light_with_static_dataset(key: &[u8]) -> VmMemory {
+        VmMemory {
+            seed_memory: SeedMemory::new_initialised_cache_only(key),
+            cache: false,
+            dataset_memory: RwLock::new(Vec::with_capacity(0)),
         }
     }
     pub fn full(key: &[u8]) -> VmMemory {
@@ -234,7 +241,6 @@ impl VmMemory {
             seed_memory: seed_mem,
             cache: true,
             dataset_memory: RwLock::new(mem),
-            dataset_item_initializer: init_dataset_item,
         }
     }
 
@@ -276,7 +282,20 @@ impl VmMemory {
     pub fn dataset_read_light(&self, offset: u64, reg: &mut [u64; 8]) {
         debug_assert!(!self.cache);
         let item_num = offset / CACHE_LINE_SIZE;
-        let rl = (self.dataset_item_initializer)(&self.seed_memory, item_num);
+        let rl = init_dataset_item(&self.seed_memory, item_num);
+        for i in 0..8 {
+            reg[i] ^= rl[i];
+        }
+    }
+
+    #[inline(always)]
+    pub fn dataset_read_light_with<I>(&self, offset: u64, reg: &mut [u64; 8], initializer: I)
+    where
+        I: Fn(&SeedMemory, u64) -> [u64; 8],
+    {
+        debug_assert!(!self.cache);
+        let item_num = offset / CACHE_LINE_SIZE;
+        let rl = initializer(&self.seed_memory, item_num);
         for i in 0..8 {
             reg[i] ^= rl[i];
         }

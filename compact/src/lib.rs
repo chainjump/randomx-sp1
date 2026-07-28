@@ -13,7 +13,7 @@ use randomx_softfp::{add2, div2, mul2, sqrt2, sub2, RoundingMode};
 use rustdom_x::common::{mulh, randomx_reciprocal, smulh, u64_from_i32_imm};
 use rustdom_x::hash::{gen_program_aes_4rx4, hash_aes_1rx4};
 use rustdom_x::m128::{m128d, m128i};
-use rustdom_x::memory::CACHE_LINE_SIZE;
+use rustdom_x::memory::{init_dataset_item, SeedMemory, CACHE_LINE_SIZE};
 #[cfg(feature = "differential-audit")]
 use rustdom_x::memory::VmMemory;
 #[cfg(feature = "differential-audit")]
@@ -168,6 +168,20 @@ impl CompactProgram {
 /// Executes a complete RandomX hash with the same memory provider and VM state
 /// used by `rustdom_x::Vm::calculate_hash`.
 pub fn calculate_hash(vm: &mut Vm, input: &[u8]) -> Hash {
+    calculate_hash_with_dataset_item(vm, input, init_dataset_item)
+}
+
+/// Executes a complete hash with an epoch-specialized dataset-item function.
+/// A function item remains statically known through this generic path, so the
+/// RV64IM guest avoids interpreter and callback dispatch in every VM iteration.
+pub fn calculate_hash_with_dataset_item<I>(
+    vm: &mut Vm,
+    input: &[u8],
+    dataset_item_initializer: I,
+) -> Hash
+where
+    I: Fn(&SeedMemory, u64) -> [u64; 8] + Copy,
+{
     // This single public-boundary check establishes the allocation invariant
     // used by unchecked scratchpad accesses throughout all eight programs.
     assert_eq!(vm.scratchpad.len(), SCRATCHPAD_WORDS);
@@ -178,12 +192,12 @@ pub fn calculate_hash(vm: &mut Vm, input: &[u8]) -> Hash {
     vm.reset_rounding_mode();
 
     for _ in 0..(PROGRAM_COUNT - 1) {
-        run(vm, &next_seed);
+        run(vm, &next_seed, dataset_item_initializer);
         seed = hash_to_m128i_array(&blake2b(&vm.reg.to_bytes()));
         next_seed = seed;
     }
 
-    run(vm, &next_seed);
+    run(vm, &next_seed, dataset_item_initializer);
     let final_hash = hash_aes_1rx4(&vm.scratchpad);
     vm.reg.a[0] = final_hash[0].as_m128d();
     vm.reg.a[1] = final_hash[1].as_m128d();
@@ -376,7 +390,10 @@ fn assert_vm_state(
     );
 }
 
-fn run(vm: &mut Vm, seed: &[m128i; 4]) {
+fn run<I>(vm: &mut Vm, seed: &[m128i; 4], dataset_item_initializer: I)
+where
+    I: Fn(&SeedMemory, u64) -> [u64; 8] + Copy,
+{
     let bytes = gen_program_aes_4rx4(seed, 136);
     let program = CompactProgram::from_bytes(&bytes);
     init_vm(vm, &program.entropy);
@@ -427,8 +444,11 @@ fn run(vm: &mut Vm, seed: &[m128i; 4]) {
 
         mx ^= (r(vm, read_reg[2]) ^ r(vm, read_reg[3])) as usize;
         mx &= CACHE_LINE_ALIGN_MASK as usize;
-        vm.mem
-            .dataset_read_light(dataset_offset + ma as u64, &mut vm.reg.r);
+        vm.mem.dataset_read_light_with(
+            dataset_offset + ma as u64,
+            &mut vm.reg.r,
+            dataset_item_initializer,
+        );
         std::mem::swap(&mut mx, &mut ma);
 
         for i in 0..MAX_REG {
