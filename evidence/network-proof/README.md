@@ -1,6 +1,7 @@
 # Prover-network proof evidence
 
-Status: awaiting requester funding; no proof request has been submitted.
+Status: complete. The prover-network proof, local SP1 verification, and
+Ethereum mainnet verifier simulation all succeeded on 2026-07-28 UTC.
 
 ## Fixed statement
 
@@ -34,7 +35,8 @@ calculated the stated RandomX hash, and checked the Monero difficulty.
 ```text
 ELF:          artifacts/randomx-program
 ELF SHA-256:  ac3eff37cbae4583f57cdbc193cca776a80672c77a63c09eb507dc35d154c317
-SP1 version:  6.3.1
+SP1 SDK:      6.3.1
+SP1 circuit:  v6.1.0
 SP1 cycles:   6445471022
 SP1 PGU:      7796263443
 cycle limit:  6500000000
@@ -46,7 +48,7 @@ program vkey: 0x0046e62a80cbde7273e58b8e54b6715ebb3cfbf7905e78f985c3e74f6933de4a
 in 2:41.26 wall time with a 5,693,136 KiB maximum resident set. Vkey setup did
 not execute the RandomX input or contact the prover network.
 
-The fixed-block client passed all three release tests. Its live zero-balance
+The fixed-block client passed all five release tests. Its live zero-balance
 test validated the block and ELF, refreshed the quote, and refused before SP1
 setup or request submission. The root guest `Cargo.lock` remained unchanged.
 
@@ -57,21 +59,47 @@ by `sp1-prover 6.3.1`. The advisory applies specifically to `LruCache::iter_mut`
 the SP1 6.3.1 cache call sites use `new`, `get`, and `push`, not the affected
 iterator. This dependency is host-only and is absent from the guest ELF.
 
-## Network account
+## Completed network proof
+
+```text
+request ID:    0x24b125a758ee65aeb0556581b83bb69523143514eb58387ecb111e20d0393768
+proof file:    evidence/network-proof/proof.bin
+proof SHA-256: 1cb71a8414de9ea97570606f3eb8be9281db015006287a9ac388acac5fb22de8
+proof bytes:   1726 (serialized SP1ProofWithPublicValues)
+route prefix:  0x4388a21c
+public value:  5cff906139956eb646100adef11db2e00464ffabfdf4d5a194d54f0000000000
+```
+
+The request ID was persisted at `22:24:29` UTC and the locally verified proof
+was saved at `22:26:54` UTC, an elapsed time of approximately 2 minutes 25
+seconds. `NetworkProver::verify` accepted the downloaded Groth16 proof, and
+its sole 32-byte public value exactly matched the selected block's RandomX
+PoW hash.
+
+The Explorer reports circuit version `v6.1.0`. This is expected: the installed
+`sp1-sdk` and `sp1-prover` crate version is `6.3.1`, while that package's
+`SP1_CIRCUIT_VERSION` is `v6.1.0`.
+
+Explorer:
+`https://explorer.succinct.xyz/request/0x24b125a758ee65aeb0556581b83bb69523143514eb58387ecb111e20d0393768`
+
+## Network account and cost
 
 ```text
 requester: 0x19861D4DF321BC5962C15A3f8d7CA33dF3476af4
-balance:   0 PROVE
+starting balance: 15.000000000000000000 PROVE
+ending balance:   11.067233450650000000 PROVE
+proof cost:        3.932766549350000000 PROVE
 ```
 
-At the last quote, the maximum cost cap for 8 billion PGU was `6.906621
-PROVE`. This is a cap, not evidence of actual billing. A fresh quote is always
-obtained immediately before submission.
+The submission-time maximum cost cap for 8 billion PGU was `6.824448 PROVE`.
+Only one request was submitted, so the `3.93276654935 PROVE` balance decrease
+is attributable to this proof. The cap was not the actual charge.
 
 ## EVM simulation target
 
-The EVM step will call the canonical Groth16 gateway using `eth_call`; the
-client has no EVM signer or transaction-broadcast code.
+The client called the canonical Groth16 gateway using `eth_call`; it has no EVM
+signer or transaction-broadcast code.
 
 ```text
 chain:   Ethereum mainnet (1 / 0x1)
@@ -82,5 +110,7 @@ selector: 0x41493c60
 
 On 2026-07-28 UTC, an Ethereum mainnet RPC returned chain ID `0x1`, and
 `eth_getCode` returned 1,975 bytes of deployed code for that gateway. The
-client rejects non-mainnet RPCs. The proof-specific `eth_call` remains pending
-until the network returns the Groth16 proof.
+proof-specific `verifyProof` simulation completed without reverting and
+returned the exact empty data (`0x`) required for a successful Solidity `void`
+call. The client reported `EVM verification simulation: true` and
+`EVM transaction broadcast: no`.

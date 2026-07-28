@@ -569,7 +569,11 @@ fn append_varint(mut value: u64, output: &mut Vec<u8>) {
 }
 
 fn decode_32(value: &str, name: &str) -> Result<[u8; 32]> {
-    let bytes = hex::decode(value).with_context(|| format!("decoding {name}"))?;
+    let digits = value
+        .strip_prefix("0x")
+        .or_else(|| value.strip_prefix("0X"))
+        .unwrap_or(value);
+    let bytes = hex::decode(digits).with_context(|| format!("decoding {name}"))?;
     bytes
         .try_into()
         .map_err(|bytes: Vec<u8>| anyhow::anyhow!("{name} must be 32 bytes, got {}", bytes.len()))
@@ -665,6 +669,16 @@ mod tests {
             ETHEREUM_MAINNET_CHAIN_ID
         );
         assert!(parse_json_rpc_quantity(&Value::String("1".to_owned()), "chain ID").is_err());
+    }
+
+    #[test]
+    fn fixed_width_hex_accepts_standard_prefix() {
+        let expected = [0xabu8; 32];
+        assert_eq!(decode_32(&hex::encode(expected), "test").unwrap(), expected);
+        assert_eq!(
+            decode_32(&format!("0x{}", hex::encode(expected)), "test").unwrap(),
+            expected
+        );
     }
 
     #[test]
