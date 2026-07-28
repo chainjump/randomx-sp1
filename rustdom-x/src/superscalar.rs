@@ -2,6 +2,7 @@ extern crate blake2b_simd;
 
 use self::blake2b_simd::Params;
 use std::convert::TryInto;
+#[cfg(any(not(feature = "compact-superscalar"), test))]
 use std::fmt;
 use strum::Display;
 
@@ -387,8 +388,9 @@ impl ExecutionPort {
 
 #[derive(Debug)]
 pub struct ScMacroOp {
-    #[allow(dead_code)]
+	#[cfg(any(not(feature = "compact-superscalar"), test))]
 	name: &'static str,
+	#[cfg(any(not(feature = "compact-superscalar"), test))]
 	size: usize,
 	latency: usize,
 	uop1: ExecutionPort,
@@ -398,14 +400,18 @@ pub struct ScMacroOp {
 
 impl ScMacroOp {
 	pub const fn new(
+		#[allow(unused_variables)]
 		name: &'static str,
+		#[allow(unused_variables)]
 		size: usize,
 		latency: usize,
 		uop1: ExecutionPort,
 		uop2: ExecutionPort,
 	) -> ScMacroOp {
 		ScMacroOp {
+			#[cfg(any(not(feature = "compact-superscalar"), test))]
 			name,
+			#[cfg(any(not(feature = "compact-superscalar"), test))]
 			size,
 			latency,
 			uop1,
@@ -414,14 +420,18 @@ impl ScMacroOp {
 		}
 	}
 	pub const fn new_dep(
+		#[allow(unused_variables)]
 		name: &'static str,
+		#[allow(unused_variables)]
 		size: usize,
 		latency: usize,
 		uop1: ExecutionPort,
 		uop2: ExecutionPort,
 	) -> ScMacroOp {
 		ScMacroOp {
+			#[cfg(any(not(feature = "compact-superscalar"), test))]
 			name,
+			#[cfg(any(not(feature = "compact-superscalar"), test))]
 			size,
 			latency,
 			uop1,
@@ -721,21 +731,34 @@ impl ScExecInstr {
 }
 
 pub struct ScProgram<'a> {
+	#[cfg(all(feature = "compact-superscalar", not(test)))]
+	_marker: std::marker::PhantomData<&'a ()>,
+	#[cfg(any(not(feature = "compact-superscalar"), test))]
 	pub prog: Vec<ScInstr<'a>>,
 	#[cfg(feature = "compact-superscalar")]
 	exec: Vec<ScExecInstr>,
+	#[cfg(any(not(feature = "compact-superscalar"), test))]
 	pub asic_latencies: Vec<usize>,
+	#[cfg(any(not(feature = "compact-superscalar"), test))]
 	pub cpu_latencies: Vec<usize>,
 	address_reg: u8,
+	#[cfg(any(not(feature = "compact-superscalar"), test))]
 	pub ipc: f64,
+	#[cfg(any(not(feature = "compact-superscalar"), test))]
 	pub code_size: usize,
+	#[cfg(any(not(feature = "compact-superscalar"), test))]
 	pub macro_ops: usize,
+	#[cfg(any(not(feature = "compact-superscalar"), test))]
 	pub decode_cycles: usize,
+	#[cfg(any(not(feature = "compact-superscalar"), test))]
 	pub cpu_latency: usize,
+	#[cfg(any(not(feature = "compact-superscalar"), test))]
 	pub asic_latency: usize,
+	#[cfg(any(not(feature = "compact-superscalar"), test))]
 	pub mul_count: usize,
 }
 
+#[cfg(any(not(feature = "compact-superscalar"), test))]
 impl fmt::Display for ScProgram<'_> {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		for instr in &self.prog {
@@ -758,10 +781,13 @@ impl ScProgram<'_> {
 		let mut registers = [RegisterInfo::new(); 8];
 
 		let mut macro_op_index = 0;
+		#[cfg(any(not(feature = "compact-superscalar"), test))]
 		let mut code_size = 0;
+		#[cfg(any(not(feature = "compact-superscalar"), test))]
 		let mut macro_op_count = 0;
 		let mut cycle = 0;
 		let mut dep_cycle = 0;
+		#[cfg(any(not(feature = "compact-superscalar"), test))]
 		let mut retire_cycle = 0;
 		let mut ports_saturated = false;
 		let mut program_size = 0;
@@ -857,15 +883,24 @@ impl ScProgram<'_> {
 
 				if macro_op_index == current_instr.info.result_op {
 					let ri = &mut registers[current_instr.dst as usize];
+					#[cfg(any(not(feature = "compact-superscalar"), test))]
+					{
 					retire_cycle = dep_cycle;
-					ri.latency = retire_cycle;
+					}
+					ri.latency = dep_cycle;
 					ri.last_op_group = current_instr.op_group;
 					ri.last_op_par = current_instr.op_group_par;
 				}
-				code_size += mop.size;
+				#[cfg(any(not(feature = "compact-superscalar"), test))]
+				{
+					code_size += mop.size;
+				}
 				buffer_index += 1;
 				macro_op_index += 1;
-				macro_op_count += 1;
+				#[cfg(any(not(feature = "compact-superscalar"), test))]
+				{
+					macro_op_count += 1;
+				}
 
 				if schedule_cycle >= RANDOMX_SUPERSCALAR_LATENCY {
 					ports_saturated = true;
@@ -884,6 +919,7 @@ impl ScProgram<'_> {
 			decode_cycle += 1;
 		}
 
+		#[cfg(any(not(feature = "compact-superscalar"), test))]
 		let ipc = macro_op_count as f64 / retire_cycle as f64;
 		let mut asic_latencies = vec![0; 8];
 		for &instr in prog.iter().take(program_size) {
@@ -898,31 +934,47 @@ impl ScProgram<'_> {
 
 		let mut asic_latency_max = 0;
 		let mut address_reg = 0;
+		#[cfg(any(not(feature = "compact-superscalar"), test))]
 		let mut cpu_latencies = vec![0; 8];
 		for i in 0..8 {
 			if asic_latencies[i] > asic_latency_max {
 				asic_latency_max = asic_latencies[i];
 				address_reg = i;
 			}
-			cpu_latencies[i] = registers[i].latency;
+			#[cfg(any(not(feature = "compact-superscalar"), test))]
+			{
+				cpu_latencies[i] = registers[i].latency;
+			}
 		}
 
 		#[cfg(feature = "compact-superscalar")]
 		let exec = prog.iter().map(ScExecInstr::decode).collect();
 
 		ScProgram {
+			#[cfg(all(feature = "compact-superscalar", not(test)))]
+			_marker: std::marker::PhantomData,
+			#[cfg(any(not(feature = "compact-superscalar"), test))]
 			prog,
 			#[cfg(feature = "compact-superscalar")]
 			exec,
+			#[cfg(any(not(feature = "compact-superscalar"), test))]
 			asic_latencies,
+			#[cfg(any(not(feature = "compact-superscalar"), test))]
 			cpu_latencies,
 			address_reg: address_reg as u8,
+			#[cfg(any(not(feature = "compact-superscalar"), test))]
 			ipc,
+			#[cfg(any(not(feature = "compact-superscalar"), test))]
 			mul_count,
+			#[cfg(any(not(feature = "compact-superscalar"), test))]
 			cpu_latency: retire_cycle,
+			#[cfg(any(not(feature = "compact-superscalar"), test))]
 			asic_latency: asic_latency_max,
+			#[cfg(any(not(feature = "compact-superscalar"), test))]
 			code_size,
+			#[cfg(any(not(feature = "compact-superscalar"), test))]
 			macro_ops: macro_op_count,
+			#[cfg(any(not(feature = "compact-superscalar"), test))]
 			decode_cycles: decode_cycle,
 		}
 	}
