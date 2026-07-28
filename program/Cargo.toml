@@ -9,6 +9,3 @@ publish = false
 rustdom-x = { path = "../rustdom-x", features = ["unchecked-superscalar"] }
 rustdom-x-compact-vm = { path = "../compact" }
 sp1-zkvm = "=6.3.1"
-
-[build-dependencies]
-rustdom-x = { path = "../rustdom-x", features = ["superscalar-codegen"] }

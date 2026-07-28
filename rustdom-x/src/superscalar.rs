@@ -686,41 +686,6 @@ enum ScExecOpcode {
 	ImulRcp,
 }
 
-/// Build-time description of one decoded superscalar operation.
-///
-/// This is available only to the fixed-epoch code generator. The verifier's
-/// normal runtime representation remains private.
-#[cfg(feature = "superscalar-codegen")]
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum CodegenOpcode {
-	IsubR,
-	IxorR,
-	IaddRs,
-	ImulR,
-	IrorC,
-	IaddC,
-	IxorC,
-	ImulhR,
-	IsmulhR,
-	ImulRcp,
-}
-
-#[cfg(feature = "superscalar-codegen")]
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct CodegenInstruction {
-	pub opcode: CodegenOpcode,
-	pub immediate: u64,
-	pub dst: u8,
-	pub src: u8,
-}
-
-#[cfg(feature = "superscalar-codegen")]
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct CodegenProgram {
-	pub instructions: Vec<CodegenInstruction>,
-	pub address_register: u8,
-}
-
 #[cfg(feature = "compact-superscalar")]
 #[derive(Copy, Clone)]
 struct ScExecInstr {
@@ -1134,44 +1099,6 @@ impl ScProgram<'_> {
 		#[cfg(feature = "unchecked-superscalar")]
 		self.execute_compact_unchecked(ds);
 	}
-}
-
-/// Reproduces the epoch-dependent superscalar programs for build-time static
-/// compilation. This is deliberately feature-gated so verifier builds do not
-/// retain a second public execution representation.
-#[cfg(feature = "superscalar-codegen")]
-pub fn generate_codegen_programs(key: &[u8], count: usize) -> Vec<CodegenProgram> {
-	let mut generator = Blake2Generator::new(key, 0);
-	let mut programs = Vec::with_capacity(count);
-	for _ in 0..count {
-		let program = ScProgram::generate(&mut generator);
-		let instructions = program
-			.exec
-			.iter()
-			.map(|instruction| CodegenInstruction {
-				opcode: match instruction.opcode {
-					ScExecOpcode::IsubR => CodegenOpcode::IsubR,
-					ScExecOpcode::IxorR => CodegenOpcode::IxorR,
-					ScExecOpcode::IaddRs => CodegenOpcode::IaddRs,
-					ScExecOpcode::ImulR => CodegenOpcode::ImulR,
-					ScExecOpcode::IrorC => CodegenOpcode::IrorC,
-					ScExecOpcode::IaddC => CodegenOpcode::IaddC,
-					ScExecOpcode::IxorC => CodegenOpcode::IxorC,
-					ScExecOpcode::ImulhR => CodegenOpcode::ImulhR,
-					ScExecOpcode::IsmulhR => CodegenOpcode::IsmulhR,
-					ScExecOpcode::ImulRcp => CodegenOpcode::ImulRcp,
-				},
-				immediate: instruction.immediate,
-				dst: instruction.dst,
-				src: instruction.src,
-			})
-			.collect();
-		programs.push(CodegenProgram {
-			instructions,
-			address_register: program.address_reg,
-		});
-	}
-	programs
 }
 
 // Safety invariant for the unchecked candidate: `ScExecInstr` is private and
