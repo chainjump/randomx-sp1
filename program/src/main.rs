@@ -29,8 +29,18 @@ const EXPECTED_POW_HASH: [u8; 32] = [
 pub fn main() {
     let memory = Arc::new(VmMemory::light(&RANDOMX_SEED));
     let mut vm = new_vm(memory);
+
+    #[cfg(feature = "network-benchmark")]
+    let hashing_blob = sp1_zkvm::io::read_vec();
+    #[cfg(feature = "network-benchmark")]
+    assert!(!hashing_blob.is_empty());
+
+    #[cfg(feature = "network-benchmark")]
+    let hash = calculate_hash(&mut vm, &hashing_blob);
+    #[cfg(not(feature = "network-benchmark"))]
     let hash = calculate_hash(&mut vm, &HASHING_BLOB);
 
+    #[cfg(not(feature = "network-benchmark"))]
     assert_eq!(hash.as_bytes(), EXPECTED_POW_HASH);
     sp1_zkvm::io::commit_slice(hash.as_bytes());
 }

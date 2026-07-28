@@ -5,6 +5,11 @@ edition = "2021"
 license = "GPL-3.0-only"
 publish = false
 
+[features]
+# Measurement-only variant that reads a hashing blob from the SP1 hint stream.
+# The fixed default guest and its public statement remain unchanged.
+network-benchmark = []
+
 [dependencies]
 rustdom-x = { path = "../rustdom-x", features = ["unchecked-superscalar"] }
 rustdom-x-compact-vm = { path = "../compact" }
