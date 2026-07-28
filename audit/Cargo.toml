@@ -14,8 +14,20 @@ name = "official_randomx"
 path = "src/bin/official_randomx.rs"
 required-features = ["official-randomx"]
 
+[[bin]]
+name = "network_fixture_builder"
+path = "src/bin/network_fixture_builder.rs"
+required-features = ["official-randomx"]
+
+[[bin]]
+name = "monero_blocks"
+path = "src/bin/monero_blocks.rs"
+
 [dependencies]
 blake2b_simd = "1.0.4"
 randomx-softfp = { path = "../softfp" }
-rustdom-x = { path = "../rustdom-x", features = ["unchecked-superscalar"] }
+rustdom-x = { path = "../rustdom-x", features = ["unchecked-superscalar", "cfround-audit"] }
 rustdom-x-compact-vm = { path = "../compact", features = ["differential-audit"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tiny-keccak = { version = "2.0.2", features = ["keccak"] }

@@ -2058,6 +2058,9 @@ dependencies = [
  "randomx-softfp",
  "rustdom-x",
  "rustdom-x-compact-vm",
+ "serde",
+ "serde_json",
+ "tiny-keccak",
 ]
 
 [[package]]

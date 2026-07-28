@@ -1,0 +1,146 @@
+use std::sync::Arc;
+use std::time::{Duration, Instant};
+
+use rustdom_x::{new_vm, VmMemory};
+use rustdom_x_compact_vm::calculate_hash;
+
+use crate::monero::{
+    blob_object_hash, decode_hex, decode_hex_vec, encode_hex, meets_difficulty,
+    parse_wide_difficulty, MoneroBlockFixtures,
+};
+
+pub const RECENT_MAINNET_BLOCKS_JSON: &str = include_str!("../fixtures/recent_monero_blocks.json");
+
+#[derive(Debug)]
+pub struct ValidationSummary {
+    pub blocks: usize,
+    pub first_height: u64,
+    pub last_height: u64,
+    pub cfround_counts: [u64; 4],
+    pub elapsed: Duration,
+}
+
+pub fn randomx_seed_height(height: u64) -> u64 {
+    if height <= 2_048 + 64 {
+        0
+    } else {
+        (height - 64 - 1) & !(2_048 - 1)
+    }
+}
+
+pub fn validate_recent_mainnet_blocks() -> ValidationSummary {
+    let fixtures: MoneroBlockFixtures = serde_json::from_str(RECENT_MAINNET_BLOCKS_JSON)
+        .expect("the embedded Monero fixture must be valid JSON");
+    assert_eq!(fixtures.network, "mainnet");
+    assert_eq!(fixtures.blocks.len(), 20, "fixture must contain 20 blocks");
+
+    let seed = decode_hex::<32>(&fixtures.seed_hash).expect("fixture seed hash must be hex");
+    let memory = Arc::new(VmMemory::light(&seed));
+    let mut rich = new_vm(Arc::clone(&memory));
+    let mut compact = new_vm(memory);
+    let mut total_cfround = [0u64; 4];
+    let started = Instant::now();
+
+    for (index, block) in fixtures.blocks.iter().enumerate() {
+        assert_eq!(
+            block.height,
+            fixtures.blocks[0].height + index as u64,
+            "fixture heights must be sequential"
+        );
+        assert_eq!(
+            randomx_seed_height(block.height),
+            fixtures.seed_height,
+            "block {} has the wrong RandomX seed height",
+            block.height
+        );
+        if index > 0 {
+            assert_eq!(
+                block.prev_hash,
+                fixtures.blocks[index - 1].block_id,
+                "broken chain link at block {}",
+                block.height
+            );
+        }
+
+        let blob = decode_hex_vec(&block.hashing_blob).expect("hashing blob must be hex");
+        assert_eq!(
+            encode_hex(&blob_object_hash(&blob)),
+            block.block_id,
+            "canonical hashing blob does not produce block id at height {}",
+            block.height
+        );
+        let expected = decode_hex::<32>(&block.pow_hash).expect("PoW hash must be hex");
+        let difficulty = parse_wide_difficulty(&block.wide_difficulty)
+            .expect("fixture difficulty must fit Monero's 64-bit difficulty type");
+        assert!(
+            meets_difficulty(&expected, difficulty),
+            "PoW hash does not meet difficulty at block {}",
+            block.height
+        );
+
+        let before = rich.cfround_counts();
+        let rich_hash = rich.calculate_hash(&blob);
+        let after = rich.cfround_counts();
+        let observed_cfround = std::array::from_fn(|mode| after[mode] - before[mode]);
+        assert_eq!(
+            observed_cfround, block.cfround_counts,
+            "CFROUND coverage changed at block {}",
+            block.height
+        );
+
+        let compact_hash = calculate_hash(&mut compact, &blob);
+        assert_eq!(
+            rich_hash.as_bytes(),
+            &expected,
+            "rich RandomX PoW mismatch at block {}",
+            block.height
+        );
+        assert_eq!(
+            compact_hash.as_bytes(),
+            &expected,
+            "compact RandomX PoW mismatch at block {}",
+            block.height
+        );
+        assert_eq!(
+            rich.reg.to_bytes(),
+            compact.reg.to_bytes(),
+            "final register mismatch at block {}",
+            block.height
+        );
+        assert_eq!(
+            rich.scratchpad, compact.scratchpad,
+            "final scratchpad mismatch at block {}",
+            block.height
+        );
+        compact.reset_rounding_mode();
+
+        for mode in 0..4 {
+            total_cfround[mode] += observed_cfround[mode];
+        }
+    }
+
+    assert!(
+        total_cfround.iter().sum::<u64>() > 0,
+        "the fixed block window must exercise CFROUND"
+    );
+
+    ValidationSummary {
+        blocks: fixtures.blocks.len(),
+        first_height: fixtures.blocks.first().unwrap().height,
+        last_height: fixtures.blocks.last().unwrap().height,
+        cfround_counts: total_cfround,
+        elapsed: started.elapsed(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn twenty_recent_mainnet_blocks_match_fixed_pow_hashes() {
+        let summary = validate_recent_mainnet_blocks();
+        assert_eq!(summary.blocks, 20);
+        assert_eq!(summary.last_height - summary.first_height, 19);
+    }
+}
