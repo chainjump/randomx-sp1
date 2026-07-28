@@ -1,4 +1,5 @@
 /target/
-/artifacts/
+/artifacts/*
+!/artifacts/randomx-program
 *.elf
 *.log

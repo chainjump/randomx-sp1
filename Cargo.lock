@@ -2064,15 +2064,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "randomx-compact-vm-cfround-program"
-version = "0.1.0"
-dependencies = [
- "rustdom-x",
- "rustdom-x-compact-vm",
- "sp1-zkvm",
-]
-
-[[package]]
 name = "randomx-compact-vm-profile-probes"
 version = "0.1.0"
 dependencies = [

@@ -867,7 +867,6 @@ fn from_lanes(value: [u64; 2]) -> m128d {
     m128d::from_u64(value[1], value[0])
 }
 
-#[cfg(not(feature = "nearest-only-audit"))]
 #[inline(always)]
 fn rounding_mode(vm: &Vm) -> RoundingMode {
     let mode = vm.get_rounding_mode();
@@ -875,12 +874,6 @@ fn rounding_mode(vm: &Vm) -> RoundingMode {
     // SAFETY: `Vm` stores the mode in a private field. Its constructor and
     // reset path write zero, and the only setter rejects values above three.
     unsafe { RoundingMode::from_valid_fprc(mode) }
-}
-
-#[cfg(feature = "nearest-only-audit")]
-#[inline(always)]
-fn rounding_mode(_: &Vm) -> RoundingMode {
-    RoundingMode::Nearest
 }
 
 #[inline(always)]
@@ -1428,7 +1421,7 @@ mod tests {
     }
 
     #[test]
-    fn directed_cfround_hash_matches_official_randomx() {
+    fn all_rounding_modes_hash_matches_official_randomx() {
         let seed = [
             0x11, 0xc7, 0x98, 0xe5, 0xac, 0x65, 0x15, 0x21, 0x8b, 0xc3, 0xef, 0xcb, 0x54,
             0x16, 0xe5, 0xb6, 0x8c, 0x59, 0x9e, 0x42, 0xa6, 0x1b, 0x86, 0xef, 0xe5, 0x74,
@@ -1460,7 +1453,7 @@ mod tests {
     }
 
     #[test]
-    fn nearest_only_hash_matches_rich_and_official_randomx() {
+    fn original_block_hash_matches_rich_and_official_randomx() {
         let seed = [
             0x11, 0xc7, 0x98, 0xe5, 0xac, 0x65, 0x15, 0x21, 0x8b, 0xc3, 0xef, 0xcb, 0x54,
             0x16, 0xe5, 0xb6, 0x8c, 0x59, 0x9e, 0x42, 0xa6, 0x1b, 0x86, 0xef, 0xe5, 0x74,
@@ -1480,8 +1473,6 @@ mod tests {
             0x92, 0x00, 0x00, 0x00, 0x00, 0x00,
         ];
 
-        // This audited vector contains no CFROUND in any of its eight
-        // programs, so the original rich VM is a valid nearest-even oracle.
         let memory = Arc::new(VmMemory::light(&seed));
         let mut rich = new_vm(Arc::clone(&memory));
         let mut compact = new_vm(memory);

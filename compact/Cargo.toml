@@ -6,9 +6,6 @@ license = "GPL-3.0-only"
 publish = false
 
 [features]
-# Negative control used only to measure the cost and semantic necessity of the
-# software CFROUND path. Never enable for a RandomX verifier.
-nearest-only-audit = []
 differential-audit = []
 
 [dependencies]

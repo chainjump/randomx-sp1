@@ -7,7 +7,6 @@ members = [
     "executor",
     "profile-probes",
     "program",
-    "program-cfround",
     "rustdom-x",
     "softfp",
     "softfp-guest",

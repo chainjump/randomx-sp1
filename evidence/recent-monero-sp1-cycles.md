@@ -7,8 +7,7 @@ heights 3,727,300 through 3,727,319 in the SP1 v6.3.1 lightweight executor.
 It is an executor-cycle measurement, not a proof or a prover-cost estimate.
 
 The measured compact VM checkpoint is `1544701` (`perf: keep immutable VM
-iteration config local`). The measurement guest and input-capable executor are
-frozen at `4af2ffd`. The guest fixes the network fixture's RandomX seed
+iteration config local`). The guest fixes the network fixture's RandomX seed
 `11c798e5ac6515218bc3efcb5416e5b68c599e42a61b86efe5746bb78eb4be8e`,
 reads one canonical hashing blob from the SP1 hint stream, performs one complete
 light-mode RandomX hash including construction of the 256 MiB cache, and commits
@@ -47,19 +46,8 @@ minimum is 6,766,247,664 cycles at height 3,727,315; the maximum is
 These blocks contain 381,809 dynamic `CFROUND` executions in total, and every
 block exercises all four rounding modes.
 
-## Harness comparison
-
-The runtime-input ELF was also executed with the older fixed guest's exact blob
-and expected hash:
-
-| Guest form | SP1 cycles |
-|---|---:|
-| Fixed-constant guest | 6,650,703,047 |
-| Runtime-input measurement guest | 6,650,702,843 |
-
-The measurement form is 204 cycles lower for that identical RandomX input. The
-tiny net difference reflects reading the hint while omitting the fixed guest's
-in-guest expected-hash assertion. No correction has been applied to the
+The same retained ELF executes the original benchmark blob in 6,650,702,843
+cycles. Cycle count is input-dependent; no correction has been applied to the
 20-block measurements.
 
 ## Reproduction
@@ -68,11 +56,11 @@ The ELF was built once, then reused for every block:
 
 ```text
 timeout --signal=INT --kill-after=1s 55s \
-  cargo prove build --locked --features network-benchmark \
-  --elf-name randomx-recent-network --output-directory ../artifacts
+  cargo prove build --locked \
+  --elf-name randomx-program --output-directory ../artifacts
 
 timeout --signal=INT --kill-after=1s 55s \
-  target/release/randomx-executor artifacts/randomx-recent-network \
+  target/release/randomx-executor artifacts/randomx-program \
   <fixed-pow-hash-hex> <fixed-hashing-blob-hex>
 ```
 
@@ -83,6 +71,6 @@ deterministic guest instruction count and is independent of host wall time.
 Artifact identity:
 
 ```text
-b2ec5552880d59e4f23cb9a2ac0ec3e48ec05b4fcf7e5aa2596a52206719a4de  artifacts/randomx-recent-network
+a55aa6f4a1b6535bf7771cfa5dc53d38f85e4795eb6dacd339f5fd3581d1c308  artifacts/randomx-program
 size: 273688 bytes
 ```
