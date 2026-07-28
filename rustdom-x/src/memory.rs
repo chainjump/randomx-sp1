@@ -149,7 +149,7 @@ pub fn init_dataset_item(seed_mem: &SeedMemory, item_num: u64) -> [u64; 8] {
             let mix_value = mix_block_value(seed_mem, reg_value, r);
             *v ^= mix_value;
         }
-        reg_value = ds[prog.address_reg];
+        reg_value = prog.address_register(&ds);
     }
     ds
 }

@@ -726,7 +726,7 @@ pub struct ScProgram<'a> {
 	exec: Vec<ScExecInstr>,
 	pub asic_latencies: Vec<usize>,
 	pub cpu_latencies: Vec<usize>,
-	pub address_reg: usize,
+	address_reg: u8,
 	pub ipc: f64,
 	pub code_size: usize,
 	pub macro_ops: usize,
@@ -916,7 +916,7 @@ impl ScProgram<'_> {
 			exec,
 			asic_latencies,
 			cpu_latencies,
-			address_reg,
+			address_reg: address_reg as u8,
 			ipc,
 			mul_count,
 			cpu_latency: retire_cycle,
@@ -924,6 +924,21 @@ impl ScProgram<'_> {
 			code_size,
 			macro_ops: macro_op_count,
 			decode_cycles: decode_cycle,
+		}
+	}
+
+	#[inline(always)]
+	pub fn address_register(&self, registers: &[u64; 8]) -> u64 {
+		debug_assert!(self.address_reg < 8);
+		#[cfg(feature = "unchecked-superscalar")]
+		unsafe {
+			// `address_reg` is private and is selected only by `generate`'s
+			// fixed `0..8` loop.
+			*registers.get_unchecked(self.address_reg as usize)
+		}
+		#[cfg(not(feature = "unchecked-superscalar"))]
+		{
+			registers[self.address_reg as usize]
 		}
 	}
 
@@ -1165,6 +1180,7 @@ mod compact_tests {
 	#[test]
 	fn compact_execution_matches_rich_execution() {
 		assert_eq!(std::mem::size_of::<ScExecInstr>(), 16);
+		let mut address_registers_seen = 0u8;
 		for seed_index in 0..128_u64 {
 			let mut seed = [0_u8; 32];
 			for (chunk_index, chunk) in seed.chunks_exact_mut(8).enumerate() {
@@ -1178,6 +1194,7 @@ mod compact_tests {
 			let mut generator = Blake2Generator::new(&seed, seed_index as u32);
 			for program_index in 0..8_u64 {
 				let program = ScProgram::generate(&mut generator);
+				address_registers_seen |= 1 << program.address_reg;
 				for input_index in 0..64_u64 {
 					let mut rich = [0_u64; 8];
 					for (register, value) in rich.iter_mut().enumerate() {
@@ -1187,6 +1204,10 @@ mod compact_tests {
 							^ (register as u64).wrapping_mul(0x5899_65cc_7537_4cc3);
 					}
 					let mut compact = rich;
+					assert_eq!(
+						program.address_register(&rich),
+						rich[program.address_reg as usize]
+					);
 					program.execute_rich(&mut rich);
 					program.execute_compact(&mut compact);
 					assert_eq!(compact, rich);
@@ -1207,5 +1228,6 @@ mod compact_tests {
 				}
 			}
 		}
+		assert_eq!(address_registers_seen, u8::MAX);
 	}
 }
