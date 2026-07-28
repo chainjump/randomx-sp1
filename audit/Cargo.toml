@@ -4,6 +4,15 @@ version = "0.1.0"
 edition = "2021"
 license = "GPL-3.0-only"
 publish = false
+build = "build.rs"
+
+[features]
+official-randomx = []
+
+[[bin]]
+name = "official_randomx"
+path = "src/bin/official_randomx.rs"
+required-features = ["official-randomx"]
 
 [dependencies]
 blake2b_simd = "1.0.4"

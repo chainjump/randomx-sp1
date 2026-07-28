@@ -71,3 +71,21 @@ timeout --signal=INT --kill-after=1s 55s \
 
 The nearest-only feature is a negative audit control and must never be enabled
 in a verifier.
+
+## Independent official audit
+
+`audit/src/bin/official_randomx.rs` can compare the rich and compact VMs
+directly with a locally built official RandomX v1.2.3 library. It is opt-in so
+the normal workspace has no external native-library requirement:
+
+```bash
+timeout --signal=INT --kill-after=1s 55s \
+  env RANDOMX_LIB_DIR=/path/to/RandomX/build \
+  cargo run --release --locked --offline \
+  -p randomx-compact-vm-audit --features official-randomx \
+  --bin official_randomx -- pattern-257
+```
+
+Run one key name per command to remain under the time limit. The audited key
+names and the v1.2.3 reference fingerprint are recorded in
+`evidence/official-v1.2.3-corpus.md`.

@@ -72,10 +72,18 @@ fn optimized_digest(key: &[u8]) -> [u8; 32] {
 }
 
 fn main() {
-    let cases: [(&str, &[u8]); 3] = [
+    let pattern_64: Vec<u8> = (0..64)
+        .map(|index| (index as u8).wrapping_mul(0x9d).wrapping_add(0x37))
+        .collect();
+    let pattern_257: Vec<u8> = (0..257)
+        .map(|index| (index as u8).wrapping_mul(0x6d).wrapping_add(0xa5))
+        .collect();
+    let cases: [(&str, &[u8]); 5] = [
         ("selected-monero-seed", &MONERO_SEED),
         ("zero-32-byte-seed", &ZERO_SEED),
         ("empty-seed", &[]),
+        ("pattern-64-byte-seed", &pattern_64),
+        ("pattern-257-byte-seed", &pattern_257),
     ];
 
     for (name, key) in cases {
@@ -94,5 +102,5 @@ fn main() {
         assert_eq!(optimized, baseline, "specialized cache differs for {name}");
     }
 
-    println!("all three complete 256 MiB RandomX cache digests match");
+    println!("all five complete 256 MiB RandomX cache digests match");
 }

@@ -82,6 +82,10 @@ and floating-register banks. The hot loop therefore has no boxed stores,
   scratchpads matched after every generated program.
 - The exact full SP1 guest derived the real cache and dataset, produced the
   expected Monero PoW hash, and exited successfully.
+- Forty-two complete light-mode hashes spanning seven key lengths (including
+  64- and 257-byte keys) and six blob lengths match official RandomX v1.2.3.
+- Every raw opcode byte also matches the rich decoder under four boundary
+  operand patterns (1,024 direct instruction-state comparisons).
 - Locked offline workspace checking and focused unit tests pass.
 - Every command was hard-capped below 60 seconds.
 

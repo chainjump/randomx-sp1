@@ -548,12 +548,14 @@ pub struct Blake2Generator {
 
 impl Blake2Generator {
 	pub fn new(seed: &[u8], nonce: u32) -> Blake2Generator {
-		debug_assert!(seed.len() <= BLAKE_GEN_DATA_LEN - 4);
 		let mut params = Params::new();
 		params.hash_length(BLAKE_GEN_DATA_LEN);
 
 		let mut key: [u8; 60] = [0; 60];
-		key[..seed.len()].copy_from_slice(seed);
+		// RandomX's Blake2Generator uses at most the first 60 seed bytes;
+		// Argon2 cache initialization still consumes the complete key.
+		let copied = seed.len().min(BLAKE_GEN_DATA_LEN - 4);
+		key[..copied].copy_from_slice(&seed[..copied]);
 
 		let mut data: [u8; BLAKE_GEN_DATA_LEN] = [0; BLAKE_GEN_DATA_LEN];
 		data[..BLAKE_GEN_DATA_LEN - 4].copy_from_slice(&key);
@@ -1115,6 +1117,22 @@ fn schedule_uop(
 		cycle += 1
 	}
 	None
+}
+
+#[cfg(test)]
+mod generator_tests {
+	use super::*;
+
+	#[test]
+	fn blake_generator_truncates_long_seed_to_sixty_bytes() {
+		let long_seed: Vec<u8> = (0..=255).collect();
+		let mut long = Blake2Generator::new(&long_seed, 0x89ab_cdef);
+		let mut truncated = Blake2Generator::new(&long_seed[..60], 0x89ab_cdef);
+
+		for _ in 0..256 {
+			assert_eq!(long.get_u32(), truncated.get_u32());
+		}
+	}
 }
 
 #[cfg(all(test, feature = "precompute-reciprocal"))]

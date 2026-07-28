@@ -1027,11 +1027,114 @@ mod tests {
     use super::*;
     use std::sync::Arc;
 
+    use rustdom_x::program::decode_instruction as decode_rich_instruction;
     use rustdom_x::{new_vm, VmMemory};
+
+    fn reset_instruction_state(vm: &mut Vm, salt: u64, mode: u32) {
+        for (index, register) in vm.reg.r.iter_mut().enumerate() {
+            *register = salt.wrapping_add(
+                (index as u64 + 1).wrapping_mul(0x9e37_79b9_7f4a_7c15),
+            );
+        }
+        vm.reg.f = [
+            m128d::from_f64(-17.25, 3.5),
+            m128d::from_f64(0.125, -91.75),
+            m128d::from_f64(65_537.5, -0.75),
+            m128d::from_f64(-1.0 / 3.0, 7.0 / 11.0),
+        ];
+        vm.reg.e = [
+            m128d::from_f64(1.5, 2.25),
+            m128d::from_f64(3.75, 4.5),
+            m128d::from_f64(5.125, 6.875),
+            m128d::from_f64(7.25, 8.625),
+        ];
+        vm.reg.a = [
+            m128d::from_f64(1.0 / 7.0, 1.0 / 13.0),
+            m128d::from_f64(11.0 / 17.0, 19.0 / 23.0),
+            m128d::from_f64(29.0 / 31.0, 37.0 / 41.0),
+            m128d::from_f64(43.0 / 47.0, 53.0 / 59.0),
+        ];
+        vm.config.e_mask = [0x3ff0_0000_0012_3456, 0x4000_0000_0065_4321];
+        vm.pc = 0;
+        vm.set_rounding_mode(mode);
+    }
 
     #[test]
     fn compact_instruction_is_24_bytes() {
         assert_eq!(size_of::<CompactInstr>(), 24);
+    }
+
+    #[test]
+    fn every_opcode_byte_matches_rich_decoder_at_boundaries() {
+        let memory = Arc::new(VmMemory::no_memory());
+        let mut rich = new_vm(Arc::clone(&memory));
+        let mut compact = new_vm(memory);
+        for (index, (rich_word, compact_word)) in rich
+            .scratchpad
+            .iter_mut()
+            .zip(compact.scratchpad.iter_mut())
+            .enumerate()
+        {
+            let value = (index as u64)
+                .wrapping_mul(0xd6e8_feb8_6659_fd93)
+                .rotate_left((index & 63) as u32);
+            *rich_word = value;
+            *compact_word = value;
+        }
+
+        let operand_cases = [
+            (0u8, 0u8, 0u8, 0i32),
+            (255, 254, 255, -1),
+            (5, 5, 0xe0, i32::MIN),
+            (0x9d, 0x63, 0x5b, 0x1357_9bdf),
+        ];
+        for opcode in 0..=u8::MAX {
+            for (case, &(dst, src, modifier, immediate)) in operand_cases.iter().enumerate() {
+                let raw = (opcode as u64)
+                    | ((dst as u64) << 8)
+                    | ((src as u64) << 16)
+                    | ((modifier as u64) << 24)
+                    | ((immediate as u32 as u64) << 32);
+                let mut rich_usage = [-1, 3, 7, 11, 19, 23, 29, 31];
+                let mut compact_usage = rich_usage;
+                let rich_instr =
+                    decode_rich_instruction(raw as i64, 37, &mut rich_usage);
+                let compact_instr = decode_instruction(raw as i64, 37, &mut compact_usage);
+                assert_eq!(rich_usage, compact_usage, "opcode {opcode:#04x} case {case}");
+
+                let salt = raw ^ 0xa076_1d64_78bd_642f;
+                let mode = case as u32;
+                reset_instruction_state(&mut rich, salt, mode);
+                reset_instruction_state(&mut compact, salt, mode);
+                rich_instr.execute(&mut rich);
+                (compact_instr.effect)(&mut compact, &compact_instr);
+
+                assert_eq!(
+                    rich.reg.to_bytes(),
+                    compact.reg.to_bytes(),
+                    "register divergence for opcode {opcode:#04x} case {case} ({:?})",
+                    rich_instr.op
+                );
+                assert_eq!(
+                    rich.pc, compact.pc,
+                    "PC divergence for opcode {opcode:#04x} case {case} ({:?})",
+                    rich_instr.op
+                );
+                assert_eq!(
+                    rich.get_rounding_mode(),
+                    compact.get_rounding_mode(),
+                    "rounding divergence for opcode {opcode:#04x} case {case} ({:?})",
+                    rich_instr.op
+                );
+                if opcode >= 0xf0 {
+                    assert_eq!(
+                        rich.scratchpad, compact.scratchpad,
+                        "store divergence for opcode {opcode:#04x} case {case}"
+                    );
+                }
+            }
+        }
+        compact.reset_rounding_mode();
     }
 
     #[test]
