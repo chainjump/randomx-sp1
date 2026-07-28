@@ -690,8 +690,8 @@ enum ScExecOpcode {
 #[derive(Copy, Clone)]
 struct ScExecInstr {
 	immediate: u64,
-	dst: u8,
-	src: u8,
+	dst_offset: u8,
+	src_offset: u8,
 	opcode: ScExecOpcode,
 }
 
@@ -724,8 +724,12 @@ impl ScExecInstr {
 		}
 		ScExecInstr {
 			immediate,
-			dst: instr.dst as u8,
-			src: if instr.src < 0 { 0 } else { instr.src as u8 },
+			dst_offset: instr.dst as u8 * std::mem::size_of::<u64>() as u8,
+			src_offset: if instr.src < 0 {
+				0
+			} else {
+				instr.src as u8 * std::mem::size_of::<u64>() as u8
+			},
 			opcode,
 		}
 	}
@@ -1039,8 +1043,8 @@ impl ScProgram<'_> {
 	))]
 	fn execute_compact(&self, ds: &mut [u64; 8]) {
 		for instr in &self.exec {
-			let dst = instr.dst as usize;
-			let src = instr.src as usize;
+			let dst = instr.dst_offset as usize / std::mem::size_of::<u64>();
+			let src = instr.src_offset as usize / std::mem::size_of::<u64>();
 			match instr.opcode {
 				ScExecOpcode::IsubR => ds[dst] = ds[dst].wrapping_sub(ds[src]),
 				ScExecOpcode::IxorR => ds[dst] ^= ds[src],
@@ -1062,27 +1066,29 @@ impl ScProgram<'_> {
 
 	#[cfg(feature = "unchecked-superscalar")]
 	fn execute_compact_unchecked(&self, ds: &mut [u64; 8]) {
-		for instr in &self.exec {
-			let dst_value = exec_read_register(ds, instr.dst);
-			let result = match instr.opcode {
-				ScExecOpcode::IsubR => {
-					dst_value.wrapping_sub(exec_read_register(ds, instr.src))
-				}
-				ScExecOpcode::IxorR => dst_value ^ exec_read_register(ds, instr.src),
-				ScExecOpcode::IaddRs => dst_value.wrapping_add(
-					exec_read_register(ds, instr.src) << instr.immediate,
-				),
-				ScExecOpcode::ImulR => {
-					dst_value.wrapping_mul(exec_read_register(ds, instr.src))
-				}
-				ScExecOpcode::IrorC => dst_value.rotate_right(instr.immediate as u32),
-				ScExecOpcode::IaddC => dst_value.wrapping_add(instr.immediate),
-				ScExecOpcode::IxorC => dst_value ^ instr.immediate,
-				ScExecOpcode::ImulhR => mulh(dst_value, exec_read_register(ds, instr.src)),
-				ScExecOpcode::IsmulhR => smulh(dst_value, exec_read_register(ds, instr.src)),
-				ScExecOpcode::ImulRcp => dst_value.wrapping_mul(instr.immediate),
-			};
-			exec_write_register(ds, instr.dst, result);
+		let mut chunks = self.exec.chunks_exact(8);
+		for chunk in &mut chunks {
+			execute_compact_instruction_unchecked(ds, &chunk[0]);
+			execute_compact_instruction_unchecked(ds, &chunk[1]);
+			execute_compact_instruction_unchecked(ds, &chunk[2]);
+			execute_compact_instruction_unchecked(ds, &chunk[3]);
+			execute_compact_instruction_unchecked(ds, &chunk[4]);
+			execute_compact_instruction_unchecked(ds, &chunk[5]);
+			execute_compact_instruction_unchecked(ds, &chunk[6]);
+			execute_compact_instruction_unchecked(ds, &chunk[7]);
+		}
+		let remainder = chunks.remainder();
+		let tail = if remainder.len() >= 4 {
+			execute_compact_instruction_unchecked(ds, &remainder[0]);
+			execute_compact_instruction_unchecked(ds, &remainder[1]);
+			execute_compact_instruction_unchecked(ds, &remainder[2]);
+			execute_compact_instruction_unchecked(ds, &remainder[3]);
+			&remainder[4..]
+		} else {
+			remainder
+		};
+		for instr in tail {
+			execute_compact_instruction_unchecked(ds, instr);
 		}
 	}
 
@@ -1101,22 +1107,59 @@ impl ScProgram<'_> {
 	}
 }
 
+#[cfg(feature = "unchecked-superscalar")]
+#[inline(always)]
+fn execute_compact_instruction_unchecked(ds: &mut [u64; 8], instr: &ScExecInstr) {
+	let dst_value = exec_read_register(ds, instr.dst_offset);
+	let result = match instr.opcode {
+		ScExecOpcode::IsubR => {
+			dst_value.wrapping_sub(exec_read_register(ds, instr.src_offset))
+		}
+		ScExecOpcode::IxorR => dst_value ^ exec_read_register(ds, instr.src_offset),
+		ScExecOpcode::IaddRs => {
+			dst_value.wrapping_add(exec_read_register(ds, instr.src_offset) << instr.immediate)
+		}
+		ScExecOpcode::ImulR => {
+			dst_value.wrapping_mul(exec_read_register(ds, instr.src_offset))
+		}
+		ScExecOpcode::IrorC => dst_value.rotate_right(instr.immediate as u32),
+		ScExecOpcode::IaddC => dst_value.wrapping_add(instr.immediate),
+		ScExecOpcode::IxorC => dst_value ^ instr.immediate,
+		ScExecOpcode::ImulhR => mulh(dst_value, exec_read_register(ds, instr.src_offset)),
+		ScExecOpcode::IsmulhR => smulh(dst_value, exec_read_register(ds, instr.src_offset)),
+		ScExecOpcode::ImulRcp => dst_value.wrapping_mul(instr.immediate),
+	};
+	exec_write_register(ds, instr.dst_offset, result);
+}
+
 // Safety invariant for the unchecked candidate: `ScExecInstr` is private and
 // can only be constructed by `decode`, which rejects register indices outside
 // the fixed RandomX register file before the executable vector is stored.
 #[cfg(feature = "unchecked-superscalar")]
 #[inline(always)]
-fn exec_read_register(registers: &[u64; 8], index: u8) -> u64 {
-	debug_assert!(index < 8);
-	unsafe { *registers.get_unchecked(index as usize) }
+fn exec_read_register(registers: &[u64; 8], byte_offset: u8) -> u64 {
+	debug_assert_eq!(byte_offset as usize % std::mem::size_of::<u64>(), 0);
+	debug_assert!(byte_offset as usize <= std::mem::size_of_val(registers) - std::mem::size_of::<u64>());
+	unsafe {
+		*registers
+			.as_ptr()
+			.cast::<u8>()
+			.add(byte_offset as usize)
+			.cast::<u64>()
+	}
 }
 
 #[cfg(feature = "unchecked-superscalar")]
 #[inline(always)]
-fn exec_write_register(registers: &mut [u64; 8], index: u8, value: u64) {
-	debug_assert!(index < 8);
+fn exec_write_register(registers: &mut [u64; 8], byte_offset: u8, value: u64) {
+	debug_assert_eq!(byte_offset as usize % std::mem::size_of::<u64>(), 0);
+	debug_assert!(byte_offset as usize <= std::mem::size_of_val(registers) - std::mem::size_of::<u64>());
 	unsafe {
-		*registers.get_unchecked_mut(index as usize) = value;
+		*registers
+			.as_mut_ptr()
+			.cast::<u8>()
+			.add(byte_offset as usize)
+			.cast::<u64>() = value;
 	}
 }
 
