@@ -70,10 +70,11 @@ struct CompactInstr {
     effect: Effect,
     imm: u64,
     target: i32,
+    memory_mask: u32,
     dst: u8,
     src: u8,
     mode: u8,
-    _reserved: [u8; 9],
+    _reserved: [u8; 5],
 }
 
 const _: () = {
@@ -96,11 +97,19 @@ impl CompactInstr {
             effect,
             imm,
             target: 0,
+            memory_mask: 0,
             dst,
             src,
             mode,
-            _reserved: [0; 9],
+            _reserved: [0; 5],
         }
+    }
+
+    #[inline(always)]
+    fn new_memory(effect: Effect, dst: u8, src: u8, imm: u64, mode: u8) -> Self {
+        let mut instr = Self::new(effect, dst, src, imm, mode);
+        instr.memory_mask = memory_mask(mode);
+        instr
     }
 }
 
@@ -610,7 +619,13 @@ fn decode_instruction(raw: i64, index: i32, usage: &mut [i32; MAX_REG]) -> Compa
         } else {
             MEM_L1
         };
-        return CompactInstr::new(exec_istore, dst_r, src_r, u64_from_i32_imm(imm32), mode);
+        return CompactInstr::new_memory(
+            exec_istore,
+            dst_r,
+            src_r,
+            u64_from_i32_imm(imm32),
+            mode,
+        );
     }
     CompactInstr::new(exec_nop, NO_REG, NO_REG, 0, 0)
 }
@@ -640,7 +655,7 @@ fn decode_memory(
     same_register: bool,
 ) -> CompactInstr {
     if same_register {
-        CompactInstr::new(
+        CompactInstr::new_memory(
             effect,
             dst,
             NO_REG,
@@ -649,7 +664,7 @@ fn decode_memory(
         )
     } else {
         let mode = if modifier & 3 == 0 { MEM_L2 } else { MEM_L1 };
-        CompactInstr::new(effect, dst, address_reg, u64_from_i32_imm(imm32), mode)
+        CompactInstr::new_memory(effect, dst, address_reg, u64_from_i32_imm(imm32), mode)
     }
 }
 
@@ -723,28 +738,30 @@ fn rounding_mode(_: &Vm) -> RoundingMode {
 }
 
 #[inline(always)]
-fn memory_mask(mode: u8) -> u64 {
+fn memory_mask(mode: u8) -> u32 {
     match mode {
-        MEM_L1 => SCRATCHPAD_L1_MASK,
-        MEM_L2 => SCRATCHPAD_L2_MASK,
-        MEM_L3 => SCRATCHPAD_L3_MASK,
+        MEM_L1 => SCRATCHPAD_L1_MASK as u32,
+        MEM_L2 => SCRATCHPAD_L2_MASK as u32,
+        MEM_L3 => SCRATCHPAD_L3_MASK as u32,
         _ => unreachable!(),
     }
 }
 
 #[inline(always)]
 fn scratchpad_src_ix(vm: &Vm, instr: &CompactInstr) -> usize {
+    debug_assert_ne!(instr.memory_mask, 0);
     let address = if instr.src == NO_REG {
         instr.imm
     } else {
         r(vm, instr.src).wrapping_add(instr.imm)
     };
-    ((address & memory_mask(instr.mode)) >> 3) as usize
+    ((address & instr.memory_mask as u64) >> 3) as usize
 }
 
 #[inline(always)]
 fn scratchpad_dst_ix(vm: &Vm, instr: &CompactInstr) -> usize {
-    ((r(vm, instr.dst).wrapping_add(instr.imm) & memory_mask(instr.mode)) >> 3) as usize
+    debug_assert_ne!(instr.memory_mask, 0);
+    ((r(vm, instr.dst).wrapping_add(instr.imm) & instr.memory_mask as u64) >> 3) as usize
 }
 
 #[inline(always)]
@@ -1140,6 +1157,31 @@ mod tests {
                     decode_rich_instruction(raw as i64, 37, &mut rich_usage);
                 let compact_instr = decode_instruction(raw as i64, 37, &mut compact_usage);
                 assert_eq!(rich_usage, compact_usage, "opcode {opcode:#04x} case {case}");
+                let is_memory = matches!(
+                    opcode,
+                    0x10..=0x16
+                        | 0x27..=0x2d
+                        | 0x3e..=0x41
+                        | 0x46
+                        | 0x4b
+                        | 0x65..=0x69
+                        | 0x8c..=0x90
+                        | 0xa1..=0xa5
+                        | 0xcc..=0xcf
+                        | 0xf0..=0xff
+                );
+                if is_memory {
+                    assert_eq!(
+                        compact_instr.memory_mask,
+                        memory_mask(compact_instr.mode),
+                        "memory mask mismatch for opcode {opcode:#04x} case {case}"
+                    );
+                } else {
+                    assert_eq!(
+                        compact_instr.memory_mask, 0,
+                        "unexpected memory mask for opcode {opcode:#04x} case {case}"
+                    );
+                }
 
                 let salt = raw ^ 0xa076_1d64_78bd_642f;
                 let mode = case as u32;
