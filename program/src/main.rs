@@ -3,7 +3,7 @@
 use std::sync::Arc;
 
 use rustdom_x::{new_vm, VmMemory};
-use rustdom_x_compact_vm::calculate_hash_with_dataset_item;
+use rustdom_x_compact_vm::calculate_hash;
 
 sp1_zkvm::entrypoint!(main);
 
@@ -16,14 +16,13 @@ mod static_superscalar {
 // blob at runtime. Every generated RandomX program and opcode, including
 // CFROUND and its four resulting rounding modes, uses the normal verifier path.
 pub fn main() {
-    let memory = Arc::new(VmMemory::light_with_static_dataset(&epoch::RANDOMX_SEED));
+    let memory = Arc::new(VmMemory::light_with_dataset_item_initializer(
+        &epoch::RANDOMX_SEED,
+        static_superscalar::init_dataset_item,
+    ));
     let mut vm = new_vm(memory);
     let hashing_blob = sp1_zkvm::io::read_vec();
     assert!(!hashing_blob.is_empty());
-    let hash = calculate_hash_with_dataset_item(
-        &mut vm,
-        &hashing_blob,
-        static_superscalar::init_dataset_item,
-    );
+    let hash = calculate_hash(&mut vm, &hashing_blob);
     sp1_zkvm::io::commit_slice(hash.as_bytes());
 }
