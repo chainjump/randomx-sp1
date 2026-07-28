@@ -35,6 +35,7 @@ const SCRATCHPAD_L1_MASK: u64 = 0x3ff8;
 const SCRATCHPAD_L2_MASK: u64 = 0x3fff8;
 const SCRATCHPAD_L3_MASK: u64 = 0x1ffff8;
 const SCRATCHPAD_L3_MASK_U32: u32 = 0x1fffc0;
+const SCRATCHPAD_WORDS: usize = 262_144;
 const CACHE_LINE_ALIGN_MASK: u64 = ((DATASET_BASE_SIZE - 1) & !(DATASET_ITEM_SIZE - 1)) as u64;
 
 const MANTISSA_SIZE: u64 = 52;
@@ -73,7 +74,13 @@ struct CompactInstr {
     _reserved: u8,
 }
 
-const _: () = assert!(size_of::<CompactInstr>() == 24);
+const _: () = {
+    assert!(size_of::<CompactInstr>() == 24);
+    // Instruction memory operands select one u64 from the full scratchpad.
+    assert!((SCRATCHPAD_L3_MASK as usize >> 3) + 1 == SCRATCHPAD_WORDS);
+    // Iteration mixing selects an aligned group of eight u64 words.
+    assert!((SCRATCHPAD_L3_MASK_U32 as usize >> 3) + MAX_REG == SCRATCHPAD_WORDS);
+};
 
 struct CompactProgram {
     entropy: [u64; 16],
@@ -129,6 +136,9 @@ impl CompactProgram {
 /// Executes a complete RandomX hash with the same memory provider and VM state
 /// used by `rustdom_x::Vm::calculate_hash`.
 pub fn calculate_hash(vm: &mut Vm, input: &[u8]) -> Hash {
+    // This single public-boundary check establishes the allocation invariant
+    // used by unchecked scratchpad accesses throughout all eight programs.
+    assert_eq!(vm.scratchpad.len(), SCRATCHPAD_WORDS);
     let initial_hash = blake2b(input);
     let mut seed = hash_to_m128i_array(&initial_hash);
 
@@ -313,6 +323,7 @@ fn run(vm: &mut Vm, seed: &[m128i; 4]) {
     let bytes = gen_program_aes_4rx4(seed, 136);
     let program = CompactProgram::from_bytes(&bytes);
     init_vm(vm, &program.entropy);
+    debug_assert_eq!(vm.scratchpad.len(), SCRATCHPAD_WORDS);
 
     let mut sp_addr_0 = vm.mem_reg.mx as u32;
     let mut sp_addr_1 = vm.mem_reg.ma as u32;
@@ -328,14 +339,14 @@ fn run(vm: &mut Vm, seed: &[m128i; 4]) {
         let addr0 = sp_addr_0 as usize;
         let addr1 = sp_addr_1 as usize;
         for i in 0..MAX_REG {
-            vm.reg.r[i] ^= vm.scratchpad[addr0 + i];
+            vm.reg.r[i] ^= scratch(vm, addr0 + i);
         }
         for i in 0..MAX_FLOAT_REG {
-            vm.reg.f[i] = m128i::from_u64(0, vm.scratchpad[addr1 + i]).lower_to_m128d();
+            vm.reg.f[i] = m128i::from_u64(0, scratch(vm, addr1 + i)).lower_to_m128d();
         }
         for i in 0..MAX_FLOAT_REG {
             let value =
-                m128i::from_u64(0, vm.scratchpad[addr1 + i + MAX_FLOAT_REG]).lower_to_m128d();
+                m128i::from_u64(0, scratch(vm, addr1 + i + MAX_FLOAT_REG)).lower_to_m128d();
             vm.reg.e[i] = mask_register_exponent_mantissa(vm, value);
         }
 
@@ -356,7 +367,7 @@ fn run(vm: &mut Vm, seed: &[m128i; 4]) {
         std::mem::swap(&mut vm.mem_reg.mx, &mut vm.mem_reg.ma);
 
         for i in 0..MAX_REG {
-            vm.scratchpad[addr1 + i] = vm.reg.r[i];
+            set_scratch(vm, addr1 + i, vm.reg.r[i]);
         }
         for i in 0..MAX_FLOAT_REG {
             vm.reg.f[i] = vm.reg.f[i] ^ vm.reg.e[i];
@@ -364,8 +375,8 @@ fn run(vm: &mut Vm, seed: &[m128i; 4]) {
         for i in 0..MAX_FLOAT_REG {
             let (high, low) = vm.reg.f[i].as_u64();
             let ix = addr0 + 2 * i;
-            vm.scratchpad[ix] = low;
-            vm.scratchpad[ix + 1] = high;
+            set_scratch(vm, ix, low);
+            set_scratch(vm, ix + 1, high);
         }
 
         sp_addr_0 = 0;
@@ -736,6 +747,12 @@ fn scratch(vm: &Vm, index: usize) -> u64 {
     unsafe { *vm.scratchpad.get_unchecked(index) }
 }
 
+#[inline(always)]
+fn set_scratch(vm: &mut Vm, index: usize, value: u64) {
+    debug_assert!(index < vm.scratchpad.len());
+    unsafe { *vm.scratchpad.get_unchecked_mut(index) = value }
+}
+
 fn exec_nop(_: &mut Vm, _: &CompactInstr) {}
 
 fn exec_iadd_rs(vm: &mut Vm, instr: &CompactInstr) {
@@ -976,8 +993,7 @@ fn exec_cfround(vm: &mut Vm, instr: &CompactInstr) {
 
 fn exec_istore(vm: &mut Vm, instr: &CompactInstr) {
     let index = scratchpad_dst_ix(vm, instr);
-    debug_assert!(index < vm.scratchpad.len());
-    unsafe { *vm.scratchpad.get_unchecked_mut(index) = r(vm, instr.src) }
+    set_scratch(vm, index, r(vm, instr.src));
 }
 
 #[inline(always)]
@@ -1062,6 +1078,15 @@ mod tests {
     #[test]
     fn compact_instruction_is_24_bytes() {
         assert_eq!(size_of::<CompactInstr>(), 24);
+    }
+
+    #[test]
+    #[should_panic(expected = "assertion `left == right` failed")]
+    fn compact_hash_rejects_malformed_scratchpad() {
+        let memory = Arc::new(VmMemory::no_memory());
+        let mut vm = new_vm(memory);
+        vm.scratchpad.pop();
+        let _ = calculate_hash(&mut vm, &[]);
     }
 
     #[test]
