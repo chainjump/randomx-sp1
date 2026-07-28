@@ -201,11 +201,10 @@ deserializing attacker-chosen bincode values.
 - A MemorySanitizer attempt was not valid because the instrumented crates
   would have linked against an uninstrumented Rust standard library. It failed
   before the tests and is not counted as evidence.
-- Docker is not installed on this host, so the documentation's recommended
-  Docker provenance build could not be performed. A local locked
-  `cargo prove build` did reproduce the retained ELF exactly, but production
-  source-to-ELF provenance should additionally be reproduced in Docker or a
-  controlled CI builder.
+- The previously outstanding Docker provenance build was completed on
+  2026-07-28. SP1's tagged image and its immutable digest both reproduced the
+  retained ELF byte for byte and derived the proved vkey. Commands and image
+  identities are recorded in `evidence/reproducible-build.md`.
 - Tests, sanitizer runs, dependency scanning, and manual invariant review
   substantially reduce risk but do not prove the absence of every memory
   safety or logic defect.

@@ -48,6 +48,14 @@ program vkey: 0x0046e62a80cbde7273e58b8e54b6715ebb3cfbf7905e78f985c3e74f6933de4a
 in 2:41.26 wall time with a 5,693,136 KiB maximum resident set. Vkey setup did
 not execute the RandomX input or contact the prover network.
 
+The subsequent reproducible Docker build produced an ELF byte-for-byte
+identical to `artifacts/randomx-program` and independently derived this same
+vkey. The existing proof was then passed to the Ethereum-mainnet simulation
+with the Docker-built ELF as the client input; verification again succeeded
+without broadcasting a transaction. A second network proof was unnecessary:
+byte-identical ELFs have the same program identity and the saved proof already
+covers that exact binary. See `evidence/reproducible-build.md`.
+
 The fixed-block client passed all five release tests. Its live zero-balance
 test validated the block and ELF, refreshed the quote, and refused before SP1
 setup or request submission. The root guest `Cargo.lock` remained unchanged.

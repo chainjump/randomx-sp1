@@ -11,14 +11,19 @@ sha256:  ac3eff37cbae4583f57cdbc193cca776a80672c77a63c09eb507dc35d154c317
 SP1:     6.3.1
 ```
 
-The artifact was rebuilt from the current locked repository with:
+The artifact was rebuilt from the current locked repository with SP1's Docker
+builder:
 
 ```text
 cd program
-cargo prove build --locked \
+cargo prove build --docker --tag v6.3.1 --locked \
   --elf-name randomx-program \
   --output-directory ../artifacts
 ```
+
+The Docker result was byte-for-byte identical to the previously retained and
+proved ELF. See `evidence/reproducible-build.md` for the pinned image digest,
+comparison, vkey derivation, and proof-verification record.
 
 The guest reads two vectors at runtime: the RandomX key followed by the
 hashing blob. Neither value is embedded in the ELF.

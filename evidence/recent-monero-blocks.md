@@ -55,4 +55,6 @@ cargo test --release --locked \
 test result: ok. 1 passed; 0 failed
 ```
 
-No proof or paid prover-network request was made.
+No proof or paid prover-network request was made as part of this 20-block
+differential test. A later proof of block 3,727,837 is recorded separately in
+`evidence/network-proof/README.md`.
