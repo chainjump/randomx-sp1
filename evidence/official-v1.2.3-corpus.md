@@ -57,7 +57,7 @@ empty key              faf16925e389d546a2ebf79d1329ed4f8f217902ba00a564144777372
 257-byte pattern       6361c02873ca5b04e939b6bd3b2e0cba81122fd152a8c6f2794f96cea5849948
 ```
 
-## Decoder, CFROUND, and arithmetic coverage
+## Decoder and arithmetic coverage
 
 - Every raw opcode byte (`0x00..0xff`) is executed with four operand patterns:
   1,024 rich/compact instruction-state comparisons.
@@ -66,9 +66,8 @@ empty key              faf16925e389d546a2ebf79d1329ed4f8f217902ba00a564144777372
   after every program.
 - The software-rounding audit covers 20,000 randomized inputs per operation
   and mode, including directed-overflow boundaries.
-- Twenty consecutive real Monero blocks execute 381,809 CFROUND instructions;
-  every block uses all four resulting rounding modes and matches official
-  RandomX.
+- Twenty consecutive real Monero blocks match official RandomX and exercise
+  all supported floating-point rounding modes.
 - All Argon2d/i/id version 1.0/1.3 integration vectors, unit tests, and
   documentation tests pass.
 
