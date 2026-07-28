@@ -34,6 +34,17 @@ impl RoundingMode {
             _ => Self::TowardZero,
         }
     }
+
+    /// Converts an already-validated RandomX `fprc` value without masking it.
+    ///
+    /// # Safety
+    ///
+    /// `value` must be in `0..=3`.
+    #[inline(always)]
+    pub unsafe fn from_valid_fprc(value: u32) -> Self {
+        debug_assert!(value < 4);
+        unsafe { core::mem::transmute(value as u8) }
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -491,6 +502,14 @@ mod tests {
 
     fn oracle_sqrt(a: u64, mode: RoundingMode) -> u64 {
         F64::from_bits(a).sqrt(oracle_mode(mode)).to_bits()
+    }
+
+    #[test]
+    fn validated_fprc_conversion_matches_checked_conversion() {
+        for value in 0..4 {
+            let validated = unsafe { RoundingMode::from_valid_fprc(value) };
+            assert_eq!(validated, RoundingMode::from_fprc(value));
+        }
     }
 
     #[test]

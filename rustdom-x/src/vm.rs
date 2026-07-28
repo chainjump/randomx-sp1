@@ -305,7 +305,7 @@ impl Vm {
     }
 
     pub fn set_rounding_mode(&mut self, mode: u32) {
-        debug_assert!(mode < 4);
+        assert!(mode < 4);
         self.rounding_mode = mode;
         set_rounding_mode_env(mode);
     }

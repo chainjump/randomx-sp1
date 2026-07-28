@@ -709,7 +709,11 @@ fn from_lanes(value: [u64; 2]) -> m128d {
 #[cfg(not(feature = "nearest-only-audit"))]
 #[inline(always)]
 fn rounding_mode(vm: &Vm) -> RoundingMode {
-    RoundingMode::from_fprc(vm.get_rounding_mode())
+    let mode = vm.get_rounding_mode();
+    debug_assert!(mode < 4);
+    // SAFETY: `Vm` stores the mode in a private field. Its constructor and
+    // reset path write zero, and the only setter rejects values above three.
+    unsafe { RoundingMode::from_valid_fprc(mode) }
 }
 
 #[cfg(feature = "nearest-only-audit")]
@@ -1080,6 +1084,14 @@ mod tests {
     #[test]
     fn compact_instruction_is_32_bytes() {
         assert_eq!(size_of::<CompactInstr>(), 32);
+    }
+
+    #[test]
+    #[should_panic]
+    fn vm_rejects_invalid_rounding_mode() {
+        let memory = Arc::new(VmMemory::no_memory());
+        let mut vm = new_vm(memory);
+        vm.set_rounding_mode(4);
     }
 
     #[test]
