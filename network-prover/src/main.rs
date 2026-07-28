@@ -15,6 +15,7 @@ use sp1_sdk::{
 };
 
 const MAINNET_RPC_URL: &str = "https://rpc.mainnet.succinct.xyz";
+const ETHEREUM_MAINNET_CHAIN_ID: u64 = 1;
 const GROTH16_GATEWAY: &str = "0x397A5f7f3dBd538f23DE225B51f532c34448dA9B";
 const DEFAULT_PGU_LIMIT: u64 = 8_500_000_000;
 const DEFAULT_AUCTION_TIMEOUT_SECS: u64 = 600;
@@ -294,6 +295,12 @@ async fn evm_verify(
         .build()
         .context("building EVM JSON-RPC client")?;
     let chain_id = json_rpc(&http, &rpc_url, "eth_chainId", json!([])).await?;
+    let chain_id = parse_json_rpc_quantity(&chain_id, "chain ID")?;
+    if chain_id != ETHEREUM_MAINNET_CHAIN_ID {
+        bail!(
+            "EVM_RPC_URL must be Ethereum mainnet (chain ID {ETHEREUM_MAINNET_CHAIN_ID}), got {chain_id}"
+        );
+    }
     let result = json_rpc(
         &http,
         &rpc_url,
@@ -313,7 +320,7 @@ async fn evm_verify(
 
     println!("EVM verification simulation: true (eth_call did not revert)");
     println!("EVM transaction broadcast: no");
-    println!("chain id: {chain_id}");
+    println!("chain: Ethereum mainnet ({chain_id})");
     println!("Groth16 gateway: {gateway:#x}");
     println!("program vkey: 0x{}", hex::encode(vkey));
     println!("public values: {}", hex::encode(expected));
@@ -574,6 +581,21 @@ fn parse_u64(value: &str, name: &str) -> Result<u64> {
         .with_context(|| format!("parsing {name}: {value}"))
 }
 
+fn parse_json_rpc_quantity(value: &Value, name: &str) -> Result<u64> {
+    let text = value
+        .as_str()
+        .with_context(|| format!("{name} JSON-RPC result was not a string"))?;
+    let digits = text
+        .strip_prefix("0x")
+        .or_else(|| text.strip_prefix("0X"))
+        .with_context(|| format!("{name} JSON-RPC result was not a hex quantity: {text}"))?;
+    if digits.is_empty() {
+        bail!("{name} JSON-RPC result was an empty hex quantity");
+    }
+    u64::from_str_radix(digits, 16)
+        .with_context(|| format!("parsing {name} JSON-RPC quantity: {text}"))
+}
+
 fn align_to_tick(value: u64, tick: u64) -> u64 {
     if tick <= 1 {
         value
@@ -634,6 +656,15 @@ mod tests {
             hex::encode(ISP1Verifier::verifyProofCall::SELECTOR),
             "41493c60"
         );
+    }
+
+    #[test]
+    fn ethereum_chain_id_quantity_is_mainnet() {
+        assert_eq!(
+            parse_json_rpc_quantity(&Value::String("0x1".to_owned()), "chain ID").unwrap(),
+            ETHEREUM_MAINNET_CHAIN_ID
+        );
+        assert!(parse_json_rpc_quantity(&Value::String("1".to_owned()), "chain ID").is_err());
     }
 
     #[test]

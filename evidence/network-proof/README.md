@@ -74,12 +74,13 @@ The EVM step will call the canonical Groth16 gateway using `eth_call`; the
 client has no EVM signer or transaction-broadcast code.
 
 ```text
-chain:   Sepolia (11155111 / 0xaa36a7)
+chain:   Ethereum mainnet (1 / 0x1)
 gateway: 0x397A5f7f3dBd538f23DE225B51f532c34448dA9B
 method:  verifyProof(bytes32,bytes,bytes)
 selector: 0x41493c60
 ```
 
-On 2026-07-28 UTC, `eth_getCode` returned 1,975 bytes of deployed code for
-that gateway. The proof-specific `eth_call` remains pending until the network
-returns the Groth16 proof.
+On 2026-07-28 UTC, an Ethereum mainnet RPC returned chain ID `0x1`, and
+`eth_getCode` returned 1,975 bytes of deployed code for that gateway. The
+client rejects non-mainnet RPCs. The proof-specific `eth_call` remains pending
+until the network returns the Groth16 proof.

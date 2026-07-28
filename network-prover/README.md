@@ -78,7 +78,7 @@ public values equal the hardcoded Monero PoW hash.
 ## EVM simulation only
 
 After the Groth16 proof is saved, simulate the canonical gateway call with an
-EVM JSON-RPC endpoint:
+Ethereum mainnet JSON-RPC endpoint:
 
 ```bash
 EVM_RPC_URL=https://example.invalid \
@@ -88,10 +88,11 @@ target/release/randomx-network-prover evm-verify \
   evidence/network-proof/proof.bin
 ```
 
-This command only issues `eth_chainId` and `eth_call`. It contains no EVM
-signer and cannot broadcast a transaction. The canonical `verifyProof`
-function has no Boolean return value: a non-reverting `eth_call` with empty
-return data is recorded as a successful (`true`) simulation.
+This command only issues `eth_chainId` and `eth_call`, and rejects any chain ID
+other than Ethereum mainnet (`1`). It contains no EVM signer and cannot
+broadcast a transaction. The canonical `verifyProof` function has no Boolean
+return value: a non-reverting `eth_call` with empty return data is recorded as
+a successful (`true`) simulation.
 
 The standalone guest commits only the 32-byte RandomX hash. The seed and blob
 are prover inputs, so an application that needs those values publicly bound
