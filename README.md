@@ -58,6 +58,8 @@ stable program identity across arbitrary RandomX keys.
 - `argon2/`: an in-tree `rust-argon2` fork retaining the generic API and tests,
   with optimized RandomX Argon2d cache construction for the SP1 guest.
 - `executor/`: lightweight execution and calibrated PGU estimation.
+- `network-prover/`: fixed-block Succinct Network request, recovery, local
+  proof verification, and EVM `eth_call` verification client.
 - `audit/`: official-RandomX and rich/compact differential checks.
 - `argon2-native-compare/`: complete-cache differential checks.
 - `profile-probes/`, `softfp-guest/`, and `softfp-runner/`: profiling and

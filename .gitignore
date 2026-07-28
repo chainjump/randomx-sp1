@@ -3,3 +3,4 @@
 !/artifacts/randomx-program
 *.elf
 *.log
+/.secrets/
