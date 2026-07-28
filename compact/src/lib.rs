@@ -79,6 +79,9 @@ struct CompactInstr {
 
 const _: () = {
     assert!(size_of::<CompactInstr>() == 32);
+    assert!(size_of::<m128d>() == 16);
+    assert!((MAX_REG - 1) * size_of::<u64>() <= u8::MAX as usize);
+    assert!((MAX_FLOAT_REG - 1) * size_of::<m128d>() <= u8::MAX as usize);
     // Instruction memory operands select one u64 from the full scratchpad.
     assert!((SCRATCHPAD_L3_MASK as usize >> 3) + 1 == SCRATCHPAD_WORDS);
     // Iteration mixing selects an aligned group of eight u64 words.
@@ -98,11 +101,19 @@ impl CompactInstr {
             imm,
             target: 0,
             memory_mask: 0,
-            dst,
-            src,
+            dst: register_byte_offset(dst, size_of::<u64>() as u8),
+            src: register_byte_offset(src, size_of::<u64>() as u8),
             mode,
             _reserved: [0; 5],
         }
+    }
+
+    #[inline(always)]
+    fn new_float(effect: Effect, dst: u8, src: u8, imm: u64, mode: u8) -> Self {
+        let mut instr = Self::new(effect, dst, src, imm, mode);
+        instr.dst = register_byte_offset(dst, size_of::<m128d>() as u8);
+        instr.src = register_byte_offset(src, size_of::<m128d>() as u8);
+        instr
     }
 
     #[inline(always)]
@@ -110,6 +121,16 @@ impl CompactInstr {
         let mut instr = Self::new(effect, dst, src, imm, mode);
         instr.memory_mask = memory_mask(mode);
         instr
+    }
+}
+
+#[inline(always)]
+fn register_byte_offset(index: u8, stride: u8) -> u8 {
+    if index == NO_REG {
+        NO_REG
+    } else {
+        debug_assert!((index as usize) < MAX_REG);
+        index * stride
     }
 }
 
@@ -340,7 +361,8 @@ fn run(vm: &mut Vm, seed: &[m128i; 4]) {
     let mut sp_addr_1 = vm.mem_reg.ma as u32;
 
     for _ in 0..PROGRAM_ITERATIONS {
-        let sp_mix = r(vm, vm.config.read_reg[0] as u8) ^ r(vm, vm.config.read_reg[1] as u8);
+        let sp_mix = r(vm, (vm.config.read_reg[0] * size_of::<u64>()) as u8)
+            ^ r(vm, (vm.config.read_reg[1] * size_of::<u64>()) as u8);
 
         sp_addr_0 ^= sp_mix as u32;
         sp_addr_0 = (sp_addr_0 & SCRATCHPAD_L3_MASK_U32) >> 3;
@@ -371,7 +393,8 @@ fn run(vm: &mut Vm, seed: &[m128i; 4]) {
         }
 
         vm.mem_reg.mx ^=
-            (r(vm, vm.config.read_reg[2] as u8) ^ r(vm, vm.config.read_reg[3] as u8)) as usize;
+            (r(vm, (vm.config.read_reg[2] * size_of::<u64>()) as u8)
+                ^ r(vm, (vm.config.read_reg[3] * size_of::<u64>()) as u8)) as usize;
         vm.mem_reg.mx &= CACHE_LINE_ALIGN_MASK as usize;
         vm.mem
             .dataset_read_light(vm.dataset_offset + vm.mem_reg.ma as u64, &mut vm.reg.r);
@@ -531,10 +554,10 @@ fn decode_instruction(raw: i64, index: i32, usage: &mut [i32; MAX_REG]) -> Compa
         } else {
             exec_fswap_f
         };
-        return CompactInstr::new(effect, float_index, NO_REG, 0, 0);
+        return CompactInstr::new_float(effect, float_index, NO_REG, 0, 0);
     }
     if op < 0x8c {
-        return CompactInstr::new(
+        return CompactInstr::new_float(
             exec_fadd_r,
             (dst % MAX_FLOAT_REG) as u8,
             (src % MAX_FLOAT_REG) as u8,
@@ -543,7 +566,7 @@ fn decode_instruction(raw: i64, index: i32, usage: &mut [i32; MAX_REG]) -> Compa
         );
     }
     if op < 0x91 {
-        return decode_memory(
+        return decode_float_memory(
             exec_fadd_m,
             (dst % MAX_FLOAT_REG) as u8,
             src_r,
@@ -553,7 +576,7 @@ fn decode_instruction(raw: i64, index: i32, usage: &mut [i32; MAX_REG]) -> Compa
         );
     }
     if op < 0xa1 {
-        return CompactInstr::new(
+        return CompactInstr::new_float(
             exec_fsub_r,
             (dst % MAX_FLOAT_REG) as u8,
             (src % MAX_FLOAT_REG) as u8,
@@ -562,7 +585,7 @@ fn decode_instruction(raw: i64, index: i32, usage: &mut [i32; MAX_REG]) -> Compa
         );
     }
     if op < 0xa6 {
-        return decode_memory(
+        return decode_float_memory(
             exec_fsub_m,
             (dst % MAX_FLOAT_REG) as u8,
             src_r,
@@ -572,10 +595,16 @@ fn decode_instruction(raw: i64, index: i32, usage: &mut [i32; MAX_REG]) -> Compa
         );
     }
     if op < 0xac {
-        return CompactInstr::new(exec_fscal_r, (dst % MAX_FLOAT_REG) as u8, NO_REG, 0, 0);
+        return CompactInstr::new_float(
+            exec_fscal_r,
+            (dst % MAX_FLOAT_REG) as u8,
+            NO_REG,
+            0,
+            0,
+        );
     }
     if op < 0xcc {
-        return CompactInstr::new(
+        return CompactInstr::new_float(
             exec_fmul_r,
             (dst % MAX_FLOAT_REG) as u8,
             (src % MAX_FLOAT_REG) as u8,
@@ -584,7 +613,7 @@ fn decode_instruction(raw: i64, index: i32, usage: &mut [i32; MAX_REG]) -> Compa
         );
     }
     if op < 0xd0 {
-        return decode_memory(
+        return decode_float_memory(
             exec_fdiv_m,
             (dst % MAX_FLOAT_REG) as u8,
             src_r,
@@ -594,7 +623,13 @@ fn decode_instruction(raw: i64, index: i32, usage: &mut [i32; MAX_REG]) -> Compa
         );
     }
     if op < 0xd6 {
-        return CompactInstr::new(exec_fsqrt_r, (dst % MAX_FLOAT_REG) as u8, NO_REG, 0, 0);
+        return CompactInstr::new_float(
+            exec_fsqrt_r,
+            (dst % MAX_FLOAT_REG) as u8,
+            NO_REG,
+            0,
+            0,
+        );
     }
     if op < 0xef {
         let condition_shift = (modifier >> 4) + CONDITION_OFFSET;
@@ -668,46 +703,123 @@ fn decode_memory(
     }
 }
 
-#[inline(always)]
-fn r(vm: &Vm, index: u8) -> u64 {
-    debug_assert!((index as usize) < MAX_REG);
-    unsafe { *vm.reg.r.get_unchecked(index as usize) }
+#[inline]
+fn decode_float_memory(
+    effect: Effect,
+    dst: u8,
+    address_reg: u8,
+    imm32: i32,
+    modifier: u8,
+    same_register: bool,
+) -> CompactInstr {
+    let mut instr = decode_memory(
+        effect,
+        dst,
+        address_reg,
+        imm32,
+        modifier,
+        same_register,
+    );
+    instr.dst = register_byte_offset(dst, size_of::<m128d>() as u8);
+    instr
 }
 
 #[inline(always)]
-fn set_r(vm: &mut Vm, index: u8, value: u64) {
-    debug_assert!((index as usize) < MAX_REG);
-    unsafe { *vm.reg.r.get_unchecked_mut(index as usize) = value }
+fn r(vm: &Vm, byte_offset: u8) -> u64 {
+    debug_assert_eq!(byte_offset as usize % size_of::<u64>(), 0);
+    debug_assert!((byte_offset as usize) < MAX_REG * size_of::<u64>());
+    unsafe {
+        *vm.reg
+            .r
+            .as_ptr()
+            .cast::<u8>()
+            .add(byte_offset as usize)
+            .cast::<u64>()
+    }
 }
 
 #[inline(always)]
-fn f(vm: &Vm, index: u8) -> m128d {
-    debug_assert!((index as usize) < MAX_FLOAT_REG);
-    unsafe { *vm.reg.f.get_unchecked(index as usize) }
+fn set_r(vm: &mut Vm, byte_offset: u8, value: u64) {
+    debug_assert_eq!(byte_offset as usize % size_of::<u64>(), 0);
+    debug_assert!((byte_offset as usize) < MAX_REG * size_of::<u64>());
+    unsafe {
+        *vm.reg
+            .r
+            .as_mut_ptr()
+            .cast::<u8>()
+            .add(byte_offset as usize)
+            .cast::<u64>() = value
+    }
 }
 
 #[inline(always)]
-fn set_f(vm: &mut Vm, index: u8, value: m128d) {
-    debug_assert!((index as usize) < MAX_FLOAT_REG);
-    unsafe { *vm.reg.f.get_unchecked_mut(index as usize) = value }
+fn f(vm: &Vm, byte_offset: u8) -> m128d {
+    debug_assert_eq!(byte_offset as usize % size_of::<m128d>(), 0);
+    debug_assert!((byte_offset as usize) < MAX_FLOAT_REG * size_of::<m128d>());
+    unsafe {
+        *vm.reg
+            .f
+            .as_ptr()
+            .cast::<u8>()
+            .add(byte_offset as usize)
+            .cast::<m128d>()
+    }
 }
 
 #[inline(always)]
-fn e(vm: &Vm, index: u8) -> m128d {
-    debug_assert!((index as usize) < MAX_FLOAT_REG);
-    unsafe { *vm.reg.e.get_unchecked(index as usize) }
+fn set_f(vm: &mut Vm, byte_offset: u8, value: m128d) {
+    debug_assert_eq!(byte_offset as usize % size_of::<m128d>(), 0);
+    debug_assert!((byte_offset as usize) < MAX_FLOAT_REG * size_of::<m128d>());
+    unsafe {
+        *vm.reg
+            .f
+            .as_mut_ptr()
+            .cast::<u8>()
+            .add(byte_offset as usize)
+            .cast::<m128d>() = value
+    }
 }
 
 #[inline(always)]
-fn set_e(vm: &mut Vm, index: u8, value: m128d) {
-    debug_assert!((index as usize) < MAX_FLOAT_REG);
-    unsafe { *vm.reg.e.get_unchecked_mut(index as usize) = value }
+fn e(vm: &Vm, byte_offset: u8) -> m128d {
+    debug_assert_eq!(byte_offset as usize % size_of::<m128d>(), 0);
+    debug_assert!((byte_offset as usize) < MAX_FLOAT_REG * size_of::<m128d>());
+    unsafe {
+        *vm.reg
+            .e
+            .as_ptr()
+            .cast::<u8>()
+            .add(byte_offset as usize)
+            .cast::<m128d>()
+    }
 }
 
 #[inline(always)]
-fn a(vm: &Vm, index: u8) -> m128d {
-    debug_assert!((index as usize) < MAX_FLOAT_REG);
-    unsafe { *vm.reg.a.get_unchecked(index as usize) }
+fn set_e(vm: &mut Vm, byte_offset: u8, value: m128d) {
+    debug_assert_eq!(byte_offset as usize % size_of::<m128d>(), 0);
+    debug_assert!((byte_offset as usize) < MAX_FLOAT_REG * size_of::<m128d>());
+    unsafe {
+        *vm.reg
+            .e
+            .as_mut_ptr()
+            .cast::<u8>()
+            .add(byte_offset as usize)
+            .cast::<m128d>() = value
+    }
+}
+
+#[inline(always)]
+fn a(vm: &Vm, byte_offset: u8) -> m128d {
+    debug_assert_eq!(byte_offset as usize % size_of::<m128d>(), 0);
+    debug_assert!((byte_offset as usize) < MAX_FLOAT_REG * size_of::<m128d>());
+    unsafe {
+        *vm.reg
+            .a
+            .as_ptr()
+            .cast::<u8>()
+            .add(byte_offset as usize)
+            .cast::<m128d>()
+    }
 }
 
 #[inline(always)]
@@ -1135,6 +1247,23 @@ mod tests {
     #[test]
     fn compact_instruction_is_32_bytes() {
         assert_eq!(size_of::<CompactInstr>(), 32);
+    }
+
+    #[test]
+    fn predecoded_register_offsets_are_aligned_and_bounded() {
+        for index in 0..MAX_REG as u8 {
+            let offset = register_byte_offset(index, size_of::<u64>() as u8) as usize;
+            assert_eq!(offset, index as usize * size_of::<u64>());
+            assert_eq!(offset % size_of::<u64>(), 0);
+            assert!(offset < MAX_REG * size_of::<u64>());
+        }
+        for index in 0..MAX_FLOAT_REG as u8 {
+            let offset = register_byte_offset(index, size_of::<m128d>() as u8) as usize;
+            assert_eq!(offset, index as usize * size_of::<m128d>());
+            assert_eq!(offset % size_of::<m128d>(), 0);
+            assert!(offset < MAX_FLOAT_REG * size_of::<m128d>());
+        }
+        assert_eq!(register_byte_offset(NO_REG, size_of::<u64>() as u8), NO_REG);
     }
 
     #[test]
