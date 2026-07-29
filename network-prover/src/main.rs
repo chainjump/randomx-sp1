@@ -21,7 +21,8 @@ const DEFAULT_PGU_LIMIT: u64 = 8_500_000_000;
 const DEFAULT_AUCTION_TIMEOUT_SECS: u64 = 600;
 const MIN_REQUEST_TIMEOUT_SECS: u64 = 600;
 const PROVE_WEI: u128 = 1_000_000_000_000_000_000;
-const APPROVED_ELF_SHA256: Option<&str> = None;
+const APPROVED_ELF_SHA256: Option<&str> =
+    Some("54c38936058ea869d31b5e31977174e38f2a9ae14b4b28728ee2f3587132aefc");
 const USAGE: &str = "usage:
   randomx-network-prover account <private-key-file> [pgu-limit]
   randomx-network-prover prove <private-key-file> <elf> <request-id-file> <proof-file> <vkey-file>
@@ -644,7 +645,7 @@ mod tests {
     }
 
     #[test]
-    fn proving_is_disabled_without_an_approved_elf() {
+    fn unapproved_elf_is_rejected() {
         assert!(validate_elf(b"not an ELF").is_err());
     }
 

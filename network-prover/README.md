@@ -19,8 +19,9 @@ deadline:    3600 seconds
 The client validates the canonical 77-byte hashing blob against the block ID,
 checks the RandomX epoch height and Monero difficulty, checks the approved ELF
 digest, and refuses to submit if a request-ID or proof file already exists.
-`APPROVED_ELF_SHA256` is deliberately unset, so proving is disabled until a
-fresh reproducible build is reviewed and explicitly approved.
+The approved reproducible ELF has SHA-256
+`54c38936058ea869d31b5e31977174e38f2a9ae14b4b28728ee2f3587132aefc`.
+Every proof and EVM-verification command fails closed for any other ELF.
 
 ## Build and test
 

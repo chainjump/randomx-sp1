@@ -22,9 +22,10 @@ This is a code review and test record, not a formal verification claim.
 
 ## Build status
 
-This review currently covers the renamed source and dependency graph. A fresh
-ELF, disassembly, vkey, and proof review is pending explicit approval to build
-and prove the guest.
+This review covers the renamed source, dependency graph, and reproducibly built
+SP1 ELF. The ELF and locally derived vkey are recorded in
+`evidence/reproducible-build.md`. Guest execution and proof review remain
+pending explicit approval.
 
 ## SP1 security guidance applied
 
@@ -75,8 +76,11 @@ and cost control.
 The guest and its RandomX crates contain no direct `ecall`, custom SP1 syscall,
 or unconstrained-block call. The application uses only the documented
 `read_vec`, `commit_slice`, and normal entry-point return path supplied by the
-SP1 6.3.1 runtime. Fresh disassembly inspection remains part of the pending
-build review.
+SP1 6.3.1 runtime. Fresh disassembly of the reproducible ELF found all 20
+`ecall` instructions confined to the linked SP1 runtime functions
+`syscall_halt`, `syscall_hint_len`, `syscall_hint_read`, and `syscall_write`;
+there are no custom call sites. The ELF entry point is the `_start` symbol at
+nonzero address `0x78027e30`, and no loadable section maps address zero.
 
 No elliptic-curve, field, `U256`, hashing, or other accelerated SP1 precompile
 is called by the custom guest. The precompile-specific canonical-value,
@@ -171,8 +175,9 @@ deserializing attacker-chosen bincode values.
 - A MemorySanitizer attempt was not valid because the instrumented crates
   would have linked against an uninstrumented Rust standard library. It failed
   before the tests and is not counted as evidence.
-- Reproducible Docker build, disassembly, execution, vkey derivation, and live
-  proof validation remain pending for the renamed source.
+- Guest execution and live proof validation remain pending for the current
+  ELF. The reproducible Docker build, disassembly review, and local vkey
+  derivation are complete.
 - Tests, sanitizer runs, dependency scanning, and manual invariant review
   substantially reduce risk but do not prove the absence of every memory
   safety or logic defect.

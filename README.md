@@ -9,9 +9,10 @@ The implementation is universal with respect to RandomX inputs: it does not
 embed an epoch key or a hashing blob. Arbitrary key lengths and empty blobs are
 supported and covered by the differential corpus.
 
-No generated ELF, vkey, or proof is retained for the renamed `randomx-sp1`
-release yet. Rebuilding and proving are intentionally awaiting explicit
-approval.
+The reproducibly built SP1 ELF and its locally derived vkey are retained for
+the `randomx-sp1` release. No proof has been generated for this ELF yet; proof
+submission remains intentionally pending explicit approval. Exact build
+identity and commands are recorded in `evidence/reproducible-build.md`.
 
 ## Current optimization
 
