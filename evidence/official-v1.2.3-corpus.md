@@ -26,7 +26,7 @@ light-mode hashes:
 - blobs: empty, one byte, 26-byte text, and deterministic 76-, 257-, and
   4,096-byte values.
 
-For every pair, official RandomX v1.2.3, Rustdom's rich VM, and the compact VM
+For every pair, official RandomX v1.2.3, the internal reference VM, and the compact VM
 returned the same 32-byte hash. The rich and compact implementations also had
 identical final register bytes and complete 2 MiB scratchpads.
 
@@ -39,7 +39,7 @@ Run one key shard with:
 ```text
 env RANDOMX_LIB_DIR=/path/to/RandomX/build \
   cargo run --release --locked --offline \
-  -p randomx-compact-vm-audit --features official-randomx \
+  -p randomx-sp1-audit --features official-randomx \
   --bin official_randomx -- <key-name>
 ```
 

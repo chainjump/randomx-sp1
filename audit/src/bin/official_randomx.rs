@@ -2,10 +2,10 @@ use std::env;
 use std::sync::Arc;
 use std::time::Instant;
 
-use randomx_compact_vm_audit::monero::encode_hex;
-use randomx_compact_vm_audit::official::OfficialVm;
-use rustdom_x::{new_vm, VmMemory};
-use rustdom_x_compact_vm::calculate_hash;
+use randomx_sp1::calculate_hash;
+use randomx_sp1_audit::monero::encode_hex;
+use randomx_sp1_audit::official::OfficialVm;
+use randomx_sp1_core::{new_vm, VmMemory};
 
 fn pattern(length: usize, seed: u64) -> Vec<u8> {
     let mut state = seed;

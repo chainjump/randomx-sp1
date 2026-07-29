@@ -1,8 +1,8 @@
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use rustdom_x::{new_vm, VmMemory};
-use rustdom_x_compact_vm::calculate_hash;
+use randomx_sp1::calculate_hash;
+use randomx_sp1_core::{new_vm, VmMemory};
 
 use crate::monero::{
     blob_object_hash, decode_hex, decode_hex_vec, encode_hex, meets_difficulty,

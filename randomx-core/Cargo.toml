@@ -11,20 +11,21 @@
 
 [package]
 edition = "2024"
-name = "rustdom-x"
-version = "1.1.0"
+name = "randomx-sp1-core"
+version = "0.1.0"
 build = false
 autolib = false
 autobins = false
 autoexamples = false
 autotests = false
 autobenches = false
-description = "A fully rust RandomX implementation"
+description = "Internal RandomX cache, dataset, and VM primitives for randomx-sp1"
 readme = "README.md"
-license = "GPL-3.0"
+license = "GPL-3.0-only"
+publish = false
 
 [lib]
-name = "rustdom_x"
+name = "randomx_sp1_core"
 path = "src/lib.rs"
 
 [features]
@@ -42,7 +43,7 @@ version = "0.2.183"
 [dependencies.log]
 version = "0.4.29"
 
-[dependencies.rustdom-x-argon2]
+[dependencies.randomx-sp1-argon2]
 version = "2.1.0"
 path = "../argon2"
 

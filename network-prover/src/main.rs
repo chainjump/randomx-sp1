@@ -21,6 +21,7 @@ const DEFAULT_PGU_LIMIT: u64 = 8_500_000_000;
 const DEFAULT_AUCTION_TIMEOUT_SECS: u64 = 600;
 const MIN_REQUEST_TIMEOUT_SECS: u64 = 600;
 const PROVE_WEI: u128 = 1_000_000_000_000_000_000;
+const APPROVED_ELF_SHA256: Option<&str> = None;
 const USAGE: &str = "usage:
   randomx-network-prover account <private-key-file> [pgu-limit]
   randomx-network-prover prove <private-key-file> <elf> <request-id-file> <proof-file> <vkey-file>
@@ -49,9 +50,6 @@ struct ProofInput {
     seed_hash: &'static str,
     hashing_blob: &'static str,
     pow_hash: &'static str,
-    elf_sha256: &'static str,
-    sp1_cycles: u64,
-    sp1_pgu: u64,
     cycle_limit: u64,
     gas_limit: u64,
     request_timeout_seconds: u64,
@@ -68,9 +66,6 @@ const SELECTED_BLOCK: ProofInput = ProofInput {
     seed_hash: "0e3b4521acd1982c62a99b6b76ad8504eaa80e164d8e9df3f047b1cf6607f2bd",
     hashing_blob: "1010ba9ca3d306df66d34b58d9c65ee20ca8e7c307608db0f7c4e7c6b450bc38e3348d2778f51b4940173c7c0f26941324afc7aa4e30ffa1b2cd80a84ebbfc464833d6222bee72886d3a9d8a01",
     pow_hash: "5cff906139956eb646100adef11db2e00464ffabfdf4d5a194d54f0000000000",
-    elf_sha256: "ac3eff37cbae4583f57cdbc193cca776a80672c77a63c09eb507dc35d154c317",
-    sp1_cycles: 6_445_471_022,
-    sp1_pgu: 7_796_263_443,
     cycle_limit: 6_500_000_000,
     gas_limit: 8_000_000_000,
     request_timeout_seconds: 3_600,
@@ -176,7 +171,7 @@ async fn prove_or_resume(
     let blob = hex::decode(&input.hashing_blob).context("decoding hashing blob")?;
     let elf = fs::read(elf_path)
         .with_context(|| format!("reading SP1 ELF from {}", elf_path.display()))?;
-    validate_elf(&input, &elf)?;
+    validate_elf(&elf)?;
 
     if submit && request_id_path.exists() {
         bail!(
@@ -264,7 +259,7 @@ async fn evm_verify(
     validate_input(&input)?;
     let elf = fs::read(elf_path)
         .with_context(|| format!("reading SP1 ELF from {}", elf_path.display()))?;
-    validate_elf(&input, &elf)?;
+    validate_elf(&elf)?;
 
     let expected = decode_32(&input.pow_hash, "PoW hash")?;
     let vkey_text = fs::read_to_string(vkey_path)
@@ -477,7 +472,6 @@ fn validate_input(input: &ProofInput) -> Result<()> {
     decode_32(&input.prev_hash, "previous block hash")?;
     decode_32(&input.seed_hash, "RandomX seed hash")?;
     let pow_hash = decode_32(&input.pow_hash, "PoW hash")?;
-    decode_32(&input.elf_sha256, "ELF SHA-256")?;
     let blob = hex::decode(&input.hashing_blob).context("decoding hashing blob")?;
     if blob.len() != 77 {
         bail!(
@@ -502,12 +496,6 @@ fn validate_input(input: &ProofInput) -> Result<()> {
     if !meets_difficulty(&pow_hash, difficulty) {
         bail!("PoW hash does not meet the declared Monero difficulty");
     }
-    if input.cycle_limit < input.sp1_cycles {
-        bail!("cycle limit is below the measured cycle count");
-    }
-    if input.gas_limit < input.sp1_pgu {
-        bail!("gas limit is below the measured PGU count");
-    }
     if input.request_timeout_seconds < MIN_REQUEST_TIMEOUT_SECS {
         bail!("request timeout must be at least {MIN_REQUEST_TIMEOUT_SECS} seconds");
     }
@@ -516,16 +504,17 @@ fn validate_input(input: &ProofInput) -> Result<()> {
         input.height, input.block_id, input.timestamp
     );
     println!("RandomX seed height: {}", input.seed_height);
-    println!("measured SP1 cycles: {}", input.sp1_cycles);
-    println!("measured SP1 PGU: {}", input.sp1_pgu);
     println!("cycle limit: {}", input.cycle_limit);
     println!("gas limit: {}", input.gas_limit);
     Ok(())
 }
 
-fn validate_elf(input: &ProofInput, elf: &[u8]) -> Result<()> {
+fn validate_elf(elf: &[u8]) -> Result<()> {
+    let expected = APPROVED_ELF_SHA256.context(
+        "no ELF identity is approved; complete and record the reproducible build before proving",
+    )?;
     let actual = hex::encode(Sha256::digest(elf));
-    let expected = input.elf_sha256.trim_start_matches("0x");
+    let expected = expected.trim_start_matches("0x");
     if actual != expected {
         bail!("ELF SHA-256 mismatch: expected {expected}, got {actual}");
     }
@@ -652,6 +641,11 @@ mod tests {
     #[test]
     fn selected_monero_input_is_self_consistent() {
         validate_input(&SELECTED_BLOCK).unwrap();
+    }
+
+    #[test]
+    fn proving_is_disabled_without_an_approved_elf() {
+        assert!(validate_elf(b"not an ELF").is_err());
     }
 
     #[test]

@@ -11,19 +11,16 @@ block id:    fd20c878bddf0302867fcc5f7ce6b01e6e8d61ee0a4351879232793a8665f6af
 seed height: 3727360
 seed hash:   0e3b4521acd1982c62a99b6b76ad8504eaa80e164d8e9df3f047b1cf6607f2bd
 PoW hash:    5cff906139956eb646100adef11db2e00464ffabfdf4d5a194d54f0000000000
-ELF SHA-256: ac3eff37cbae4583f57cdbc193cca776a80672c77a63c09eb507dc35d154c317
-SP1 cycles:  6445471022
-SP1 PGU:     7796263443
 cycle limit: 6500000000
 gas limit:   8000000000
 deadline:    3600 seconds
 ```
 
 The client validates the canonical 77-byte hashing blob against the block ID,
-checks the RandomX epoch height and Monero difficulty, checks the ELF digest,
-and refuses to submit if a request-ID or proof file already exists. It skips
-the SDK's local execution simulation because this exact ELF/input pair was
-already executed and measured.
+checks the RandomX epoch height and Monero difficulty, checks the approved ELF
+digest, and refuses to submit if a request-ID or proof file already exists.
+`APPROVED_ELF_SHA256` is deliberately unset, so proving is disabled until a
+fresh reproducible build is reviewed and explicitly approved.
 
 ## Build and test
 

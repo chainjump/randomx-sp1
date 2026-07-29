@@ -1,24 +1,21 @@
-//! Claim-preserving compact execution for the RandomX VM.
+//! SP1-optimized RandomX hashing.
 //!
-//! The cache, dataset items, AES program bytes, and all VM iterations are still
-//! derived and executed by the guest.  This module only decodes each 8-byte VM
-//! instruction into a flat representation before the 2,048-iteration loop.
+//! [`hash`] is the stable public entry point. The key, dataset items, AES
+//! program bytes, and every VM iteration are derived and executed by the
+//! caller. No RandomX input is embedded in the library.
 
-use std::mem::size_of;
-#[cfg(feature = "differential-audit")]
-use std::sync::Arc;
+use std::{mem::size_of, sync::Arc};
 
 use blake2b_simd::{blake2b, Hash, Params};
 use randomx_softfp::{add2, div2, mul2, sqrt2, sub2, RoundingMode};
-use rustdom_x::common::{mulh, randomx_reciprocal, smulh, u64_from_i32_imm};
-use rustdom_x::hash::{gen_program_aes_4rx4, hash_aes_1rx4};
-use rustdom_x::m128::{m128d, m128i};
-use rustdom_x::memory::CACHE_LINE_SIZE;
+use randomx_sp1_core::common::{mulh, randomx_reciprocal, smulh, u64_from_i32_imm};
+use randomx_sp1_core::hash::{gen_program_aes_4rx4, hash_aes_1rx4};
+use randomx_sp1_core::m128::{m128d, m128i};
+use randomx_sp1_core::memory::CACHE_LINE_SIZE;
 #[cfg(feature = "differential-audit")]
-use rustdom_x::memory::VmMemory;
-#[cfg(feature = "differential-audit")]
-use rustdom_x::program::{Opcode as RichOpcode, Program as RichProgram};
-use rustdom_x::vm::Vm;
+use randomx_sp1_core::program::{Opcode as RichOpcode, Program as RichProgram};
+use randomx_sp1_core::vm::Vm;
+use randomx_sp1_core::{new_vm, VmMemory};
 
 const MAX_REG: usize = 8;
 const MAX_FLOAT_REG: usize = 4;
@@ -165,10 +162,28 @@ impl CompactProgram {
     }
 }
 
-/// Executes a complete RandomX hash with the same memory provider and VM state
-/// used by `rustdom_x::Vm::calculate_hash`.
+/// Calculates one complete RandomX hash.
+///
+/// Both inputs are supplied at runtime. The function constructs the 256 MiB
+/// light-mode cache from `key`, derives dataset items on demand, executes all
+/// eight RandomX programs, and returns the canonical 32-byte digest.
+#[must_use]
+pub fn hash(key: &[u8], blob: &[u8]) -> [u8; HASH_SIZE] {
+    let memory = Arc::new(VmMemory::light(key));
+    let mut vm = new_vm(memory);
+    let digest = calculate_hash(&mut vm, blob);
+    let mut output = [0; HASH_SIZE];
+    output.copy_from_slice(digest.as_bytes());
+    output
+}
+
+/// Executes a complete RandomX hash with a caller-provided internal VM.
+///
+/// This is exposed for repository audit and profiling tools. Consumers should
+/// use [`hash`].
+#[doc(hidden)]
 pub fn calculate_hash(vm: &mut Vm, input: &[u8]) -> Hash {
-    #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))] let _host_rounding_mode = rustdom_x::vm::HostRoundingModeGuard::capture();
+    #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))] let _host_rounding_mode = randomx_sp1_core::vm::HostRoundingModeGuard::capture();
     // Establish the allocation invariant used by unchecked accesses throughout all eight programs.
     assert_eq!(vm.scratchpad.len(), SCRATCHPAD_WORDS);
     let initial_hash = blake2b(input);
@@ -200,8 +215,8 @@ pub fn calculate_hash(vm: &mut Vm, input: &[u8]) -> Hash {
 #[cfg(feature = "differential-audit")]
 pub fn differential_audit(input: &[u8]) -> Hash {
     let memory = Arc::new(VmMemory::no_memory());
-    let mut rich = rustdom_x::new_vm(Arc::clone(&memory));
-    let mut compact = rustdom_x::new_vm(memory);
+    let mut rich = randomx_sp1_core::new_vm(Arc::clone(&memory));
+    let mut compact = randomx_sp1_core::new_vm(memory);
     let initial_hash = blake2b(input);
     let mut seed = hash_to_m128i_array(&initial_hash);
 
@@ -1239,8 +1254,7 @@ mod tests {
     use super::*;
     use std::sync::Arc;
 
-    use rustdom_x::program::decode_instruction as decode_rich_instruction;
-    use rustdom_x::{new_vm, VmMemory};
+    use randomx_sp1_core::program::decode_instruction as decode_rich_instruction;
 
     fn reset_instruction_state(vm: &mut Vm, salt: u64, mode: u32) {
         for (index, register) in vm.reg.r.iter_mut().enumerate() {
@@ -1605,6 +1619,14 @@ mod tests {
         assert_canonical_hashes(
             &key_f,
             &[(&input_f, "78af2a1864c42abce36d2e8983e13df99b2af0ce1362999af09fab004d4435a8")],
+        );
+    }
+
+    #[test]
+    fn stable_hash_api_matches_canonical_vector() {
+        assert_eq!(
+            hash(b"test key 000", b"This is a test").as_slice(),
+            decode_hex("639183aae1bf4c9a35884cb46b09cad9175f04efd7684e7262a0ac1c2f0b4e3f")
         );
     }
 }

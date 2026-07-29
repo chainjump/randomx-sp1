@@ -8,4 +8,4 @@ publish = false
 baseline = { package = "rustdom-x-argon2", version = "=2.1.0" }
 blake2b_simd = "=1.0.4"
 hex = "=0.4.3"
-optimized = { package = "rustdom-x-argon2", path = "../argon2" }
+optimized = { package = "randomx-sp1-argon2", path = "../argon2" }

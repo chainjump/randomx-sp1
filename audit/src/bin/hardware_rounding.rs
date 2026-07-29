@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use randomx_softfp::{add2, div2, mul2, sqrt2, sub2, RoundingMode};
-use rustdom_x::m128::m128d;
-use rustdom_x::{new_vm, VmMemory};
+use randomx_sp1_core::m128::m128d;
+use randomx_sp1_core::{new_vm, VmMemory};
 
 const CASES_PER_MODE: usize = 20_000;
 const FRAC_MASK: u64 = 0x000f_ffff_ffff_ffff;

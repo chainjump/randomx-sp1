@@ -1,7 +1,7 @@
-use super::m128::m128i;
 #[cfg(feature = "precompute-reciprocal")]
 use super::common::randomx_reciprocal;
-use super::vm::{is_zero_or_power_of_2, Vm, SCRATCHPAD_L3_MASK};
+use super::m128::m128i;
+use super::vm::{SCRATCHPAD_L3_MASK, Vm, is_zero_or_power_of_2};
 use std::fmt;
 use strum::Display;
 
@@ -756,7 +756,8 @@ mod reciprocal_tests {
     #[test]
     fn vm_unsigned_high_bit_power_of_two_matches_reference_nop() {
         // The reference decoder reads getImm32() into uint32_t before calling
-        // isZeroOrPowerOf2. Rustdom previously sign-extended this one value.
+        // isZeroOrPowerOf2. The upstream implementation previously
+        // sign-extended this one value.
         let mut usage = [-1; MAX_REG];
         let instr = decode_instruction(encoded_imul_rcp(0x8000_0000), 0, &mut usage);
         assert_eq!(instr.op, Opcode::IMUL_RCP);

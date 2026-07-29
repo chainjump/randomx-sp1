@@ -1,6 +1,6 @@
 # SP1 program safety review
 
-Review date: 2026-07-28 UTC
+Review date: 2026-07-29 UTC
 
 ## Result
 
@@ -15,25 +15,16 @@ review. The statically dispatched superscalar interpreter used
 `unreachable_unchecked` for an opcode value that its private constructor
 restricts to `0..=9`. It now uses a defined trapping `unreachable!` fallback,
 so a future bad table entry cannot turn that invariant violation into Rust
-undefined behavior. The compiler eliminated the fallback for the current
-table: rebuilding produced the retained ELF byte-for-byte.
+undefined behavior. The complete release suite exercises the table and its
+construction invariants.
 
 This is a code review and test record, not a formal verification claim.
 
-## Reviewed artifact
+## Build status
 
-```text
-path:    artifacts/randomx-program
-size:    295352 bytes
-sha256:  ac3eff37cbae4583f57cdbc193cca776a80672c77a63c09eb507dc35d154c317
-SP1:     6.3.1
-entry:   0x78027d70 (_start)
-machine: ELF64 little-endian RISC-V, statically linked, soft-float ABI
-```
-
-The executable load segment begins at `0x78006aa8`; address zero is neither
-the entry point nor executable. `_end` is `0x78034c21`. The standard SP1
-runtime owns `_start` and calls the Rust entry point before halting normally.
+This review currently covers the renamed source and dependency graph. A fresh
+ELF, disassembly, vkey, and proof review is pending explicit approval to build
+and prove the guest.
 
 ## SP1 security guidance applied
 
@@ -82,12 +73,10 @@ and cost control.
 ### Syscalls and precompiles
 
 The guest and its RandomX crates contain no direct `ecall`, custom SP1 syscall,
-or unconstrained-block call. Disassembly contains 20 `ecall` instructions, all
-inside the linked SP1 6.3.1 runtime implementations of `syscall_hint_len`,
-`syscall_hint_read`, `syscall_write`, and `syscall_halt`. These implement the
-documented `read_vec`, `commit_slice`, and normal `_start` return path. In
-particular, application code does not directly issue the dangerous HALT
-syscall; the SDK runtime does so after `main` returns.
+or unconstrained-block call. The application uses only the documented
+`read_vec`, `commit_slice`, and normal entry-point return path supplied by the
+SP1 6.3.1 runtime. Fresh disassembly inspection remains part of the pending
+build review.
 
 No elliptic-curve, field, `U256`, hashing, or other accelerated SP1 precompile
 is called by the custom guest. The precompile-specific canonical-value,
@@ -101,7 +90,7 @@ binary64 implementation.
 The reachable path has no filesystem, network, environment, subprocess,
 thread, random-number, or wall-clock access. An `Instant`-based performance
 helper and full-dataset allocator remain in non-guest-reachable library code
-and are absent from the retained ELF. The guest creates `VmMemory` in light
+and are target-gated out of the guest path. The guest creates `VmMemory` in light
 mode; the compact execution path never takes the optional `RwLock`-backed
 full-dataset cache path.
 
@@ -162,32 +151,13 @@ The source hardening was followed by:
 
 ```text
 cargo test --workspace --release --locked -- --test-threads=1
-result: 173 passed; 0 failed
+result: 174 passed; 0 failed
 ```
 
 This includes the canonical RandomX cache/dataset, decoder, reciprocal,
 superscalar, interpreter, rounding-mode, full-hash, and Argon2 conformance
 tests. It also includes 20 recent Monero block fixtures and all 100 paired
 superscalar handler combinations.
-
-The two unsafe-heavy RandomX crates were also run under native AddressSanitizer:
-
-```text
-RUSTC_BOOTSTRAP=1 \
-CARGO_TARGET_DIR=target/asan \
-RUSTFLAGS='-Zsanitizer=address' \
-cargo test --release --locked --target x86_64-unknown-linux-gnu \
-  -p rustdom-x -p rustdom-x-compact-vm -- --test-threads=1
-result: 22 passed; 0 failed; no sanitizer finding
-```
-
-After rebuilding, the exact ELF executed Monero block 3,727,315 successfully:
-
-```text
-public hash: 50966d5e6f491b5c2dccefb149c314d996fe36e73e4a18ae4d9f0d0100000000
-SP1 cycles:  6388938325
-exit code:   0
-```
 
 `cargo audit` loaded 1,172 current RustSec advisories and found zero known
 vulnerabilities among 374 locked dependencies. It reported five allowed
@@ -201,10 +171,8 @@ deserializing attacker-chosen bincode values.
 - A MemorySanitizer attempt was not valid because the instrumented crates
   would have linked against an uninstrumented Rust standard library. It failed
   before the tests and is not counted as evidence.
-- The previously outstanding Docker provenance build was completed on
-  2026-07-28. SP1's tagged image and its immutable digest both reproduced the
-  retained ELF byte for byte and derived the proved vkey. Commands and image
-  identities are recorded in `evidence/reproducible-build.md`.
+- Reproducible Docker build, disassembly, execution, vkey derivation, and live
+  proof validation remain pending for the renamed source.
 - Tests, sanitizer runs, dependency scanning, and manual invariant review
   substantially reduce risk but do not prove the absence of every memory
   safety or logic defect.

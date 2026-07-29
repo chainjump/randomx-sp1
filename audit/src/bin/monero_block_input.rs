@@ -4,15 +4,15 @@ use std::{
     sync::Arc,
 };
 
-use randomx_compact_vm_audit::{
+use randomx_sp1::calculate_hash;
+use randomx_sp1_audit::{
     monero::{
         blob_object_hash, decode_hex, encode_hex, hashing_blob, meets_difficulty,
         parse_wide_difficulty, MoneroBlockFixture, RpcBlockRecord,
     },
     network_fixtures::randomx_seed_height,
 };
-use rustdom_x::{new_vm, VmMemory};
-use rustdom_x_compact_vm::calculate_hash;
+use randomx_sp1_core::{new_vm, VmMemory};
 
 const USAGE: &str = "usage: monero_block_input <seed-height> <seed-hash> < record.json";
 

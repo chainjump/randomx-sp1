@@ -49,10 +49,10 @@ hash path.
 
 ## Locations
 
-- `rustdom-x/src/canonical_v1_tests.rs`: cache, dataset, superscalar,
+- `randomx-core/src/canonical_v1_tests.rs`: cache, dataset, superscalar,
   reciprocal, AES, and all 71 instruction checks.
-- `compact/src/lib.rs`: six full hashes through both Rust VMs and preservation
-  of the caller's native floating-point control mode.
+- `randomx-sp1/src/lib.rs`: six full hashes through both Rust VMs and
+  preservation of the caller's native floating-point control mode.
 - `audit/src/lib.rs`: commitment vector.
 
 The rounding-preservation case initially exposed a native-host bug: a public
@@ -65,12 +65,12 @@ point.
 
 ```text
 cargo test --workspace --release --locked -- --test-threads=1
-173 passed; 0 failed
+174 passed; 0 failed
 
-cargo check --release --locked -p rustdom-x --no-default-features
+cargo check --release --locked -p randomx-sp1-core --no-default-features
 passed
 
-cargo check --release --locked -p rustdom-x \
+cargo check --release --locked -p randomx-sp1-core \
   --no-default-features --features compact-superscalar
 passed
 ```
@@ -79,14 +79,3 @@ The workspace total includes 138 tests from the in-tree `rust-argon2` fork:
 136 inherited generic unit, integration, and documentation tests plus two
 RandomX-specialization invariants. Those validate the modified primitive but
 are separate from the 84 canonical RandomX checks above.
-
-Rebuilding the SP1 guest after the port produced the retained artifact
-byte-for-byte:
-
-```text
-size:    295352 bytes
-sha256:  ac3eff37cbae4583f57cdbc193cca776a80672c77a63c09eb507dc35d154c317
-```
-
-Consequently the retained measurements remain 6,388,938,325 SP1 cycles and
-7,744,392,823 PGU for Monero block 3,727,315.

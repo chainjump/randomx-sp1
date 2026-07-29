@@ -2,13 +2,13 @@ use std::env;
 use std::io::{self, Read};
 use std::sync::Arc;
 
-use randomx_compact_vm_audit::monero::{
+use randomx_sp1_audit::monero::{
     blob_object_hash, decode_hex, encode_hex, hashing_blob, meets_difficulty,
     parse_wide_difficulty, MoneroBlockFixture, MoneroBlockFixtures, RpcBlockRecord,
 };
-use randomx_compact_vm_audit::network_fixtures::randomx_seed_height;
-use randomx_compact_vm_audit::official::OfficialVm;
-use rustdom_x::{new_vm, VmMemory};
+use randomx_sp1_audit::network_fixtures::randomx_seed_height;
+use randomx_sp1_audit::official::OfficialVm;
+use randomx_sp1_core::{new_vm, VmMemory};
 
 fn main() {
     let mut args = env::args().skip(1);

@@ -1,4 +1,4 @@
-use randomx_compact_vm_audit::network_fixtures::validate_recent_mainnet_blocks;
+use randomx_sp1_audit::network_fixtures::validate_recent_mainnet_blocks;
 
 fn main() {
     let summary = validate_recent_mainnet_blocks();

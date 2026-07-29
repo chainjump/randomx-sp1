@@ -1,7 +1,9 @@
 [package]
-name = "rustdom-x-compact-vm"
+name = "randomx-sp1"
 version = "0.1.0"
 edition = "2021"
+description = "SP1-optimized, runtime-key RandomX hashing"
+readme = "README.md"
 license = "GPL-3.0-only"
 publish = false
 
@@ -11,4 +13,4 @@ differential-audit = []
 [dependencies]
 blake2b_simd = "1.0.4"
 randomx-softfp = { path = "../softfp" }
-rustdom-x = { path = "../rustdom-x", features = ["unchecked-superscalar"] }
+randomx-sp1-core = { path = "../randomx-core", features = ["unchecked-superscalar"] }

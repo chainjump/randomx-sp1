@@ -1,5 +1,5 @@
 [package]
-name = "rustdom-x-argon2"
+name = "randomx-sp1-argon2"
 version = "2.1.0"
 authors = ["Martijn Rijkeboer <mrr@sru-systems.com>"]
 edition = "2021"
@@ -8,6 +8,7 @@ description = "Rust implementation of the Argon2 password hashing function."
 documentation = "https://docs.sru-systems.com/rust-argon2/2.1.0/argon2/"
 homepage = "https://github.com/sru-systems/rust-argon2"
 repository = "https://github.com/sru-systems/rust-argon2"
+publish = false
 readme = "README.md"
 keywords = ["argon2", "argon2d", "argon2i", "hash", "password"]
 

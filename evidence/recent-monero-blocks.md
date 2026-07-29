@@ -29,7 +29,7 @@ For each live RPC response, `network_fixture_builder`:
 2. Reproduced the public block ID.
 3. Calculated the PoW with the independently built official RandomX v1.2.3
    library.
-4. Required Rustdom's rich VM to return the same PoW hash.
+4. Required the internal reference VM to return the same PoW hash.
 5. Required the hash to satisfy the recorded network difficulty.
 6. Required contiguous heights, the correct seed epoch, and intact chain
    links.
@@ -48,7 +48,7 @@ The current implementation passed in release mode:
 
 ```text
 cargo test --release --locked \
-  -p randomx-compact-vm-audit --lib \
+  -p randomx-sp1-audit --lib \
   network_fixtures::tests::twenty_recent_mainnet_blocks_match_fixed_pow_hashes \
   -- --exact
 
@@ -56,5 +56,4 @@ test result: ok. 1 passed; 0 failed
 ```
 
 No proof or paid prover-network request was made as part of this 20-block
-differential test. A later proof of block 3,727,837 is recorded separately in
-`evidence/network-proof/README.md`.
+differential test.

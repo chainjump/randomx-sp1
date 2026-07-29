@@ -1,11 +1,10 @@
 [package]
-name = "randomx-compact-vm-program"
+name = "randomx-sp1-program"
 version = "0.1.0"
 edition = "2021"
 license = "GPL-3.0-only"
 publish = false
 
 [dependencies]
-rustdom-x = { path = "../rustdom-x", features = ["unchecked-superscalar"] }
-rustdom-x-compact-vm = { path = "../compact" }
+randomx-sp1 = { path = "../randomx-sp1" }
 sp1-zkvm = "=6.3.1"

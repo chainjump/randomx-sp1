@@ -1,4 +1,4 @@
-use rustdom_x_compact_vm::differential_audit;
+use randomx_sp1::differential_audit;
 
 fn main() {
     for case in 0..32u64 {

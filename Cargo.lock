@@ -117,8 +117,8 @@ version = "0.1.0"
 dependencies = [
  "blake2b_simd",
  "hex",
- "rustdom-x-argon2 2.1.0",
- "rustdom-x-argon2 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "randomx-sp1-argon2",
+ "rustdom-x-argon2",
 ]
 
 [[package]]
@@ -2051,39 +2051,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "randomx-compact-vm-audit"
-version = "0.1.0"
-dependencies = [
- "blake2b_simd",
- "randomx-softfp",
- "rustdom-x",
- "rustdom-x-compact-vm",
- "serde",
- "serde_json",
- "tiny-keccak",
-]
-
-[[package]]
-name = "randomx-compact-vm-profile-probes"
-version = "0.1.0"
-dependencies = [
- "blake2b_simd",
- "hex",
- "rustdom-x",
- "rustdom-x-compact-vm",
- "sp1-zkvm",
-]
-
-[[package]]
-name = "randomx-compact-vm-program"
-version = "0.1.0"
-dependencies = [
- "rustdom-x",
- "rustdom-x-compact-vm",
- "sp1-zkvm",
-]
-
-[[package]]
 name = "randomx-executor"
 version = "0.1.0"
 dependencies = [
@@ -2117,6 +2084,69 @@ dependencies = [
  "hex",
  "sp1-core-executor",
  "sp1-core-executor-runner",
+]
+
+[[package]]
+name = "randomx-sp1"
+version = "0.1.0"
+dependencies = [
+ "blake2b_simd",
+ "randomx-softfp",
+ "randomx-sp1-core",
+]
+
+[[package]]
+name = "randomx-sp1-argon2"
+version = "2.1.0"
+dependencies = [
+ "base64 0.21.7",
+ "blake2b_simd",
+ "constant_time_eq 0.3.1",
+ "hex",
+ "serde",
+]
+
+[[package]]
+name = "randomx-sp1-audit"
+version = "0.1.0"
+dependencies = [
+ "blake2b_simd",
+ "randomx-softfp",
+ "randomx-sp1",
+ "randomx-sp1-core",
+ "serde",
+ "serde_json",
+ "tiny-keccak",
+]
+
+[[package]]
+name = "randomx-sp1-core"
+version = "0.1.0"
+dependencies = [
+ "blake2b_simd",
+ "libc",
+ "log",
+ "randomx-sp1-argon2",
+ "strum 0.24.1",
+]
+
+[[package]]
+name = "randomx-sp1-profile-probes"
+version = "0.1.0"
+dependencies = [
+ "blake2b_simd",
+ "hex",
+ "randomx-sp1",
+ "randomx-sp1-core",
+ "sp1-zkvm",
+]
+
+[[package]]
+name = "randomx-sp1-program"
+version = "0.1.0"
+dependencies = [
+ "randomx-sp1",
+ "sp1-zkvm",
 ]
 
 [[package]]
@@ -2223,28 +2253,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rustdom-x"
-version = "1.1.0"
-dependencies = [
- "blake2b_simd",
- "libc",
- "log",
- "rustdom-x-argon2 2.1.0",
- "strum 0.24.1",
-]
-
-[[package]]
-name = "rustdom-x-argon2"
-version = "2.1.0"
-dependencies = [
- "base64 0.21.7",
- "blake2b_simd",
- "constant_time_eq 0.3.1",
- "hex",
- "serde",
-]
-
-[[package]]
 name = "rustdom-x-argon2"
 version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2253,15 +2261,6 @@ dependencies = [
  "base64 0.21.7",
  "blake2b_simd",
  "constant_time_eq 0.3.1",
-]
-
-[[package]]
-name = "rustdom-x-compact-vm"
-version = "0.1.0"
-dependencies = [
- "blake2b_simd",
- "randomx-softfp",
- "rustdom-x",
 ]
 
 [[package]]

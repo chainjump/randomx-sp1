@@ -4,10 +4,10 @@
 use std::sync::Arc;
 
 #[cfg(feature = "no-memory-hash")]
-use rustdom_x::new_vm;
-use rustdom_x::VmMemory;
+use randomx_sp1::calculate_hash;
 #[cfg(feature = "no-memory-hash")]
-use rustdom_x_compact_vm::calculate_hash;
+use randomx_sp1_core::new_vm;
+use randomx_sp1_core::VmMemory;
 
 sp1_zkvm::entrypoint!(main);
 
