@@ -1,9 +1,12 @@
 [package]
-name = "randomx-network-prover"
+name = "randomx-sp1-network-prover"
 version = "0.1.0"
 edition = "2021"
+rust-version = "1.94.1"
+description = "Succinct Network proof and EVM simulation client for randomx-sp1"
 license = "MIT OR Apache-2.0"
 publish = false
+readme = "README.md"
 
 [dependencies]
 alloy-primitives = "=1.6.1"

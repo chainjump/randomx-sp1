@@ -11,12 +11,13 @@ use crate::result::Result;
 use std::fmt;
 
 /// The Argon2 version.
-#[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, PartialOrd, Ord)]
 pub enum Version {
     /// Version 0x10.
     Version10 = 0x10,
 
     /// Version 0x13 (Recommended).
+    #[default]
     Version13 = 0x13,
 }
 
@@ -27,6 +28,7 @@ impl Version {
     }
 
     /// Attempts to create a version from a string slice.
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(str: &str) -> Result<Version> {
         match str {
             "16" => Ok(Version::Version10),
@@ -42,12 +44,6 @@ impl Version {
             0x13 => Ok(Version::Version13),
             _ => Err(Error::IncorrectVersion),
         }
-    }
-}
-
-impl Default for Version {
-    fn default() -> Version {
-        Version::Version13
     }
 }
 

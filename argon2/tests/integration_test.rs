@@ -1040,6 +1040,7 @@ fn test_hash_raw_with_too_short_salt() {
     assert_eq!(res, Err(Error::SaltTooShort));
 }
 
+#[allow(clippy::too_many_arguments)]
 fn hash_test(
     var: Variant,
     ver: Version,

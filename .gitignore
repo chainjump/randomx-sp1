@@ -1,6 +1,10 @@
 /target/
 /artifacts/*
-!/artifacts/randomx-program
+!/artifacts/randomx-sp1-program
 *.elf
 *.log
+*.key
+*.pem
+/.env
+/.env.*
 /.secrets/

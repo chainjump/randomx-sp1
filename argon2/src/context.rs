@@ -36,6 +36,9 @@ pub struct Context<'a> {
 
 impl<'a> Context<'a> {
     /// Attempts to create a new context.
+    // The upper-bound checks are meaningful on narrower targets and preserve
+    // the inherited generic Argon2 API, even where a u32 cannot exceed them.
+    #[allow(clippy::absurd_extreme_comparisons)]
     pub fn new(config: Config<'a>, pwd: &'a [u8], salt: &'a [u8]) -> Result<Context<'a>> {
         if config.lanes < common::MIN_LANES {
             return Err(Error::LanesTooFew);

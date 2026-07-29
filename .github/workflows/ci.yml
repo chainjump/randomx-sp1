@@ -1,0 +1,98 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Format, lint, and document
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+      - name: Show toolchain
+        run: rustc --version && cargo --version
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      - name: Check prover-client formatting
+        run: cargo fmt --manifest-path network-prover/Cargo.toml --all -- --check
+      - name: Lint workspace
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - name: Lint audit feature
+        run: cargo clippy -p randomx-sp1 --all-targets --features differential-audit --locked -- -D warnings
+      - name: Lint prover client
+        env:
+          CARGO_TARGET_DIR: target
+        run: cargo clippy --manifest-path network-prover/Cargo.toml --all-targets --locked -- -D warnings
+      - name: Build public documentation
+        env:
+          RUSTDOCFLAGS: -D warnings
+        run: cargo doc -p randomx-sp1 --no-deps --locked
+
+  test:
+    name: Release tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v6
+      - name: Test workspace serially
+        run: cargo test --workspace --release --locked -- --test-threads=1
+      - name: Test prover client
+        env:
+          CARGO_TARGET_DIR: target
+        run: cargo test --manifest-path network-prover/Cargo.toml --release --locked
+
+  consumer:
+    name: Pinned Git dependency
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Check exact-revision consumer
+        shell: bash
+        run: |
+          set -euo pipefail
+          consumer_dir="$(mktemp -d)"
+          mkdir -p "${consumer_dir}/src"
+          cat > "${consumer_dir}/Cargo.toml" <<EOF
+          [package]
+          name = "randomx-sp1-consumer-check"
+          version = "0.0.0"
+          edition = "2021"
+          publish = false
+
+          [dependencies]
+          randomx-sp1 = { git = "file://${GITHUB_WORKSPACE}", rev = "${GITHUB_SHA}" }
+          EOF
+          cat > "${consumer_dir}/src/lib.rs" <<'EOF'
+          pub fn hash(key: &[u8], blob: &[u8]) -> [u8; 32] {
+              randomx_sp1::hash(key, blob)
+          }
+          EOF
+          cargo check --manifest-path "${consumer_dir}/Cargo.toml"
+
+  audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install cargo-audit
+        run: cargo install cargo-audit --version 0.22.2 --locked
+      - name: Audit guest workspace
+        run: cargo audit
+      - name: Audit prover client
+        run: cargo audit --file network-prover/Cargo.lock

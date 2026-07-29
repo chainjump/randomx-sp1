@@ -9,10 +9,10 @@ The implementation is universal with respect to RandomX inputs: it does not
 embed an epoch key or a hashing blob. Arbitrary key lengths and empty blobs are
 supported and covered by the differential corpus.
 
-The reproducibly built SP1 ELF and its locally derived vkey are retained for
-the `randomx-sp1` release. No proof has been generated for this ELF yet; proof
-submission remains intentionally pending explicit approval. Exact build
-identity and commands are recorded in `evidence/reproducible-build.md`.
+No generated ELF, vkey, or proof is retained for the current source tree.
+Release-facing cleanup intentionally invalidated the previous build, and the
+prover client fails closed until a final reproducible build is reviewed and
+approved. No proof submission is authorized at this stage.
 
 ## Current optimization
 
@@ -38,8 +38,8 @@ optimizations generate their state from the runtime key.
 - `executor/`: lightweight execution and calibrated PGU estimation.
 - `network-prover/`: fixed-block Succinct Network request, recovery, local
   proof verification, and EVM `eth_call` verification client.
-- `audit/`: official-RandomX and rich/compact differential checks.
-- `argon2-native-compare/`: complete-cache differential checks.
+- `audit/`: official-RandomX and reference/optimized differential checks.
+- `randomx-sp1-argon2-audit/`: complete-cache differential checks.
 - `profile-probes/`, `softfp-guest/`, and `softfp-runner/`: profiling and
   arithmetic validation tools.
 
@@ -49,8 +49,23 @@ Consumers should depend on `randomx-sp1` and use its stable entry point:
 let digest: [u8; 32] = randomx_sp1::hash(&randomx_key, &hashing_blob);
 ```
 
-The internal crates are not separately supported APIs. Their upstream lineage
-and retained licenses are recorded in `ATTRIBUTION.md`.
+Use an immutable release commit rather than a branch:
+
+```toml
+[dependencies]
+randomx-sp1 = { git = "https://git.example/repository.git", rev = "<full-commit-hash>" }
+```
+
+The consuming application must commit its own `Cargo.lock` and use `--locked`
+for reproducible builds. A parent SP1 program links this library into a new
+ELF and must prove that combined ELF; the standalone program's vkey or proof is
+not reusable as a subproof.
+
+The default crate exposes one supported API: `randomx_sp1::hash`. Features
+whose names contain `audit` exist only for this repository's validation tools
+and carry no compatibility guarantee. The internal crates are not separately
+supported APIs. Their upstream lineage and retained licenses are recorded in
+`ATTRIBUTION.md`.
 
 ## Reproduce the ELF
 
@@ -58,7 +73,7 @@ The repository pins SP1 6.3.1 in `Cargo.lock`. From `program/` run:
 
 ```bash
 cargo prove build --docker --tag v6.3.1 --locked \
-  --elf-name randomx-program \
+  --elf-name randomx-sp1-program \
   --output-directory ../artifacts
 ```
 
@@ -76,15 +91,15 @@ circuit.
 Build the executor from the repository root:
 
 ```bash
-cargo build --release --locked -p randomx-executor
+cargo build --release --locked -p randomx-sp1-executor
 ```
 
 Reproduce block 3,727,315. After the ELF path and expected public hash, the
 first input is the runtime RandomX key and the second is the hashing blob:
 
 ```bash
-target/release/randomx-executor \
-  artifacts/randomx-program \
+target/release/randomx-sp1-executor \
+  artifacts/randomx-sp1-program \
   50966d5e6f491b5c2dccefb149c314d996fe36e73e4a18ae4d9f0d0100000000 \
   11c798e5ac6515218bc3efcb5416e5b68c599e42a61b86efe5746bb78eb4be8e \
   101093ba9fd306c6afa883a69ae61498cc8edc5b04ad42664ca1d70cb4f6e14f609d65af22e8a6a8910b0f68387e426a3e54920779782c55fab88b05da6b989d97e67ced90f93a2237a17601
@@ -104,12 +119,34 @@ The current implementation is checked against:
 - 20 consecutive real Monero blocks;
 - 42 official RandomX v1.2.3 light-mode hashes across seven key shapes and six
   blob shapes;
-- rich/compact lockstep state comparisons;
+- reference/optimized lockstep state comparisons;
 - complete 256 MiB cache digests for multiple keys; and
 - software-floating-point comparisons against Berkeley SoftFloat.
 
 Current source evidence is under `evidence/`. The SP1-specific unsafe-code,
 syscall, dependency, and provenance review is recorded in
-`evidence/sp1-program-safety-review.md`. There is no configured Git remote, so
-preserving or backing up this repository's `.git` directory is required for
-recovery.
+`evidence/sp1-program-safety-review.md`.
+
+## Continuous integration
+
+`.github/workflows/ci.yml` runs on every pull request, every push to `main`,
+every `v*` tag, and manual dispatch. Its independent jobs check formatting,
+Clippy, public documentation, the complete serial release suite, the separate
+prover-client tests, both lockfiles, and consumption through a pinned Git
+revision. CI never reads a prover key, builds a release ELF, executes the
+multi-billion-cycle guest, contacts the prover network, or simulates an EVM
+transaction.
+
+On a non-GitHub host, configure its CI runner to execute the same commands in
+`CONTRIBUTING.md`. The release-only build and proof sequence is documented in
+`RELEASING.md`.
+
+## Licensing and security
+
+The public library and derived RandomX core are GPL-3.0-only. Independently
+licensed support components retain their MIT and Apache-2.0 terms. See
+`LICENSE`, `LICENSE-MIT`, `LICENSE-APACHE`, and `ATTRIBUTION.md`. Report
+security issues privately according to `SECURITY.md`.
+
+No Git remote is configured yet, so preserving or independently backing up the
+repository's `.git` directory remains necessary for recovery.

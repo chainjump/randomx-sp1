@@ -11,7 +11,7 @@ use crate::result::Result;
 use std::fmt;
 
 /// The Argon2 variant.
-#[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, PartialOrd, Ord)]
 pub enum Variant {
     /// Argon2 using data-dependent memory access to thwart tradeoff attacks.
     /// Recommended for cryptocurrencies and backend servers.
@@ -20,6 +20,7 @@ pub enum Variant {
     /// Argon2 using data-independent memory access to thwart side-channel
     /// attacks. Recommended for password hashing and password-based key
     /// derivation.
+    #[default]
     Argon2i = 1,
 
     /// Argon2 using hybrid construction.
@@ -56,6 +57,7 @@ impl Variant {
     }
 
     /// Attempts to create a variant from a string slice.
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(str: &str) -> Result<Variant> {
         match str {
             "Argon2d" => Ok(Variant::Argon2d),
@@ -76,12 +78,6 @@ impl Variant {
             2 => Ok(Variant::Argon2id),
             _ => Err(Error::IncorrectType),
         }
-    }
-}
-
-impl Default for Variant {
-    fn default() -> Variant {
-        Variant::Argon2i
     }
 }
 

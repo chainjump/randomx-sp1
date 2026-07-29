@@ -1,28 +1,17 @@
-## This is a direct fork from https://github.com/Ragnaroek/rust-argon2, to publish it on https://crates.io
-All credit goes to @Ragnaroek
+# randomx-sp1 Argon2 internals
 
-# Rust-argon2
+This is the repository's internal fork of `rust-argon2` 2.1.0. It retains the
+generic API and upstream tests while adding the specialized RandomX Argon2d
+cache-construction path used by `randomx-sp1`. It is not published or supported
+as an independent consumer API. Full lineage is recorded in the repository's
+`ATTRIBUTION.md`.
+
+## Retained generic API
 
 Rust library for hashing passwords using
 [Argon2](https://github.com/P-H-C/phc-winner-argon2), the password-hashing
 function that won the
 [Password Hashing Competition (PHC)](https://password-hashing.net).
-
-## Usage
-
-To use `rust-argon2`, add the following to your Cargo.toml:
-
-```toml
-[dependencies]
-rust-argon2 = "2.1"
-```
-
-And the following to your crate root:
-
-```rust
-extern crate argon2;
-```
-
 
 ## Examples
 
@@ -76,12 +65,10 @@ optimizations. Therefore, it is not the fastest implementation available.
 
 ## License
 
-Rust-argon2 is dual licensed under the [MIT](LICENSE-MIT) and
+This fork is dual licensed under the [MIT](LICENSE-MIT) and
 [Apache 2.0](LICENSE-APACHE) licenses, the same licenses as the Rust compiler.
 
 
 ## Contributions
 
-Contributions are welcome. By submitting a pull request you are agreeing to
-make you work available under the license terms of the Rust-argon2 project.
-
+Contributions are accepted under the existing dual-license terms.

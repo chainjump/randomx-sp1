@@ -1,8 +1,10 @@
 [package]
-name = "randomx-executor"
+name = "randomx-sp1-executor"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+rust-version.workspace = true
+description = "SP1 execution and PGU estimation tool for randomx-sp1"
 publish = false
 
 [dependencies]

@@ -4,7 +4,7 @@
 use std::sync::Arc;
 
 #[cfg(feature = "no-memory-hash")]
-use randomx_sp1::calculate_hash;
+use randomx_sp1::hash_with_vm_for_audit;
 #[cfg(feature = "no-memory-hash")]
 use randomx_sp1_core::new_vm;
 use randomx_sp1_core::VmMemory;
@@ -50,6 +50,6 @@ pub fn main() {
 pub fn main() {
     let memory = Arc::new(VmMemory::no_memory());
     let mut vm = new_vm(memory);
-    let hash = calculate_hash(&mut vm, &HASHING_BLOB);
+    let hash = hash_with_vm_for_audit(&mut vm, &HASHING_BLOB);
     sp1_zkvm::io::commit_slice(hash.as_bytes());
 }

@@ -73,7 +73,7 @@ pub fn decode_string(encoded: &str) -> Result<Decoded> {
 }
 
 fn decode_empty(str: &str) -> Result<()> {
-    if str == "" {
+    if str.is_empty() {
         Ok(())
     } else {
         Err(Error::DecodingFail)

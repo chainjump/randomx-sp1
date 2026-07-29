@@ -40,9 +40,10 @@ calculated locally rather than trusted from the node.
 ## Offline regression
 
 The test creates the 256 MiB light cache once for the shared runtime key, then
-processes all 20 blobs with both rich and compact VMs. At every height it
-checks block and chain metadata, network difficulty, both hashes, final
-register files, and complete 2 MiB scratchpads.
+processes all 20 blobs with both the internal reference and optimized
+interpreters. At every height it checks block and chain metadata, network
+difficulty, both hashes, final register files, and complete 2 MiB
+scratchpads.
 
 The current implementation passed in release mode:
 

@@ -137,7 +137,9 @@ unsafe fn fill_memory_blocks_randomx_segment<
     const FIRST_PASS: bool,
     const WITH_XOR: bool,
     const SLICE: u32,
->(blocks: *mut Block) {
+>(
+    blocks: *mut Block,
+) {
     const LANE_LENGTH: u32 = 262_144;
     const SEGMENT_LENGTH: u32 = 65_536;
     const LANE_MASK: u32 = LANE_LENGTH - 1;
@@ -160,7 +162,7 @@ unsafe fn fill_memory_blocks_randomx_segment<
         } else {
             LANE_LENGTH - SEGMENT_LENGTH + index_in_segment - 1
         } as u64;
-        let mut relative_position = (pseudo_rand & 0xffff_ffff) as u64;
+        let mut relative_position = pseudo_rand & 0xffff_ffff;
         relative_position = (relative_position * relative_position) >> 32;
         relative_position =
             reference_area_size - 1 - ((reference_area_size * relative_position) >> 32);
@@ -446,11 +448,11 @@ fn fill_first_blocks(context: &Context, memory: &mut Memory, h0: &mut [u8]) {
         // H'(H0||0||i)
         h0[start..(start + 4)].clone_from_slice(&u32::to_le_bytes(0));
         h0[(start + 4)..(start + 8)].clone_from_slice(&u32::to_le_bytes(lane));
-        hprime(memory[(lane, 0)].as_u8_mut(), &h0);
+        hprime(memory[(lane, 0)].as_u8_mut(), h0);
 
         // H'(H0||1||i)
         h0[start..(start + 4)].clone_from_slice(&u32::to_le_bytes(1));
-        hprime(memory[(lane, 1)].as_u8_mut(), &h0);
+        hprime(memory[(lane, 1)].as_u8_mut(), h0);
     }
 }
 
@@ -470,6 +472,7 @@ fn fill_memory_blocks_st(context: &Context, memory: &mut Memory) {
     }
 }
 
+#[allow(clippy::explicit_counter_loop, clippy::manual_is_multiple_of)]
 fn fill_segment(context: &Context, position: &Position, memory: &mut Memory) {
     let mut position = position.clone();
     let data_independent_addressing = (context.config.variant == Variant::Argon2i)
@@ -670,6 +673,7 @@ fn next_addresses(address_block: &mut Block, input_block: &mut Block, zero_block
 }
 
 #[inline(always)]
+#[allow(clippy::too_many_arguments)]
 fn p(
     v0: &mut u64,
     v1: &mut u64,
@@ -699,7 +703,7 @@ fn p(
 }
 
 fn rotr64(w: u64, c: u32) -> u64 {
-    (w >> c) | (w << (64 - c))
+    w.rotate_right(c)
 }
 
 #[cfg(test)]

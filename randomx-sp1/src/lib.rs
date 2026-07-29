@@ -1,8 +1,10 @@
+#![deny(missing_docs)]
+
 //! SP1-optimized RandomX hashing.
 //!
-//! [`hash`] is the stable public entry point. The key, dataset items, AES
-//! program bytes, and every VM iteration are derived and executed by the
-//! caller. No RandomX input is embedded in the library.
+//! [`hash`] is the stable public entry point. The library derives the cache,
+//! dataset items, and RandomX programs from caller-supplied inputs and executes
+//! every VM iteration. No RandomX input is embedded in the library.
 
 use std::{mem::size_of, sync::Arc};
 
@@ -13,7 +15,7 @@ use randomx_sp1_core::hash::{gen_program_aes_4rx4, hash_aes_1rx4};
 use randomx_sp1_core::m128::{m128d, m128i};
 use randomx_sp1_core::memory::CACHE_LINE_SIZE;
 #[cfg(feature = "differential-audit")]
-use randomx_sp1_core::program::{Opcode as RichOpcode, Program as RichProgram};
+use randomx_sp1_core::program::{Opcode as ReferenceOpcode, Program as ReferenceProgram};
 use randomx_sp1_core::vm::Vm;
 use randomx_sp1_core::{new_vm, VmMemory};
 
@@ -167,23 +169,23 @@ impl CompactProgram {
 /// Both inputs are supplied at runtime. The function constructs the 256 MiB
 /// light-mode cache from `key`, derives dataset items on demand, executes all
 /// eight RandomX programs, and returns the canonical 32-byte digest.
+///
+/// This operation is intentionally expensive: each call constructs a new
+/// cache and performs one complete RandomX hash. Callers are responsible for
+/// imposing any application-specific input-length or resource limits.
 #[must_use]
 pub fn hash(key: &[u8], blob: &[u8]) -> [u8; HASH_SIZE] {
     let memory = Arc::new(VmMemory::light(key));
     let mut vm = new_vm(memory);
-    let digest = calculate_hash(&mut vm, blob);
+    let digest = calculate_hash_impl(&mut vm, blob);
     let mut output = [0; HASH_SIZE];
     output.copy_from_slice(digest.as_bytes());
     output
 }
 
-/// Executes a complete RandomX hash with a caller-provided internal VM.
-///
-/// This is exposed for repository audit and profiling tools. Consumers should
-/// use [`hash`].
-#[doc(hidden)]
-pub fn calculate_hash(vm: &mut Vm, input: &[u8]) -> Hash {
-    #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))] let _host_rounding_mode = randomx_sp1_core::vm::HostRoundingModeGuard::capture();
+fn calculate_hash_impl(vm: &mut Vm, input: &[u8]) -> Hash {
+    #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
+    let _host_rounding_mode = randomx_sp1_core::vm::HostRoundingModeGuard::capture();
     // Establish the allocation invariant used by unchecked accesses throughout all eight programs.
     assert_eq!(vm.scratchpad.len(), SCRATCHPAD_WORDS);
     let initial_hash = blake2b(input);
@@ -210,89 +212,110 @@ pub fn calculate_hash(vm: &mut Vm, input: &[u8]) -> Hash {
     params.hash(&vm.reg.to_bytes())
 }
 
-/// Locates the first state divergence between the rich and compact decoders.
+/// Executes a complete hash with repository-internal VM state.
+///
+/// This function exists only for audit and profiling binaries and has no
+/// compatibility guarantee. Production consumers should use [`hash`].
+#[cfg(feature = "audit-internals")]
+#[doc(hidden)]
+pub fn hash_with_vm_for_audit(vm: &mut Vm, input: &[u8]) -> Hash {
+    calculate_hash_impl(vm, input)
+}
+
+/// Locates the first state divergence between the reference and optimized
+/// interpreters.
 /// This is intentionally excluded from verifier builds.
 #[cfg(feature = "differential-audit")]
 pub fn differential_audit(input: &[u8]) -> Hash {
     let memory = Arc::new(VmMemory::no_memory());
-    let mut rich = randomx_sp1_core::new_vm(Arc::clone(&memory));
+    let mut reference = randomx_sp1_core::new_vm(Arc::clone(&memory));
     let mut compact = randomx_sp1_core::new_vm(memory);
     let initial_hash = blake2b(input);
     let mut seed = hash_to_m128i_array(&initial_hash);
 
-    let rich_next = rich.init_scratchpad(&seed);
+    let reference_next = reference.init_scratchpad(&seed);
     let compact_next = compact.init_scratchpad(&seed);
-    assert_eq!(rich_next, compact_next);
-    assert_eq!(rich.scratchpad, compact.scratchpad);
-    rich.reset_rounding_mode();
+    assert_eq!(reference_next, compact_next);
+    assert_eq!(reference.scratchpad, compact.scratchpad);
+    reference.reset_rounding_mode();
     compact.reset_rounding_mode();
 
-    let mut next_seed = rich_next;
+    let mut next_seed = reference_next;
     for program_index in 0..PROGRAM_COUNT {
-        run_differential(&mut rich, &mut compact, &next_seed, program_index);
-        assert_eq!(rich.reg.to_bytes(), compact.reg.to_bytes());
-        assert_eq!(rich.scratchpad, compact.scratchpad);
+        run_differential(&mut reference, &mut compact, &next_seed, program_index);
+        assert_eq!(reference.reg.to_bytes(), compact.reg.to_bytes());
+        assert_eq!(reference.scratchpad, compact.scratchpad);
         if program_index + 1 < PROGRAM_COUNT {
-            seed = hash_to_m128i_array(&blake2b(&rich.reg.to_bytes()));
+            seed = hash_to_m128i_array(&blake2b(&reference.reg.to_bytes()));
             next_seed = seed;
         }
     }
 
-    let final_hash = hash_aes_1rx4(&rich.scratchpad);
-    for index in 0..MAX_FLOAT_REG {
-        rich.reg.a[index] = final_hash[index].as_m128d();
-        compact.reg.a[index] = final_hash[index].as_m128d();
+    let final_hash = hash_aes_1rx4(&reference.scratchpad);
+    for (index, value) in final_hash.iter().enumerate() {
+        reference.reg.a[index] = value.as_m128d();
+        compact.reg.a[index] = value.as_m128d();
     }
-    assert_eq!(rich.reg.to_bytes(), compact.reg.to_bytes());
+    assert_eq!(reference.reg.to_bytes(), compact.reg.to_bytes());
     let mut params = Params::new();
     params.hash_length(HASH_SIZE);
-    params.hash(&rich.reg.to_bytes())
+    params.hash(&reference.reg.to_bytes())
 }
 
 #[cfg(feature = "differential-audit")]
-fn run_differential(rich: &mut Vm, compact: &mut Vm, seed: &[m128i; 4], program_index: usize) {
+fn run_differential(reference: &mut Vm, compact: &mut Vm, seed: &[m128i; 4], program_index: usize) {
     let bytes = gen_program_aes_4rx4(seed, 136);
-    let rich_program = RichProgram::from_bytes(bytes.clone());
+    let reference_program = ReferenceProgram::from_bytes(bytes.clone());
     let compact_program = CompactProgram::from_bytes(&bytes);
-    rich.init_vm(&rich_program);
+    reference.init_vm(&reference_program);
     init_vm(compact, &compact_program.entropy);
 
-    let mut rich_sp0 = rich.mem_reg.mx as u32;
-    let mut rich_sp1 = rich.mem_reg.ma as u32;
+    let mut reference_sp0 = reference.mem_reg.mx as u32;
+    let mut reference_sp1 = reference.mem_reg.ma as u32;
     let mut compact_sp0 = compact.mem_reg.mx as u32;
     let mut compact_sp1 = compact.mem_reg.ma as u32;
 
     for iteration in 0..PROGRAM_ITERATIONS {
-        prepare_iteration(rich, &mut rich_sp0, &mut rich_sp1);
+        prepare_iteration(reference, &mut reference_sp0, &mut reference_sp1);
         prepare_iteration(compact, &mut compact_sp0, &mut compact_sp1);
-        assert_vm_state(rich, compact, program_index, iteration, -1, None);
+        assert_vm_state(reference, compact, program_index, iteration, -1, None);
 
-        rich.pc = 0;
+        reference.pc = 0;
         compact.pc = 0;
-        while rich.pc < PROGRAM_SIZE {
-            assert_eq!(rich.pc, compact.pc, "program {program_index} iteration {iteration}");
-            let pc = rich.pc;
-            let rich_instr = &rich_program.program[pc as usize];
+        while reference.pc < PROGRAM_SIZE {
+            assert_eq!(
+                reference.pc, compact.pc,
+                "program {program_index} iteration {iteration}"
+            );
+            let pc = reference.pc;
+            let reference_instr = &reference_program.program[pc as usize];
             let compact_instr = &compact_program.instructions[pc as usize];
-            rich_instr.execute(rich);
+            reference_instr.execute(reference);
             (compact_instr.effect)(compact, compact_instr);
             assert_vm_state(
-                rich,
+                reference,
                 compact,
                 program_index,
                 iteration,
                 pc,
-                Some(&rich_instr.op),
+                Some(&reference_instr.op),
             );
-            rich.pc += 1;
+            reference.pc += 1;
             compact.pc += 1;
         }
 
-        finish_iteration(rich, rich_sp0 as usize, rich_sp1 as usize);
+        finish_iteration(reference, reference_sp0 as usize, reference_sp1 as usize);
         finish_iteration(compact, compact_sp0 as usize, compact_sp1 as usize);
-        assert_vm_state(rich, compact, program_index, iteration, PROGRAM_SIZE, None);
-        rich_sp0 = 0;
-        rich_sp1 = 0;
+        assert_vm_state(
+            reference,
+            compact,
+            program_index,
+            iteration,
+            PROGRAM_SIZE,
+            None,
+        );
+        reference_sp0 = 0;
+        reference_sp1 = 0;
         compact_sp0 = 0;
         compact_sp1 = 0;
     }
@@ -322,8 +345,7 @@ fn prepare_iteration(vm: &mut Vm, sp_addr_0: &mut u32, sp_addr_1: &mut u32) {
 
 #[cfg(feature = "differential-audit")]
 fn finish_iteration(vm: &mut Vm, addr0: usize, addr1: usize) {
-    vm.mem_reg.mx ^=
-        (vm.reg.r[vm.config.read_reg[2]] ^ vm.reg.r[vm.config.read_reg[3]]) as usize;
+    vm.mem_reg.mx ^= (vm.reg.r[vm.config.read_reg[2]] ^ vm.reg.r[vm.config.read_reg[3]]) as usize;
     vm.mem_reg.mx &= CACHE_LINE_ALIGN_MASK as usize;
     vm.mem
         .dataset_read(vm.dataset_offset + vm.mem_reg.ma as u64, &mut vm.reg.r);
@@ -345,47 +367,46 @@ fn finish_iteration(vm: &mut Vm, addr0: usize, addr1: usize) {
 
 #[cfg(feature = "differential-audit")]
 fn assert_vm_state(
-    rich: &Vm,
+    reference: &Vm,
     compact: &Vm,
     program: usize,
     iteration: usize,
     pc: i32,
-    operation: Option<&RichOpcode>,
+    operation: Option<&ReferenceOpcode>,
 ) {
     assert_eq!(
-        rich.reg.to_bytes(),
+        reference.reg.to_bytes(),
         compact.reg.to_bytes(),
-        "register divergence: program {program} iteration {iteration} pc {pc} op {operation:?} rich_mode={} compact_mode={}",
-        rich.get_rounding_mode(),
+        "register divergence: program {program} iteration {iteration} pc {pc} op {operation:?} reference_mode={} optimized_mode={}",
+        reference.get_rounding_mode(),
         compact.get_rounding_mode(),
     );
     assert_eq!(
-        rich.pc,
-        compact.pc,
+        reference.pc, compact.pc,
         "pc divergence: program {program} iteration {iteration} pc {pc} op {operation:?}"
     );
     assert_eq!(
-        rich.mem_reg.mx, compact.mem_reg.mx,
+        reference.mem_reg.mx, compact.mem_reg.mx,
         "mx divergence: program {program} iteration {iteration} pc {pc} op {operation:?}"
     );
     assert_eq!(
-        rich.mem_reg.ma, compact.mem_reg.ma,
+        reference.mem_reg.ma, compact.mem_reg.ma,
         "ma divergence: program {program} iteration {iteration} pc {pc} op {operation:?}"
     );
     assert_eq!(
-        rich.config.read_reg, compact.config.read_reg,
+        reference.config.read_reg, compact.config.read_reg,
         "read-register divergence: program {program} iteration {iteration} pc {pc} op {operation:?}"
     );
     assert_eq!(
-        rich.config.e_mask, compact.config.e_mask,
+        reference.config.e_mask, compact.config.e_mask,
         "exponent-mask divergence: program {program} iteration {iteration} pc {pc} op {operation:?}"
     );
     assert_eq!(
-        rich.dataset_offset, compact.dataset_offset,
+        reference.dataset_offset, compact.dataset_offset,
         "dataset-offset divergence: program {program} iteration {iteration} pc {pc} op {operation:?}"
     );
     assert_eq!(
-        rich.get_rounding_mode(),
+        reference.get_rounding_mode(),
         compact.get_rounding_mode(),
         "rounding divergence: program {program} iteration {iteration} pc {pc} op {operation:?}"
     );
@@ -426,8 +447,7 @@ fn run(vm: &mut Vm, seed: &[m128i; 4]) {
             vm.reg.f[i] = m128i::from_u64(0, scratch(vm, addr1 + i)).lower_to_m128d();
         }
         for i in 0..MAX_FLOAT_REG {
-            let value =
-                m128i::from_u64(0, scratch(vm, addr1 + i + MAX_FLOAT_REG)).lower_to_m128d();
+            let value = m128i::from_u64(0, scratch(vm, addr1 + i + MAX_FLOAT_REG)).lower_to_m128d();
             vm.reg.e[i] = mask_register_exponent_mantissa(vm, value);
         }
 
@@ -644,13 +664,7 @@ fn decode_instruction(raw: i64, index: i32, usage: &mut [i32; MAX_REG]) -> Compa
         );
     }
     if op < 0xac {
-        return CompactInstr::new_float(
-            exec_fscal_r,
-            (dst % MAX_FLOAT_REG) as u8,
-            NO_REG,
-            0,
-            0,
-        );
+        return CompactInstr::new_float(exec_fscal_r, (dst % MAX_FLOAT_REG) as u8, NO_REG, 0, 0);
     }
     if op < 0xcc {
         return CompactInstr::new_float(
@@ -672,13 +686,7 @@ fn decode_instruction(raw: i64, index: i32, usage: &mut [i32; MAX_REG]) -> Compa
         );
     }
     if op < 0xd6 {
-        return CompactInstr::new_float(
-            exec_fsqrt_r,
-            (dst % MAX_FLOAT_REG) as u8,
-            NO_REG,
-            0,
-            0,
-        );
+        return CompactInstr::new_float(exec_fsqrt_r, (dst % MAX_FLOAT_REG) as u8, NO_REG, 0, 0);
     }
     if op < 0xef {
         let condition_shift = (modifier >> 4) + CONDITION_OFFSET;
@@ -703,13 +711,7 @@ fn decode_instruction(raw: i64, index: i32, usage: &mut [i32; MAX_REG]) -> Compa
         } else {
             MEM_L1
         };
-        return CompactInstr::new_memory(
-            exec_istore,
-            dst_r,
-            src_r,
-            u64_from_i32_imm(imm32),
-            mode,
-        );
+        return CompactInstr::new_memory(exec_istore, dst_r, src_r, u64_from_i32_imm(imm32), mode);
     }
     CompactInstr::new(exec_nop, NO_REG, NO_REG, 0, 0)
 }
@@ -761,14 +763,7 @@ fn decode_float_memory(
     modifier: u8,
     same_register: bool,
 ) -> CompactInstr {
-    let mut instr = decode_memory(
-        effect,
-        dst,
-        address_reg,
-        imm32,
-        modifier,
-        same_register,
-    );
+    let mut instr = decode_memory(effect, dst, address_reg, imm32, modifier, same_register);
     instr.dst = register_byte_offset(dst, size_of::<m128d>() as u8);
     instr
 }
@@ -935,7 +930,7 @@ fn scratch_at_offset(vm: &Vm, byte_offset: usize) -> u64 {
     debug_assert_eq!(byte_offset & (size_of::<u64>() - 1), 0);
     debug_assert!(byte_offset + size_of::<u64>() <= vm.scratchpad.len() * size_of::<u64>());
     // SAFETY: decoded memory masks clear the low three bits and limit the
-    // offset to at most `SCRATCHPAD_L3_MASK`. `calculate_hash` validates the
+    // offset to at most `SCRATCHPAD_L3_MASK`. `calculate_hash_impl` validates the
     // exact allocation length before execution.
     unsafe {
         *vm.scratchpad
@@ -1110,8 +1105,8 @@ fn exec_fadd_r(vm: &mut Vm, instr: &CompactInstr) {
 }
 
 fn exec_fadd_m(vm: &mut Vm, instr: &CompactInstr) {
-    let source =
-        m128i::from_u64(0, scratch_at_offset(vm, scratchpad_src_offset(vm, instr))).lower_to_m128d();
+    let source = m128i::from_u64(0, scratch_at_offset(vm, scratchpad_src_offset(vm, instr)))
+        .lower_to_m128d();
     let destination = f(vm, instr.dst);
     let mode = rounding_mode(vm);
     let result = if mode == RoundingMode::Nearest {
@@ -1135,8 +1130,8 @@ fn exec_fsub_r(vm: &mut Vm, instr: &CompactInstr) {
 }
 
 fn exec_fsub_m(vm: &mut Vm, instr: &CompactInstr) {
-    let source =
-        m128i::from_u64(0, scratch_at_offset(vm, scratchpad_src_offset(vm, instr))).lower_to_m128d();
+    let source = m128i::from_u64(0, scratch_at_offset(vm, scratchpad_src_offset(vm, instr)))
+        .lower_to_m128d();
     let destination = f(vm, instr.dst);
     let mode = rounding_mode(vm);
     let result = if mode == RoundingMode::Nearest {
@@ -1165,8 +1160,8 @@ fn exec_fmul_r(vm: &mut Vm, instr: &CompactInstr) {
 }
 
 fn exec_fdiv_m(vm: &mut Vm, instr: &CompactInstr) {
-    let source =
-        m128i::from_u64(0, scratch_at_offset(vm, scratchpad_src_offset(vm, instr))).lower_to_m128d();
+    let source = m128i::from_u64(0, scratch_at_offset(vm, scratchpad_src_offset(vm, instr)))
+        .lower_to_m128d();
     let source = mask_register_exponent_mantissa(vm, source);
     let destination = e(vm, instr.dst);
     let mode = rounding_mode(vm);
@@ -1254,13 +1249,11 @@ mod tests {
     use super::*;
     use std::sync::Arc;
 
-    use randomx_sp1_core::program::decode_instruction as decode_rich_instruction;
+    use randomx_sp1_core::program::decode_instruction as decode_reference_instruction;
 
     fn reset_instruction_state(vm: &mut Vm, salt: u64, mode: u32) {
         for (index, register) in vm.reg.r.iter_mut().enumerate() {
-            *register = salt.wrapping_add(
-                (index as u64 + 1).wrapping_mul(0x9e37_79b9_7f4a_7c15),
-            );
+            *register = salt.wrapping_add((index as u64 + 1).wrapping_mul(0x9e37_79b9_7f4a_7c15));
         }
         vm.reg.f = [
             m128d::from_f64(-17.25, 3.5),
@@ -1285,16 +1278,16 @@ mod tests {
         vm.set_rounding_mode(mode);
     }
 
-    fn assert_complete_vm_state(rich: &Vm, compact: &Vm) {
-        assert_eq!(rich.reg.to_bytes(), compact.reg.to_bytes());
-        assert_eq!(rich.scratchpad, compact.scratchpad);
-        assert_eq!(rich.mem_reg.mx, compact.mem_reg.mx);
-        assert_eq!(rich.mem_reg.ma, compact.mem_reg.ma);
-        assert_eq!(rich.pc, compact.pc);
-        assert_eq!(rich.config.read_reg, compact.config.read_reg);
-        assert_eq!(rich.config.e_mask, compact.config.e_mask);
-        assert_eq!(rich.dataset_offset, compact.dataset_offset);
-        assert_eq!(rich.get_rounding_mode(), compact.get_rounding_mode());
+    fn assert_complete_vm_state(reference: &Vm, compact: &Vm) {
+        assert_eq!(reference.reg.to_bytes(), compact.reg.to_bytes());
+        assert_eq!(reference.scratchpad, compact.scratchpad);
+        assert_eq!(reference.mem_reg.mx, compact.mem_reg.mx);
+        assert_eq!(reference.mem_reg.ma, compact.mem_reg.ma);
+        assert_eq!(reference.pc, compact.pc);
+        assert_eq!(reference.config.read_reg, compact.config.read_reg);
+        assert_eq!(reference.config.e_mask, compact.config.e_mask);
+        assert_eq!(reference.dataset_offset, compact.dataset_offset);
+        assert_eq!(reference.get_rounding_mode(), compact.get_rounding_mode());
     }
 
     #[test]
@@ -1333,15 +1326,15 @@ mod tests {
         let memory = Arc::new(VmMemory::no_memory());
         let mut vm = new_vm(memory);
         vm.scratchpad.pop();
-        let _ = calculate_hash(&mut vm, &[]);
+        let _ = calculate_hash_impl(&mut vm, &[]);
     }
 
     #[test]
-    fn every_opcode_byte_matches_rich_decoder_at_boundaries() {
+    fn every_opcode_byte_matches_reference_decoder_at_boundaries() {
         let memory = Arc::new(VmMemory::no_memory());
-        let mut rich = new_vm(Arc::clone(&memory));
+        let mut reference = new_vm(Arc::clone(&memory));
         let mut compact = new_vm(memory);
-        for (index, (rich_word, compact_word)) in rich
+        for (index, (reference_word, compact_word)) in reference
             .scratchpad
             .iter_mut()
             .zip(compact.scratchpad.iter_mut())
@@ -1350,7 +1343,7 @@ mod tests {
             let value = (index as u64)
                 .wrapping_mul(0xd6e8_feb8_6659_fd93)
                 .rotate_left((index & 63) as u32);
-            *rich_word = value;
+            *reference_word = value;
             *compact_word = value;
         }
 
@@ -1367,12 +1360,15 @@ mod tests {
                     | ((src as u64) << 16)
                     | ((modifier as u64) << 24)
                     | ((immediate as u32 as u64) << 32);
-                let mut rich_usage = [-1, 3, 7, 11, 19, 23, 29, 31];
-                let mut compact_usage = rich_usage;
-                let rich_instr =
-                    decode_rich_instruction(raw as i64, 37, &mut rich_usage);
+                let mut reference_usage = [-1, 3, 7, 11, 19, 23, 29, 31];
+                let mut compact_usage = reference_usage;
+                let reference_instr =
+                    decode_reference_instruction(raw as i64, 37, &mut reference_usage);
                 let compact_instr = decode_instruction(raw as i64, 37, &mut compact_usage);
-                assert_eq!(rich_usage, compact_usage, "opcode {opcode:#04x} case {case}");
+                assert_eq!(
+                    reference_usage, compact_usage,
+                    "opcode {opcode:#04x} case {case}"
+                );
                 let is_memory = matches!(
                     opcode,
                     0x10..=0x16
@@ -1401,31 +1397,31 @@ mod tests {
 
                 let salt = raw ^ 0xa076_1d64_78bd_642f;
                 let mode = case as u32;
-                reset_instruction_state(&mut rich, salt, mode);
+                reset_instruction_state(&mut reference, salt, mode);
                 reset_instruction_state(&mut compact, salt, mode);
-                rich_instr.execute(&mut rich);
+                reference_instr.execute(&mut reference);
                 (compact_instr.effect)(&mut compact, &compact_instr);
 
                 assert_eq!(
-                    rich.reg.to_bytes(),
+                    reference.reg.to_bytes(),
                     compact.reg.to_bytes(),
                     "register divergence for opcode {opcode:#04x} case {case} ({:?})",
-                    rich_instr.op
+                    reference_instr.op
                 );
                 assert_eq!(
-                    rich.pc, compact.pc,
+                    reference.pc, compact.pc,
                     "PC divergence for opcode {opcode:#04x} case {case} ({:?})",
-                    rich_instr.op
+                    reference_instr.op
                 );
                 assert_eq!(
-                    rich.get_rounding_mode(),
+                    reference.get_rounding_mode(),
                     compact.get_rounding_mode(),
                     "rounding divergence for opcode {opcode:#04x} case {case} ({:?})",
-                    rich_instr.op
+                    reference_instr.op
                 );
                 if opcode >= 0xf0 {
                     assert_eq!(
-                        rich.scratchpad, compact.scratchpad,
+                        reference.scratchpad, compact.scratchpad,
                         "store divergence for opcode {opcode:#04x} case {case}"
                     );
                 }
@@ -1437,65 +1433,65 @@ mod tests {
     #[test]
     fn all_rounding_modes_hash_matches_official_randomx() {
         let seed = [
-            0x11, 0xc7, 0x98, 0xe5, 0xac, 0x65, 0x15, 0x21, 0x8b, 0xc3, 0xef, 0xcb, 0x54,
-            0x16, 0xe5, 0xb6, 0x8c, 0x59, 0x9e, 0x42, 0xa6, 0x1b, 0x86, 0xef, 0xe5, 0x74,
-            0x6b, 0xb7, 0x8e, 0xb4, 0xbe, 0x8e,
+            0x11, 0xc7, 0x98, 0xe5, 0xac, 0x65, 0x15, 0x21, 0x8b, 0xc3, 0xef, 0xcb, 0x54, 0x16,
+            0xe5, 0xb6, 0x8c, 0x59, 0x9e, 0x42, 0xa6, 0x1b, 0x86, 0xef, 0xe5, 0x74, 0x6b, 0xb7,
+            0x8e, 0xb4, 0xbe, 0x8e,
         ];
         let blob = [
-            0x10, 0x10, 0xc5, 0xa2, 0x99, 0xd3, 0x06, 0x5e, 0xd0, 0x66, 0x57, 0x3b, 0x62,
-            0xcd, 0xcc, 0x0d, 0x24, 0x3d, 0x8b, 0x71, 0x30, 0xcf, 0x8b, 0xe8, 0x7f, 0xf7,
-            0x1e, 0xc3, 0x02, 0xce, 0xdd, 0x31, 0xdb, 0x9f, 0x6f, 0x4f, 0x6e, 0x10, 0xe8,
-            0x5d, 0x5a, 0x4c, 0x10, 0x76, 0xf9, 0xef, 0x57, 0xaa, 0xbb, 0x92, 0x00, 0x4f,
-            0xaf, 0xeb, 0xc6, 0x8b, 0x9a, 0x54, 0xbc, 0x9d, 0x35, 0x84, 0xec, 0x8f, 0x94,
-            0x3e, 0x94, 0x9b, 0xc4, 0xc3, 0x72, 0xa5, 0x01, 0x00, 0x00, 0x00,
+            0x10, 0x10, 0xc5, 0xa2, 0x99, 0xd3, 0x06, 0x5e, 0xd0, 0x66, 0x57, 0x3b, 0x62, 0xcd,
+            0xcc, 0x0d, 0x24, 0x3d, 0x8b, 0x71, 0x30, 0xcf, 0x8b, 0xe8, 0x7f, 0xf7, 0x1e, 0xc3,
+            0x02, 0xce, 0xdd, 0x31, 0xdb, 0x9f, 0x6f, 0x4f, 0x6e, 0x10, 0xe8, 0x5d, 0x5a, 0x4c,
+            0x10, 0x76, 0xf9, 0xef, 0x57, 0xaa, 0xbb, 0x92, 0x00, 0x4f, 0xaf, 0xeb, 0xc6, 0x8b,
+            0x9a, 0x54, 0xbc, 0x9d, 0x35, 0x84, 0xec, 0x8f, 0x94, 0x3e, 0x94, 0x9b, 0xc4, 0xc3,
+            0x72, 0xa5, 0x01, 0x00, 0x00, 0x00,
         ];
         let expected = [
-            0xc1, 0x9a, 0xe2, 0xf2, 0xf5, 0x0a, 0x2e, 0x33, 0xec, 0x73, 0x74, 0x84, 0xe6,
-            0xc4, 0x47, 0xd9, 0xb0, 0xff, 0xe4, 0x44, 0x31, 0xa3, 0x32, 0x01, 0x02, 0x6b,
-            0xa9, 0xec, 0xa7, 0x0f, 0xda, 0x95,
+            0xc1, 0x9a, 0xe2, 0xf2, 0xf5, 0x0a, 0x2e, 0x33, 0xec, 0x73, 0x74, 0x84, 0xe6, 0xc4,
+            0x47, 0xd9, 0xb0, 0xff, 0xe4, 0x44, 0x31, 0xa3, 0x32, 0x01, 0x02, 0x6b, 0xa9, 0xec,
+            0xa7, 0x0f, 0xda, 0x95,
         ];
 
         let memory = Arc::new(VmMemory::light(&seed));
-        let mut rich = new_vm(Arc::clone(&memory));
+        let mut reference = new_vm(Arc::clone(&memory));
         let mut compact = new_vm(memory);
-        let rich_hash = rich.calculate_hash(&blob);
-        let compact_hash = calculate_hash(&mut compact, &blob);
+        let reference_hash = reference.calculate_hash(&blob);
+        let compact_hash = calculate_hash_impl(&mut compact, &blob);
 
-        assert_eq!(rich_hash.as_bytes(), &expected);
+        assert_eq!(reference_hash.as_bytes(), &expected);
         assert_eq!(compact_hash.as_bytes(), &expected);
-        assert_complete_vm_state(&rich, &compact);
+        assert_complete_vm_state(&reference, &compact);
     }
 
     #[test]
-    fn original_block_hash_matches_rich_and_official_randomx() {
+    fn original_block_hash_matches_reference_and_official_randomx() {
         let seed = [
-            0x11, 0xc7, 0x98, 0xe5, 0xac, 0x65, 0x15, 0x21, 0x8b, 0xc3, 0xef, 0xcb, 0x54,
-            0x16, 0xe5, 0xb6, 0x8c, 0x59, 0x9e, 0x42, 0xa6, 0x1b, 0x86, 0xef, 0xe5, 0x74,
-            0x6b, 0xb7, 0x8e, 0xb4, 0xbe, 0x8e,
+            0x11, 0xc7, 0x98, 0xe5, 0xac, 0x65, 0x15, 0x21, 0x8b, 0xc3, 0xef, 0xcb, 0x54, 0x16,
+            0xe5, 0xb6, 0x8c, 0x59, 0x9e, 0x42, 0xa6, 0x1b, 0x86, 0xef, 0xe5, 0x74, 0x6b, 0xb7,
+            0x8e, 0xb4, 0xbe, 0x8e,
         ];
         let blob = [
-            0x10, 0x10, 0xc5, 0xa2, 0x99, 0xd3, 0x06, 0x5e, 0xd0, 0x66, 0x57, 0x3b, 0x62,
-            0xcd, 0xcc, 0x0d, 0x24, 0x3d, 0x8b, 0x71, 0x30, 0xcf, 0x8b, 0xe8, 0x7f, 0xf7,
-            0x1e, 0xc3, 0x02, 0xce, 0xdd, 0x31, 0xdb, 0x9f, 0x6f, 0x4f, 0x6e, 0x10, 0xe8,
-            0x5d, 0x5a, 0x4c, 0x10, 0x76, 0xf9, 0xef, 0x57, 0xaa, 0xbb, 0x92, 0x00, 0x4f,
-            0xaf, 0xeb, 0xc6, 0x8b, 0x9a, 0x54, 0xbc, 0x9d, 0x35, 0x84, 0xec, 0x8f, 0x94,
-            0x3e, 0x94, 0x9b, 0xc4, 0xc3, 0x72, 0xa5, 0xf3, 0xb4, 0xe6, 0x1d,
+            0x10, 0x10, 0xc5, 0xa2, 0x99, 0xd3, 0x06, 0x5e, 0xd0, 0x66, 0x57, 0x3b, 0x62, 0xcd,
+            0xcc, 0x0d, 0x24, 0x3d, 0x8b, 0x71, 0x30, 0xcf, 0x8b, 0xe8, 0x7f, 0xf7, 0x1e, 0xc3,
+            0x02, 0xce, 0xdd, 0x31, 0xdb, 0x9f, 0x6f, 0x4f, 0x6e, 0x10, 0xe8, 0x5d, 0x5a, 0x4c,
+            0x10, 0x76, 0xf9, 0xef, 0x57, 0xaa, 0xbb, 0x92, 0x00, 0x4f, 0xaf, 0xeb, 0xc6, 0x8b,
+            0x9a, 0x54, 0xbc, 0x9d, 0x35, 0x84, 0xec, 0x8f, 0x94, 0x3e, 0x94, 0x9b, 0xc4, 0xc3,
+            0x72, 0xa5, 0xf3, 0xb4, 0xe6, 0x1d,
         ];
         let expected = [
-            0x04, 0x3f, 0x95, 0xd6, 0xe6, 0x12, 0xd7, 0xc9, 0x68, 0x79, 0xdd, 0x25, 0xab,
-            0x78, 0x45, 0x64, 0x81, 0xcf, 0xbb, 0x63, 0x01, 0x43, 0xa5, 0x20, 0x1c, 0x38,
-            0x92, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x04, 0x3f, 0x95, 0xd6, 0xe6, 0x12, 0xd7, 0xc9, 0x68, 0x79, 0xdd, 0x25, 0xab, 0x78,
+            0x45, 0x64, 0x81, 0xcf, 0xbb, 0x63, 0x01, 0x43, 0xa5, 0x20, 0x1c, 0x38, 0x92, 0x00,
+            0x00, 0x00, 0x00, 0x00,
         ];
 
         let memory = Arc::new(VmMemory::light(&seed));
-        let mut rich = new_vm(Arc::clone(&memory));
+        let mut reference = new_vm(Arc::clone(&memory));
         let mut compact = new_vm(memory);
-        let rich_hash = rich.calculate_hash(&blob);
-        let compact_hash = calculate_hash(&mut compact, &blob);
+        let reference_hash = reference.calculate_hash(&blob);
+        let compact_hash = calculate_hash_impl(&mut compact, &blob);
 
-        assert_eq!(rich_hash.as_bytes(), &expected);
+        assert_eq!(reference_hash.as_bytes(), &expected);
         assert_eq!(compact_hash.as_bytes(), &expected);
-        assert_complete_vm_state(&rich, &compact);
+        assert_complete_vm_state(&reference, &compact);
     }
 
     fn decode_hex(value: &str) -> Vec<u8> {
@@ -1550,24 +1546,30 @@ mod tests {
 
     fn assert_canonical_hashes(key: &[u8], cases: &[(&[u8], &str)]) {
         let memory = Arc::new(VmMemory::light(key));
-        let mut rich = new_vm(Arc::clone(&memory));
+        let mut reference = new_vm(Arc::clone(&memory));
         let mut compact = new_vm(memory);
 
         for &(input, expected) in cases {
-            rich.reset_rounding_mode();
-            let rich_hash = rich.calculate_hash(input);
-            assert_eq!(rich_hash.as_bytes(), decode_hex(expected));
+            reference.reset_rounding_mode();
+            let reference_hash = reference.calculate_hash(input);
+            assert_eq!(reference_hash.as_bytes(), decode_hex(expected));
             if let Some(mode) = host_rounding_mode() {
-                assert_eq!(mode, 0, "rich hash did not preserve caller rounding mode");
+                assert_eq!(
+                    mode, 0,
+                    "reference hash did not preserve caller rounding mode"
+                );
             }
 
             compact.reset_rounding_mode();
-            let compact_hash = calculate_hash(&mut compact, input);
+            let compact_hash = calculate_hash_impl(&mut compact, input);
             assert_eq!(compact_hash.as_bytes(), decode_hex(expected));
             if let Some(mode) = host_rounding_mode() {
-                assert_eq!(mode, 0, "compact hash did not preserve caller rounding mode");
+                assert_eq!(
+                    mode, 0,
+                    "compact hash did not preserve caller rounding mode"
+                );
             }
-            assert_complete_vm_state(&rich, &compact);
+            assert_complete_vm_state(&reference, &compact);
         }
     }
 
@@ -1607,9 +1609,9 @@ mod tests {
         assert_canonical_hashes(b"test key 001", &key_001_cases);
 
         let key_f = [
-            0x77, 0x97, 0x37, 0x3e, 0xa4, 0x63, 0x31, 0x94, 0x64, 0x0b, 0xf8, 0xd8, 0xc3,
-            0xb6, 0x67, 0x24, 0xd6, 0xaa, 0x7b, 0xd2, 0xdc, 0x20, 0xe0, 0x09, 0xdf, 0x2f,
-            0x8f, 0x17, 0x10, 0xab, 0xe8,
+            0x77, 0x97, 0x37, 0x3e, 0xa4, 0x63, 0x31, 0x94, 0x64, 0x0b, 0xf8, 0xd8, 0xc3, 0xb6,
+            0x67, 0x24, 0xd6, 0xaa, 0x7b, 0xd2, 0xdc, 0x20, 0xe0, 0x09, 0xdf, 0x2f, 0x8f, 0x17,
+            0x10, 0xab, 0xe8,
         ];
         let input_f = decode_hex(
             "1010e1eaf8cf067b37b5f0ee031ab23ed1755e090a3af4415830145853e2be3e\
@@ -1618,7 +1620,10 @@ mod tests {
         );
         assert_canonical_hashes(
             &key_f,
-            &[(&input_f, "78af2a1864c42abce36d2e8983e13df99b2af0ce1362999af09fab004d4435a8")],
+            &[(
+                &input_f,
+                "78af2a1864c42abce36d2e8983e13df99b2af0ce1362999af09fab004d4435a8",
+            )],
         );
     }
 

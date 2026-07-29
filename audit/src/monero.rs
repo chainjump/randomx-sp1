@@ -59,7 +59,7 @@ pub fn decode_hex<const N: usize>(value: &str) -> Result<[u8; N], String> {
 }
 
 pub fn decode_hex_vec(value: &str) -> Result<Vec<u8>, String> {
-    if value.len() % 2 != 0 {
+    if !value.len().is_multiple_of(2) {
         return Err(format!("hex string has odd length: {}", value.len()));
     }
 
@@ -152,8 +152,8 @@ pub fn tree_hash(hashes: &[[u8; HASH_BYTES]]) -> [u8; HASH_BYTES] {
     level[..direct].copy_from_slice(&hashes[..direct]);
 
     let mut source = direct;
-    for destination in direct..level_len {
-        level[destination] = hash_pair(&hashes[source], &hashes[source + 1]);
+    for destination in &mut level[direct..] {
+        *destination = hash_pair(&hashes[source], &hashes[source + 1]);
         source += 2;
     }
     assert_eq!(source, count);

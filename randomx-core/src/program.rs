@@ -219,11 +219,14 @@ impl fmt::Display for Instr {
             Store::A(i) => write!(f, "a{}", i)?,
             _ => write!(f, ", {}", self.src)?,
         }
-        if self.imm.is_some() && !(is_l_cache(&self.dst) || is_l_cache(&self.src)) {
+        if let Some(immediate) = self
+            .imm
+            .filter(|_| !(is_l_cache(&self.dst) || is_l_cache(&self.src)))
+        {
             if self.unsigned_imm {
-                write!(f, ", {}", self.imm.unwrap() as u32)?
+                write!(f, ", {}", immediate as u32)?
             } else {
-                write!(f, ", {}", self.imm.unwrap())?
+                write!(f, ", {}", immediate)?
             }
         }
         if self.mode != Mode::None {
@@ -306,12 +309,11 @@ pub fn decode_instruction(bytes: i64, i: i32, register_usage: &mut [i32; MAX_REG
     let imm = ((bytes & 0xFFFFFFFF00000000) >> 32) as i32;
     if op < Opcode::IADD_RS as i64 {
         let dst_reg = r_reg(dst);
-        let imm_val;
-        if dst_reg == REG_NEEDS_DISPLACEMENT {
-            imm_val = Some(imm);
+        let imm_val = if dst_reg == REG_NEEDS_DISPLACEMENT {
+            Some(imm)
         } else {
-            imm_val = None;
-        }
+            None
+        };
         register_usage[dst % MAX_REG] = i;
         return Instr {
             op: Opcode::IADD_RS,

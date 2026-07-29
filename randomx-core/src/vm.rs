@@ -1,9 +1,9 @@
 extern crate blake2b_simd;
 
 use self::blake2b_simd::{Hash, Params, blake2b};
-use super::common::{mulh, smulh, u64_from_i32_imm};
 #[cfg(not(feature = "precompute-reciprocal"))]
 use super::common::randomx_reciprocal;
+use super::common::{mulh, smulh, u64_from_i32_imm};
 use super::hash::{fill_aes_1rx4_u64, gen_program_aes_4rx4, hash_aes_1rx4};
 use super::m128::{m128d, m128i};
 use super::memory::{CACHE_LINE_SIZE, VmMemory};
@@ -84,7 +84,6 @@ impl HostRoundingModeGuard {
             }
             Self { fpcr }
         }
-
     }
 }
 
@@ -146,18 +145,18 @@ pub struct MemoryRegister {
 }
 
 pub struct Register {
-    pub r: [u64; MAX_REG as usize],
-    pub f: [m128d; MAX_FLOAT_REG as usize],
-    pub e: [m128d; MAX_FLOAT_REG as usize],
-    pub a: [m128d; MAX_FLOAT_REG as usize],
+    pub r: [u64; MAX_REG],
+    pub f: [m128d; MAX_FLOAT_REG],
+    pub e: [m128d; MAX_FLOAT_REG],
+    pub a: [m128d; MAX_FLOAT_REG],
 }
 
 pub fn new_register() -> Register {
     Register {
-        r: [0; MAX_REG as usize],
-        f: [m128d::zero(); MAX_FLOAT_REG as usize],
-        e: [m128d::zero(); MAX_FLOAT_REG as usize],
-        a: [m128d::zero(); MAX_FLOAT_REG as usize],
+        r: [0; MAX_REG],
+        f: [m128d::zero(); MAX_FLOAT_REG],
+        e: [m128d::zero(); MAX_FLOAT_REG],
+        a: [m128d::zero(); MAX_FLOAT_REG],
     }
 }
 
@@ -490,10 +489,7 @@ impl Vm {
             let divisor = instr.imm.unwrap() as u32 as u64;
             if !is_zero_or_power_of_2(divisor) {
                 let reciprocal = randomx_reciprocal(divisor);
-                self.write_r(
-                    &instr.dst,
-                    self.read_r(&instr.dst).wrapping_mul(reciprocal),
-                );
+                self.write_r(&instr.dst, self.read_r(&instr.dst).wrapping_mul(reciprocal));
             }
         }
     }

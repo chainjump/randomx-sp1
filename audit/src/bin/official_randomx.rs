@@ -2,7 +2,7 @@ use std::env;
 use std::sync::Arc;
 use std::time::Instant;
 
-use randomx_sp1::calculate_hash;
+use randomx_sp1::hash_with_vm_for_audit;
 use randomx_sp1_audit::monero::encode_hex;
 use randomx_sp1_audit::official::OfficialVm;
 use randomx_sp1_core::{new_vm, VmMemory};
@@ -55,19 +55,19 @@ fn main() {
     let started = Instant::now();
     let mut comparisons = 0usize;
     let memory = Arc::new(VmMemory::light(&key));
-    let mut rich = new_vm(Arc::clone(&memory));
+    let mut reference = new_vm(Arc::clone(&memory));
     let mut compact = new_vm(memory);
     let mut official = OfficialVm::new(&key);
 
     for (input_name, input) in &inputs {
         let expected = official.hash(input);
-        let rich_hash = rich.calculate_hash(input);
-        let compact_hash = calculate_hash(&mut compact, input);
+        let reference_hash = reference.calculate_hash(input);
+        let compact_hash = hash_with_vm_for_audit(&mut compact, input);
 
         assert_eq!(
-            rich_hash.as_bytes(),
+            reference_hash.as_bytes(),
             &expected,
-            "rich mismatch for key {key_name}, input {input_name}"
+            "reference-interpreter mismatch for key {key_name}, input {input_name}"
         );
         assert_eq!(
             compact_hash.as_bytes(),
@@ -75,12 +75,12 @@ fn main() {
             "compact mismatch for key {key_name}, input {input_name}"
         );
         assert_eq!(
-            rich.reg.to_bytes(),
+            reference.reg.to_bytes(),
             compact.reg.to_bytes(),
             "register mismatch for key {key_name}, input {input_name}"
         );
         assert_eq!(
-            rich.scratchpad, compact.scratchpad,
+            reference.scratchpad, compact.scratchpad,
             "scratchpad mismatch for key {key_name}, input {input_name}"
         );
         compact.reset_rounding_mode();
@@ -90,7 +90,7 @@ fn main() {
     }
 
     println!(
-        "official/rich/compact agreement: {comparisons} complete light-mode hashes for {key_name} in {:.3?}",
+        "official/reference/optimized agreement: {comparisons} complete light-mode hashes for {key_name} in {:.3?}",
         started.elapsed()
     );
 }

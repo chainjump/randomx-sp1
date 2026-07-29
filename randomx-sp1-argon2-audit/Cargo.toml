@@ -1,7 +1,10 @@
 [package]
-name = "argon2-native-compare"
+name = "randomx-sp1-argon2-audit"
 version = "0.1.0"
 edition = "2021"
+rust-version = "1.91"
+description = "Differential cache audit for the randomx-sp1 Argon2 implementation"
+license = "MIT OR Apache-2.0"
 publish = false
 
 [dependencies]

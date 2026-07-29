@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use randomx_sp1::calculate_hash;
+use randomx_sp1::hash_with_vm_for_audit;
 use randomx_sp1_core::{new_vm, VmMemory};
 
 use crate::monero::{
@@ -35,7 +35,7 @@ pub fn validate_recent_mainnet_blocks() -> ValidationSummary {
 
     let seed = decode_hex::<32>(&fixtures.seed_hash).expect("fixture seed hash must be hex");
     let memory = Arc::new(VmMemory::light(&seed));
-    let mut rich = new_vm(Arc::clone(&memory));
+    let mut reference = new_vm(Arc::clone(&memory));
     let mut compact = new_vm(memory);
     let started = Instant::now();
 
@@ -76,12 +76,12 @@ pub fn validate_recent_mainnet_blocks() -> ValidationSummary {
             block.height
         );
 
-        let rich_hash = rich.calculate_hash(&blob);
-        let compact_hash = calculate_hash(&mut compact, &blob);
+        let reference_hash = reference.calculate_hash(&blob);
+        let compact_hash = hash_with_vm_for_audit(&mut compact, &blob);
         assert_eq!(
-            rich_hash.as_bytes(),
+            reference_hash.as_bytes(),
             &expected,
-            "rich RandomX PoW mismatch at block {}",
+            "reference RandomX PoW mismatch at block {}",
             block.height
         );
         assert_eq!(
@@ -91,48 +91,48 @@ pub fn validate_recent_mainnet_blocks() -> ValidationSummary {
             block.height
         );
         assert_eq!(
-            rich.reg.to_bytes(),
+            reference.reg.to_bytes(),
             compact.reg.to_bytes(),
             "final register mismatch at block {}",
             block.height
         );
         assert_eq!(
-            rich.scratchpad, compact.scratchpad,
+            reference.scratchpad, compact.scratchpad,
             "final scratchpad mismatch at block {}",
             block.height
         );
         assert_eq!(
-            rich.mem_reg.mx, compact.mem_reg.mx,
+            reference.mem_reg.mx, compact.mem_reg.mx,
             "final mx mismatch at block {}",
             block.height
         );
         assert_eq!(
-            rich.mem_reg.ma, compact.mem_reg.ma,
+            reference.mem_reg.ma, compact.mem_reg.ma,
             "final ma mismatch at block {}",
             block.height
         );
         assert_eq!(
-            rich.pc, compact.pc,
+            reference.pc, compact.pc,
             "final PC mismatch at block {}",
             block.height
         );
         assert_eq!(
-            rich.config.read_reg, compact.config.read_reg,
+            reference.config.read_reg, compact.config.read_reg,
             "final read-register mismatch at block {}",
             block.height
         );
         assert_eq!(
-            rich.config.e_mask, compact.config.e_mask,
+            reference.config.e_mask, compact.config.e_mask,
             "final exponent-mask mismatch at block {}",
             block.height
         );
         assert_eq!(
-            rich.dataset_offset, compact.dataset_offset,
+            reference.dataset_offset, compact.dataset_offset,
             "final dataset-offset mismatch at block {}",
             block.height
         );
         assert_eq!(
-            rich.get_rounding_mode(),
+            reference.get_rounding_mode(),
             compact.get_rounding_mode(),
             "final rounding-mode mismatch at block {}",
             block.height

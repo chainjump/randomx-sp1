@@ -9,7 +9,7 @@ use sp1_core_executor::{ExecutionReport, GasEstimatingVMEnum, Program, SP1CoreOp
 use sp1_core_executor_runner::MinimalExecutorRunner;
 
 const USAGE: &str =
-    "usage: randomx-executor [--estimate-gas|--estimate-gas-fast] <elf-path> <expected-public-values-hex> [input-hex ...]";
+    "usage: randomx-sp1-executor [--estimate-gas|--estimate-gas-fast] <elf-path> <expected-public-values-hex> [input-hex ...]";
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum GasMode {

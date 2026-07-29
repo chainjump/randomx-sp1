@@ -2,6 +2,9 @@
 name = "randomx-softfp"
 version = "0.1.0"
 edition = "2021"
+rust-version = "1.91"
+description = "Exact RandomX binary64 arithmetic for SP1"
+readme = "README.md"
 license = "MIT OR Apache-2.0"
 publish = false
 
@@ -10,4 +13,3 @@ softfloat = "=1.0.0"
 
 [dev-dependencies]
 softfloat-wrapper = "=0.3.4"
-

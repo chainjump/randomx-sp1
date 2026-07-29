@@ -4,7 +4,7 @@ use std::{
     sync::Arc,
 };
 
-use randomx_sp1::calculate_hash;
+use randomx_sp1::hash_with_vm_for_audit;
 use randomx_sp1_audit::{
     monero::{
         blob_object_hash, decode_hex, encode_hex, hashing_blob, meets_difficulty,
@@ -48,7 +48,7 @@ fn main() {
 
     let memory = Arc::new(VmMemory::light(&seed));
     let mut vm = new_vm(memory);
-    let calculated = calculate_hash(&mut vm, &blob);
+    let calculated = hash_with_vm_for_audit(&mut vm, &blob);
     let pow_hash: [u8; 32] = calculated
         .as_bytes()
         .try_into()

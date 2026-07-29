@@ -74,11 +74,15 @@ fn check_vectors() {
         assert!(div2(div_a, div_b, mode) == div_expected[i]);
         assert!(sqrt2(sqrt_a, mode) == sqrt_expected[i]);
 
-        let cancellation_sign = if mode == RoundingMode::Down { SIGN_MASK } else { 0 };
-        assert!(add2([1.0f64.to_bits(); 2], [(-1.0f64).to_bits(); 2], mode)
-            == [cancellation_sign; 2]);
-        assert!(sub2([1.0f64.to_bits(); 2], [1.0f64.to_bits(); 2], mode)
-            == [cancellation_sign; 2]);
+        let cancellation_sign = if mode == RoundingMode::Down {
+            SIGN_MASK
+        } else {
+            0
+        };
+        assert!(
+            add2([1.0f64.to_bits(); 2], [(-1.0f64).to_bits(); 2], mode) == [cancellation_sign; 2]
+        );
+        assert!(sub2([1.0f64.to_bits(); 2], [1.0f64.to_bits(); 2], mode) == [cancellation_sign; 2]);
         assert!(sqrt2([0, SIGN_MASK], mode) == [0, SIGN_MASK]);
         assert!(mul2([0, SIGN_MASK], [1.0f64.to_bits(); 2], mode) == [0, SIGN_MASK]);
         assert!(div2([0, SIGN_MASK], [1.0f64.to_bits(); 2], mode) == [0, SIGN_MASK]);

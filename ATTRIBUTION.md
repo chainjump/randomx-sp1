@@ -15,7 +15,7 @@ its origin.
 
 The derived core and public `randomx-sp1` library remain available under
 GPL-3.0-only. The original GPL text is retained at
-`randomx-core/LICENSE`.
+`LICENSE` and `randomx-core/LICENSE`.
 
 ## Argon2 implementation lineage
 

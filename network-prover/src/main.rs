@@ -21,13 +21,12 @@ const DEFAULT_PGU_LIMIT: u64 = 8_500_000_000;
 const DEFAULT_AUCTION_TIMEOUT_SECS: u64 = 600;
 const MIN_REQUEST_TIMEOUT_SECS: u64 = 600;
 const PROVE_WEI: u128 = 1_000_000_000_000_000_000;
-const APPROVED_ELF_SHA256: Option<&str> =
-    Some("54c38936058ea869d31b5e31977174e38f2a9ae14b4b28728ee2f3587132aefc");
+const APPROVED_ELF_SHA256: Option<&str> = None;
 const USAGE: &str = "usage:
-  randomx-network-prover account <private-key-file> [pgu-limit]
-  randomx-network-prover prove <private-key-file> <elf> <request-id-file> <proof-file> <vkey-file>
-  randomx-network-prover resume <private-key-file> <elf> <request-id-file> <proof-file> <vkey-file>
-  EVM_RPC_URL=<url> randomx-network-prover evm-verify <elf> <vkey-file> <proof-file> [gateway]";
+  randomx-sp1-network-prover account <private-key-file> [pgu-limit]
+  randomx-sp1-network-prover prove <private-key-file> <elf> <request-id-file> <proof-file> <vkey-file>
+  randomx-sp1-network-prover resume <private-key-file> <elf> <request-id-file> <proof-file> <vkey-file>
+  EVM_RPC_URL=<url> randomx-sp1-network-prover evm-verify <elf> <vkey-file> <proof-file> [gateway]";
 
 sol! {
     interface ISP1Verifier {
@@ -166,10 +165,10 @@ async fn prove_or_resume(
     vkey_path: &Path,
 ) -> Result<()> {
     let input = &SELECTED_BLOCK;
-    validate_input(&input)?;
-    let expected = decode_32(&input.pow_hash, "PoW hash")?;
-    let seed = decode_32(&input.seed_hash, "RandomX seed hash")?.to_vec();
-    let blob = hex::decode(&input.hashing_blob).context("decoding hashing blob")?;
+    validate_input(input)?;
+    let expected = decode_32(input.pow_hash, "PoW hash")?;
+    let seed = decode_32(input.seed_hash, "RandomX seed hash")?.to_vec();
+    let blob = hex::decode(input.hashing_blob).context("decoding hashing blob")?;
     let elf = fs::read(elf_path)
         .with_context(|| format!("reading SP1 ELF from {}", elf_path.display()))?;
     validate_elf(&elf)?;
@@ -257,12 +256,12 @@ async fn evm_verify(
     gateway: &str,
 ) -> Result<()> {
     let input = &SELECTED_BLOCK;
-    validate_input(&input)?;
+    validate_input(input)?;
     let elf = fs::read(elf_path)
         .with_context(|| format!("reading SP1 ELF from {}", elf_path.display()))?;
     validate_elf(&elf)?;
 
-    let expected = decode_32(&input.pow_hash, "PoW hash")?;
+    let expected = decode_32(input.pow_hash, "PoW hash")?;
     let vkey_text = fs::read_to_string(vkey_path)
         .with_context(|| format!("reading program vkey from {}", vkey_path.display()))?;
     let vkey = decode_32(vkey_text.trim(), "program vkey")?;
@@ -469,11 +468,11 @@ fn validate_input(input: &ProofInput) -> Result<()> {
     if input.network != "monero-mainnet" {
         bail!("unsupported network: {}", input.network);
     }
-    let block_id = decode_32(&input.block_id, "block ID")?;
-    decode_32(&input.prev_hash, "previous block hash")?;
-    decode_32(&input.seed_hash, "RandomX seed hash")?;
-    let pow_hash = decode_32(&input.pow_hash, "PoW hash")?;
-    let blob = hex::decode(&input.hashing_blob).context("decoding hashing blob")?;
+    let block_id = decode_32(input.block_id, "block ID")?;
+    decode_32(input.prev_hash, "previous block hash")?;
+    decode_32(input.seed_hash, "RandomX seed hash")?;
+    let pow_hash = decode_32(input.pow_hash, "PoW hash")?;
+    let blob = hex::decode(input.hashing_blob).context("decoding hashing blob")?;
     if blob.len() != 77 {
         bail!(
             "selected Monero hashing blob must be 77 bytes, got {}",
@@ -493,7 +492,7 @@ fn validate_input(input: &ProofInput) -> Result<()> {
             input.seed_height
         );
     }
-    let difficulty = parse_difficulty(&input.wide_difficulty)?;
+    let difficulty = parse_difficulty(input.wide_difficulty)?;
     if !meets_difficulty(&pow_hash, difficulty) {
         bail!("PoW hash does not meet the declared Monero difficulty");
     }
@@ -645,7 +644,7 @@ mod tests {
     }
 
     #[test]
-    fn unapproved_elf_is_rejected() {
+    fn proving_is_disabled_without_an_approved_elf() {
         assert!(validate_elf(b"not an ELF").is_err());
     }
 
@@ -679,7 +678,7 @@ mod tests {
     #[test]
     fn duplicate_vkey_must_match() {
         let path = env::temp_dir().join(format!(
-            "randomx-network-prover-vkey-{}",
+            "randomx-sp1-network-prover-vkey-{}",
             std::process::id()
         ));
         let _ = fs::remove_file(&path);

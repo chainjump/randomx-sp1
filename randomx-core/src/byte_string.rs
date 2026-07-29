@@ -51,5 +51,5 @@ pub fn u8_array_to_string(a: &[u8]) -> String {
 }
 
 pub fn u128_to_string(u: u128) -> String {
-    return format!("{:016x}", u);
+    format!("{:016x}", u)
 }

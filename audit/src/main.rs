@@ -16,7 +16,7 @@ fn main() {
     }
 
     println!(
-        "rich/compact agreement: 32 hashes, 256 generated programs, \
+        "reference/optimized agreement: 32 hashes, 256 generated programs, \
          524288 VM iteration states, and every executed instruction state"
     );
 }

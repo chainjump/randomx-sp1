@@ -19,9 +19,9 @@ deadline:    3600 seconds
 The client validates the canonical 77-byte hashing blob against the block ID,
 checks the RandomX epoch height and Monero difficulty, checks the approved ELF
 digest, and refuses to submit if a request-ID or proof file already exists.
-The approved reproducible ELF has SHA-256
-`54c38936058ea869d31b5e31977174e38f2a9ae14b4b28728ee2f3587132aefc`.
-Every proof and EVM-verification command fails closed for any other ELF.
+No ELF identity is currently approved. Every proof and EVM-verification
+command therefore fails closed until the final reproducible ELF is reviewed
+and its SHA-256 is deliberately recorded in the client.
 
 ## Build and test
 
@@ -47,12 +47,12 @@ The private-key file must contain the funded Succinct Network requester key
 and must not be accessible to group or other users.
 
 ```bash
-target/release/randomx-network-prover account \
+target/release/randomx-sp1-network-prover account \
   .secrets/succinct-network-requester.key 8000000000
 
-target/release/randomx-network-prover prove \
+target/release/randomx-sp1-network-prover prove \
   .secrets/succinct-network-requester.key \
-  artifacts/randomx-program \
+  artifacts/randomx-sp1-program \
   evidence/network-proof/request-id \
   evidence/network-proof/proof.bin \
   evidence/network-proof/program-vkey
@@ -62,9 +62,9 @@ The request ID is persisted before waiting. If the waiting process stops,
 resume without submitting or paying for a second request:
 
 ```bash
-target/release/randomx-network-prover resume \
+target/release/randomx-sp1-network-prover resume \
   .secrets/succinct-network-requester.key \
-  artifacts/randomx-program \
+  artifacts/randomx-sp1-program \
   evidence/network-proof/request-id \
   evidence/network-proof/proof.bin \
   evidence/network-proof/program-vkey
@@ -80,8 +80,8 @@ Ethereum mainnet JSON-RPC endpoint:
 
 ```bash
 EVM_RPC_URL=https://example.invalid \
-target/release/randomx-network-prover evm-verify \
-  artifacts/randomx-program \
+target/release/randomx-sp1-network-prover evm-verify \
+  artifacts/randomx-sp1-program \
   evidence/network-proof/program-vkey \
   evidence/network-proof/proof.bin
 ```

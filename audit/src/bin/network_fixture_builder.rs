@@ -33,7 +33,7 @@ fn main() {
     assert_eq!(records.len(), 20, "exactly 20 blocks are required");
 
     let memory = Arc::new(VmMemory::light(&seed));
-    let mut rich = new_vm(memory);
+    let mut reference = new_vm(memory);
     let mut official = OfficialVm::new(&seed);
     let mut blocks = Vec::with_capacity(records.len());
 
@@ -65,11 +65,11 @@ fn main() {
             "official RandomX hash does not meet network difficulty at block {}",
             record.height
         );
-        let actual = rich.calculate_hash(&blob);
+        let actual = reference.calculate_hash(&blob);
         assert_eq!(
             actual.as_bytes(),
             &expected,
-            "rich VM disagrees with official RandomX at block {}",
+            "reference interpreter disagrees with official RandomX at block {}",
             record.height
         );
 

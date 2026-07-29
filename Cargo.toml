@@ -1,7 +1,7 @@
 [workspace]
 members = [
     "argon2",
-    "argon2-native-compare",
+    "randomx-sp1-argon2-audit",
     "audit",
     "randomx-sp1",
     "executor",
@@ -17,6 +17,7 @@ resolver = "2"
 [workspace.package]
 edition = "2021"
 license = "MIT OR Apache-2.0"
+rust-version = "1.91"
 version = "0.1.0"
 
 [profile.release]

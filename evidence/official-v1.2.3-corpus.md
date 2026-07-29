@@ -26,9 +26,10 @@ light-mode hashes:
 - blobs: empty, one byte, 26-byte text, and deterministic 76-, 257-, and
   4,096-byte values.
 
-For every pair, official RandomX v1.2.3, the internal reference VM, and the compact VM
-returned the same 32-byte hash. The rich and compact implementations also had
-identical final register bytes and complete 2 MiB scratchpads.
+For every pair, official RandomX v1.2.3, the internal reference interpreter,
+and the optimized interpreter returned the same 32-byte hash. Both internal
+implementations also had identical final register bytes and complete 2 MiB
+scratchpads.
 
 RandomX uses the entire key for Argon2 cache initialization and the first 60
 bytes for superscalar-program generation. The implementation and directed
@@ -60,7 +61,7 @@ empty key              faf16925e389d546a2ebf79d1329ed4f8f217902ba00a564144777372
 ## Decoder and arithmetic coverage
 
 - Every raw opcode byte (`0x00..0xff`) is executed with four operand patterns:
-  1,024 rich/compact instruction-state comparisons.
+  1,024 reference/optimized instruction-state comparisons.
 - The lockstep audit covers 32 hashes, 256 generated programs, and 524,288 VM
   iterations, comparing registers after every instruction and scratchpads
   after every program.
@@ -73,5 +74,5 @@ empty key              faf16925e389d546a2ebf79d1329ed4f8f217902ba00a564144777372
 
 This is broad differential evidence, not a formal proof over every possible
 key, blob, program, or architecture. Independent official hashes and generic
-Argon2 cache comparisons remain essential because the rich and compact Rust
+Argon2 cache comparisons remain essential because the reference and optimized Rust
 implementations share some constants and helpers.

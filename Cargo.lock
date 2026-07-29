@@ -112,16 +112,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "330a5ed07fa54e4702c9d6c4174f74427fc0ef6e214bbd677ae50a5099946470"
 
 [[package]]
-name = "argon2-native-compare"
-version = "0.1.0"
-dependencies = [
- "blake2b_simd",
- "hex",
- "randomx-sp1-argon2",
- "rustdom-x-argon2",
-]
-
-[[package]]
 name = "arrayref"
 version = "0.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2051,16 +2041,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "randomx-executor"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "hex",
- "sp1-core-executor",
- "sp1-core-executor-runner",
-]
-
-[[package]]
 name = "randomx-softfp"
 version = "0.1.0"
 dependencies = [
@@ -2107,6 +2087,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "randomx-sp1-argon2-audit"
+version = "0.1.0"
+dependencies = [
+ "blake2b_simd",
+ "hex",
+ "randomx-sp1-argon2",
+ "rustdom-x-argon2",
+]
+
+[[package]]
 name = "randomx-sp1-audit"
 version = "0.1.0"
 dependencies = [
@@ -2128,6 +2118,16 @@ dependencies = [
  "log",
  "randomx-sp1-argon2",
  "strum 0.24.1",
+]
+
+[[package]]
+name = "randomx-sp1-executor"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "hex",
+ "sp1-core-executor",
+ "sp1-core-executor-runner",
 ]
 
 [[package]]

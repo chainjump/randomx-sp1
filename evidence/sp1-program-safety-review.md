@@ -22,10 +22,10 @@ This is a code review and test record, not a formal verification claim.
 
 ## Build status
 
-This review covers the renamed source, dependency graph, and reproducibly built
-SP1 ELF. The ELF and locally derived vkey are recorded in
-`evidence/reproducible-build.md`. Guest execution and proof review remain
-pending explicit approval.
+This review covers the source and dependency graph. Release-facing cleanup
+invalidated the previous ELF and vkey, so reproducible build, disassembly,
+execution, and proof review must be repeated after the final source is
+approved.
 
 ## SP1 security guidance applied
 
@@ -76,11 +76,9 @@ and cost control.
 The guest and its RandomX crates contain no direct `ecall`, custom SP1 syscall,
 or unconstrained-block call. The application uses only the documented
 `read_vec`, `commit_slice`, and normal entry-point return path supplied by the
-SP1 6.3.1 runtime. Fresh disassembly of the reproducible ELF found all 20
-`ecall` instructions confined to the linked SP1 runtime functions
-`syscall_halt`, `syscall_hint_len`, `syscall_hint_read`, and `syscall_write`;
-there are no custom call sites. The ELF entry point is the `_start` symbol at
-nonzero address `0x78027e30`, and no loadable section maps address zero.
+SP1 6.3.1 runtime. The final release ELF must be inspected to confirm that
+direct `ecall` instructions remain confined to linked SP1 runtime functions,
+that `_start` is nonzero, and that no loadable section maps address zero.
 
 No elliptic-curve, field, `U256`, hashing, or other accelerated SP1 precompile
 is called by the custom guest. The precompile-specific canonical-value,
@@ -95,7 +93,7 @@ The reachable path has no filesystem, network, environment, subprocess,
 thread, random-number, or wall-clock access. An `Instant`-based performance
 helper and full-dataset allocator remain in non-guest-reachable library code
 and are target-gated out of the guest path. The guest creates `VmMemory` in light
-mode; the compact execution path never takes the optional `RwLock`-backed
+mode; the optimized execution path never takes the optional `RwLock`-backed
 full-dataset cache path.
 
 ## Unsafe Rust review
@@ -123,7 +121,7 @@ The following reachable categories and their invariants were reviewed.
   also has the exact fixed cache allocation, so masked cache-line indices and
   their eight word offsets remain in bounds.
 
-### Compact RandomX interpreter
+### Optimized RandomX interpreter
 
 - `CompactProgram` and decoded instruction fields are private. Decoding masks
   or reduces register indices, validates byte offsets, and installs exactly
@@ -175,9 +173,8 @@ deserializing attacker-chosen bincode values.
 - A MemorySanitizer attempt was not valid because the instrumented crates
   would have linked against an uninstrumented Rust standard library. It failed
   before the tests and is not counted as evidence.
-- Guest execution and live proof validation remain pending for the current
-  ELF. The reproducible Docker build, disassembly review, and local vkey
-  derivation are complete.
+- Reproducible Docker build, disassembly review, guest execution, local vkey
+  derivation, and live proof validation remain pending for the final source.
 - Tests, sanitizer runs, dependency scanning, and manual invariant review
   substantially reduce risk but do not prove the absence of every memory
   safety or logic defect.

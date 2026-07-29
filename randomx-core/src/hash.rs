@@ -12,7 +12,7 @@ fn keys_1rx4() -> (m128i, m128i, m128i, m128i) {
 
 #[allow(overflowing_literals)]
 pub fn hash_aes_1rx4(input: &[u64]) -> [m128i; 4] {
-    debug_assert!(input.len() % 64 == 0);
+    debug_assert!(input.len().is_multiple_of(64));
     assert_eq!(
         input.len() % 8,
         0,
@@ -52,7 +52,7 @@ pub fn hash_aes_1rx4(input: &[u64]) -> [m128i; 4] {
     [state0, state1, state2, state3]
 }
 
-pub fn fill_aes_1rx4_u64(input: &[m128i; 4], into: &mut Vec<u64>) -> [m128i; 4] {
+pub fn fill_aes_1rx4_u64(input: &[m128i; 4], into: &mut [u64]) -> [m128i; 4] {
     assert_eq!(
         into.len() % 8,
         0,
@@ -85,7 +85,7 @@ pub fn fill_aes_1rx4_u64(input: &[m128i; 4], into: &mut Vec<u64>) -> [m128i; 4] 
     [state0, state1, state2, state3]
 }
 
-fn fill_aes_1rx4_m128i(input: &[m128i; 4], into: &mut Vec<m128i>) -> [m128i; 4] {
+fn fill_aes_1rx4_m128i(input: &[m128i; 4], into: &mut [m128i]) -> [m128i; 4] {
     assert_eq!(
         into.len() % 4,
         0,
@@ -110,7 +110,7 @@ fn fill_aes_1rx4_m128i(input: &[m128i; 4], into: &mut Vec<m128i>) -> [m128i; 4] 
 }
 
 pub fn gen_program_aes_1rx4(input: &[m128i; 4], output_size: usize) -> (Vec<m128i>, [m128i; 4]) {
-    debug_assert!(output_size % 4 == 0);
+    debug_assert!(output_size.is_multiple_of(4));
 
     let mut result: Vec<m128i> = vec![m128i::zero(); output_size];
     let new_seed = fill_aes_1rx4_m128i(input, &mut result);
@@ -119,7 +119,7 @@ pub fn gen_program_aes_1rx4(input: &[m128i; 4], output_size: usize) -> (Vec<m128
 
 #[allow(overflowing_literals)]
 pub fn gen_program_aes_4rx4(input: &[m128i; 4], output_size: usize) -> Vec<m128i> {
-    debug_assert!(output_size % 4 == 0);
+    debug_assert!(output_size.is_multiple_of(4));
     let mut result = Vec::with_capacity(output_size);
     let key0 = m128i::from_i32(0x99e5d23f, 0x2f546d2b, 0xd1833ddb, 0x6421aadd);
     let key1 = m128i::from_i32(0xa5dfcde5, 0x06f79d53, 0xb6913f55, 0xb20e3450);

@@ -18,7 +18,7 @@ portable interpreter architecture.
 | Interpreter dataset initialization | 1 | Exact words from four dataset items |
 | AES Generator1R | 1 | Exact output vector |
 | Instruction decode and execution | 71 | One-to-one assertions for every numbered check |
-| Interpreter full hashes | 6 | Exact hashes through both rich and compact Rust VMs |
+| Interpreter full hashes | 6 | Exact hashes through both reference and optimized Rust interpreters |
 | Preserve caller rounding mode | 1 | Exact hash and native control-mode restoration |
 | Commitment | 1 | Exact Blake2b-256 commitment |
 | **Applicable total** | **84** | **All pass** |

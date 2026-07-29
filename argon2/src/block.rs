@@ -51,7 +51,7 @@ impl Block {
     }
 }
 
-impl<'a> BitXorAssign<&'a Block> for Block {
+impl BitXorAssign<&Block> for Block {
     fn bitxor_assign(&mut self, rhs: &Block) {
         for (s, r) in self.0.iter_mut().zip(rhs.0.iter()) {
             *s ^= *r

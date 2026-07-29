@@ -136,12 +136,7 @@ fn next_down(bits: u64) -> u64 {
 
 /// `relation` compares the exact result to `nearest`.
 #[inline(always)]
-fn apply_mode(
-    nearest: u64,
-    relation: Ordering,
-    exact_negative: bool,
-    mode: RoundingMode,
-) -> u64 {
+fn apply_mode(nearest: u64, relation: Ordering, exact_negative: bool, mode: RoundingMode) -> u64 {
     match mode {
         RoundingMode::Nearest => nearest,
         RoundingMode::Down if relation == Ordering::Less => next_down(nearest),
@@ -255,9 +250,7 @@ fn add_inner(a: u64, b: u64, mode: RoundingMode) -> u64 {
     let a_negative = a & SIGN_MASK != 0;
     let b_negative = b & SIGN_MASK != 0;
 
-    let (relation, negative) = if a_magnitude.coefficient == 0
-        || b_magnitude.coefficient == 0
-    {
+    let (relation, negative) = if a_magnitude.coefficient == 0 || b_magnitude.coefficient == 0 {
         // Addition by zero is exact. The nearest helper supplies the IEEE
         // sign except for opposite-sign zero under roundTowardNegative below.
         (Ordering::Equal, nearest & SIGN_MASK != 0)
@@ -307,10 +300,7 @@ fn add_inner(a: u64, b: u64, mode: RoundingMode) -> u64 {
                     debug_assert_eq!(magnitude(nearest).scale, big.scale);
                     Ordering::Less
                 };
-                (
-                    reverse_if_negative(magnitude_relation, negative),
-                    negative,
-                )
+                (reverse_if_negative(magnitude_relation, negative), negative)
             }
         }
     };
@@ -533,10 +523,10 @@ mod tests {
         let mul_a = [0x40fd_fdab_b617_3d07, 0x41db_c35c_ef24_8783];
         let mul_b = [0x41c4_5612_12ae_2d50, 0x40eb_a861_aa31_c7c0];
         let mul_expected = [
-            [0x42d3_0f35_ff7a_6969, 0x42d7_feeccd89_152f],
-            [0x42d3_0f35_ff7a_6969, 0x42d7_feeccd89_152e],
-            [0x42d3_0f35_ff7a_696a, 0x42d7_feeccd89_152f],
-            [0x42d3_0f35_ff7a_6969, 0x42d7_feeccd89_152e],
+            [0x42d3_0f35_ff7a_6969, 0x42d7_feec_cd89_152f],
+            [0x42d3_0f35_ff7a_6969, 0x42d7_feec_cd89_152e],
+            [0x42d3_0f35_ff7a_696a, 0x42d7_feec_cd89_152f],
+            [0x42d3_0f35_ff7a_6969, 0x42d7_feec_cd89_152e],
         ];
 
         let div_a = [0x411b_4142_96ce_93b6, 0x4193_7f76_fede_16ee];
@@ -688,15 +678,30 @@ mod tests {
 
         for mode in modes {
             for infinite in [infinity, negative_infinity] {
-                assert_eq!(add(infinite, finite, mode), oracle2('+', infinite, finite, mode));
-                assert_eq!(sub(infinite, finite, mode), oracle2('-', infinite, finite, mode));
-                assert_eq!(mul(infinite, finite, mode), oracle2('*', infinite, finite, mode));
+                assert_eq!(
+                    add(infinite, finite, mode),
+                    oracle2('+', infinite, finite, mode)
+                );
+                assert_eq!(
+                    sub(infinite, finite, mode),
+                    oracle2('-', infinite, finite, mode)
+                );
+                assert_eq!(
+                    mul(infinite, finite, mode),
+                    oracle2('*', infinite, finite, mode)
+                );
                 assert_eq!(
                     mul(infinite, negative_finite, mode),
                     oracle2('*', infinite, negative_finite, mode)
                 );
-                assert_eq!(div(infinite, finite, mode), oracle2('/', infinite, finite, mode));
-                assert_eq!(div(finite, infinite, mode), oracle2('/', finite, infinite, mode));
+                assert_eq!(
+                    div(infinite, finite, mode),
+                    oracle2('/', infinite, finite, mode)
+                );
+                assert_eq!(
+                    div(finite, infinite, mode),
+                    oracle2('/', finite, infinite, mode)
+                );
             }
             assert_eq!(sqrt(infinity, mode), oracle_sqrt(infinity, mode));
         }

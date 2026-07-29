@@ -18,9 +18,18 @@ fn cache_digest(key: &[u8]) -> String {
 #[test]
 fn complete_cache_digests_match_frozen_generic_reference() {
     let cases: [(&[u8], &str); 3] = [
-        (&MONERO_SEED, "152add6ff4fd241ba703f004dcea77fea6c2d55d8b20100aae1578e7bca88a5c"),
-        (&[0u8; 32], "f303edc0c3dc803869f25bb11178193805d767427e11f519bb2ac123ea1ef63e"),
-        (&[], "faf16925e389d546a2ebf79d1329ed4f8f217902ba00a5641447773725306d15"),
+        (
+            &MONERO_SEED,
+            "152add6ff4fd241ba703f004dcea77fea6c2d55d8b20100aae1578e7bca88a5c",
+        ),
+        (
+            &[0u8; 32],
+            "f303edc0c3dc803869f25bb11178193805d767427e11f519bb2ac123ea1ef63e",
+        ),
+        (
+            &[],
+            "faf16925e389d546a2ebf79d1329ed4f8f217902ba00a5641447773725306d15",
+        ),
     ];
     for (key, expected) in cases {
         assert_eq!(cache_digest(key), expected);

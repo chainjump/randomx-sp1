@@ -1,11 +1,9 @@
 # Current network-proof status
 
-The approved `randomx-sp1` ELF has verification-key hash:
+No ELF, vkey, request, or proof is retained for the current source tree. The
+previous generated files were invalidated by release-facing source and
+manifest cleanup and remain recoverable through Git history.
 
-```text
-0x0033de0ef4a6536badf767961a5ced95181db5b94f48346e0b2f9021c45dffe6
-```
-
-The vkey was derived locally with SP1 6.3.1 from the exact ELF recorded in
-`../reproducible-build.md`. No prover-network request has been submitted and no
-proof is retained for this ELF yet.
+After the final reproducible build is approved, this directory will record the
+new vkey, network request, proof, local verification, and Ethereum-mainnet
+`eth_call` simulation evidence.
