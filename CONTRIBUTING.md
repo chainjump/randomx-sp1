@@ -9,7 +9,7 @@ Debian or Ubuntu, install it with:
 
 ```bash
 sudo apt-get update
-sudo apt-get install --no-install-recommends -y protobuf-compiler
+sudo apt-get install --no-install-recommends -y protobuf-compiler libprotobuf-dev
 ```
 
 Before opening a change, run:

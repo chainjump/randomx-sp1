@@ -18,7 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Install host build dependencies
-        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y protobuf-compiler
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y protobuf-compiler libprotobuf-dev
       - name: Show toolchain
         run: rustc --version && cargo --version && protoc --version
       - name: Check formatting
@@ -35,10 +35,6 @@ jobs:
         run: cargo clippy -p randomx-sp1-program --all-targets --features profile-probes --locked -- -D warnings
       - name: Lint audit feature
         run: cargo clippy -p randomx-sp1 --all-targets --features differential-audit --locked -- -D warnings
-      - name: Lint prover client
-        env:
-          CARGO_TARGET_DIR: target
-        run: cargo clippy --manifest-path network-prover/Cargo.toml --all-targets --locked -- -D warnings
       - name: Build public documentation
         env:
           RUSTDOCFLAGS: -D warnings
@@ -51,13 +47,42 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Install host build dependencies
-        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y protobuf-compiler
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y protobuf-compiler libprotobuf-dev
       - name: Test workspace serially
         run: cargo test --workspace --release --locked -- --test-threads=1
+
+  prover-lint:
+    name: Prover-client lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CARGO_BUILD_JOBS: 2
+      CARGO_INCREMENTAL: 0
+      CARGO_PROFILE_DEV_DEBUG: 0
+      CARGO_TARGET_DIR: target
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install host build dependencies
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y protobuf-compiler libprotobuf-dev
+      - name: Lint prover client
+        run: cargo clippy --manifest-path network-prover/Cargo.toml --all-targets --locked -- -D warnings
+
+  prover-test:
+    name: Prover-client tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CARGO_BUILD_JOBS: 2
+      CARGO_INCREMENTAL: 0
+      CARGO_PROFILE_DEV_DEBUG: 0
+      CARGO_PROFILE_TEST_DEBUG: 0
+      CARGO_TARGET_DIR: target
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install host build dependencies
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y protobuf-compiler libprotobuf-dev
       - name: Test prover client
-        env:
-          CARGO_TARGET_DIR: target
-        run: cargo test --manifest-path network-prover/Cargo.toml --release --locked
+        run: cargo test --manifest-path network-prover/Cargo.toml --locked
 
   consumer:
     name: Pinned Git dependency
