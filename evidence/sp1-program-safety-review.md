@@ -22,10 +22,11 @@ This is a code review and test record, not a formal verification claim.
 
 ## Build status
 
-This review covers the source and dependency graph. Release-facing cleanup
-invalidated the previous ELF and vkey, so reproducible build, disassembly,
-execution, and proof review must be repeated after the final source is
-approved.
+The source and dependency review is complete. The current source was built
+twice with SP1 6.3.1's pinned Docker image; the byte-identical ELF, locally
+derived vkey, disassembly review, and real-block execution measurements are
+recorded in `reproducible-build-2026-07-30.md`. Proof-dependent validation is
+pending because no funded prover-network request was authorized.
 
 ## SP1 security guidance applied
 
@@ -90,11 +91,9 @@ binary64 implementation.
 ### Determinism and host interaction
 
 The reachable path has no filesystem, network, environment, subprocess,
-thread, random-number, or wall-clock access. An `Instant`-based performance
-helper and full-dataset allocator remain in non-guest-reachable library code
-and are target-gated out of the guest path. The guest creates `VmMemory` in light
-mode; the optimized execution path never takes the optional `RwLock`-backed
-full-dataset cache path.
+thread, random-number, or wall-clock access. The guest creates `VmMemory` in
+light mode and the codebase contains no full-dataset allocator or shared
+dataset cache.
 
 ## Unsafe Rust review
 
@@ -104,7 +103,7 @@ The following reachable categories and their invariants were reviewed.
 ### Argon2 cache construction
 
 - The uninitialized allocation has exactly 262,144 `Block`s (256 MiB), with
-  RandomX-fixed one-lane Argon2d v1.3 parameters checked at entry.
+  RandomX's one-lane Argon2d v1.3 parameters fixed by construction.
 - Initial blocks 0 and 1 are written first. The first pass visits every
   remaining block in increasing order and refers only to initialized earlier
   blocks. Two later XOR passes operate only on initialized memory.
@@ -153,16 +152,18 @@ The source hardening was followed by:
 
 ```text
 cargo test --workspace --release --locked -- --test-threads=1
-result: 174 passed; 0 failed
+result: 44 passed; 0 failed; 1 intentionally ignored
 ```
 
 This includes the canonical RandomX cache/dataset, decoder, reciprocal,
 superscalar, interpreter, rounding-mode, full-hash, and Argon2 conformance
-tests. It also includes 20 recent Monero block fixtures and all 100 paired
+tests for RandomX's fixed parameters. It also includes 20 recent Monero block
+fixtures, complete RandomX cache
+comparisons against an independent Argon2 implementation, and all 100 paired
 superscalar handler combinations.
 
-`cargo audit` loaded 1,172 current RustSec advisories and found zero known
-vulnerabilities among 374 locked dependencies. It reported five allowed
+`cargo audit` loaded 1,173 current RustSec advisories and found zero known
+vulnerabilities among 370 locked dependencies. It reported five allowed
 informational unmaintained warnings (`ansi_term`, `bincode`, `number_prefix`,
 `paste`, and `proc-macro-error2`). Of these, only `bincode` is in the guest
 dependency tree, through SP1 6.3.1; this guest reads raw vectors rather than
@@ -173,8 +174,11 @@ deserializing attacker-chosen bincode values.
 - A MemorySanitizer attempt was not valid because the instrumented crates
   would have linked against an uninstrumented Rust standard library. It failed
   before the tests and is not counted as evidence.
-- Reproducible Docker build, disassembly review, guest execution, local vkey
-  derivation, and live proof validation remain pending for the final source.
+- The reviewed guest source is committed as
+  `9eeaf6349e4f2cdd2576dc79b5629f05e197e6bb`. A hosted CI result on the final
+  artifact-and-evidence commit must still be recorded before publication.
+- A funded network proof, local verification of that proof, and an
+  Ethereum-mainnet `eth_call` simulation remain pending explicit authorization.
 - Tests, sanitizer runs, dependency scanning, and manual invariant review
   substantially reduce risk but do not prove the absence of every memory
   safety or logic defect.

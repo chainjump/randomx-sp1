@@ -9,10 +9,11 @@ The implementation is universal with respect to RandomX inputs: it does not
 embed an epoch key or a hashing blob. Arbitrary key lengths and empty blobs are
 supported and covered by the differential corpus.
 
-No generated ELF, vkey, or proof is retained for the current source tree.
-Release-facing cleanup intentionally invalidated the previous build, and the
-prover client fails closed until a final reproducible build is reviewed and
-approved. No proof submission is authorized at this stage.
+A reproducible SP1 v6.3.1 ELF and locally derived vkey are retained and
+approved for the current source tree. Their identities, disassembly review,
+and real-block execution measurements are recorded in
+`evidence/reproducible-build-2026-07-30.md`. No funded prover request was
+authorized, so no request ID or proof exists.
 
 ## Current optimization
 
@@ -31,17 +32,17 @@ optimizations generate their state from the runtime key.
 
 - `randomx-sp1/`: supported library API and optimized RandomX VM executor.
 - `randomx-core/`: internal cache, dataset, program-generation, and VM state.
-- `program/`: the single universal SP1 guest.
-- `softfp/`: exact four-mode binary64 arithmetic for SP1 RV64IM.
-- `argon2/`: an in-tree `rust-argon2` fork retaining the generic API and tests,
-  with optimized RandomX Argon2d cache construction for the SP1 guest.
-- `executor/`: lightweight execution and calibrated PGU estimation.
+- `program/`: the universal SP1 guest and opt-in cache/no-memory profiling
+  guests.
+- `softfp/`: exact four-mode binary64 arithmetic for SP1 RV64IM and its
+  opt-in validation guest.
+- `argon2/`: the RandomX-only subset of an in-tree `rust-argon2` fork, with
+  fixed-parameter Argon2d cache construction and upstream differential tests.
+- `executor/`: lightweight execution, cycle-region profiling, and calibrated
+  PGU estimation.
 - `network-prover/`: fixed-block Succinct Network request, recovery, local
   proof verification, and EVM `eth_call` verification client.
 - `audit/`: official-RandomX and reference/optimized differential checks.
-- `randomx-sp1-argon2-audit/`: complete-cache differential checks.
-- `profile-probes/`, `softfp-guest/`, and `softfp-runner/`: profiling and
-  arithmetic validation tools.
 
 Consumers should depend on `randomx-sp1` and use its stable entry point:
 
@@ -73,6 +74,7 @@ The repository pins SP1 6.3.1 in `Cargo.lock`. From `program/` run:
 
 ```bash
 cargo prove build --docker --tag v6.3.1 --locked \
+  --binaries randomx-sp1-program \
   --elf-name randomx-sp1-program \
   --output-directory ../artifacts
 ```
@@ -109,6 +111,29 @@ Add `--estimate-gas` before the ELF path for the calibrated estimator. It uses
 canonical gas boundaries and one shared-memory trace slot, so memory remains
 bounded without changing the PGU result.
 
+To report `cycle-tracker-report` regions, build the same executor with its
+profiling feature and add `--profile` before the ELF path:
+
+```bash
+cargo build --release --locked -p randomx-sp1-executor --features profiling
+target/release/randomx-sp1-executor --profile \
+  <guest-elf> <expected-public-values-hex> [input-hex ...]
+```
+
+SP1's profiling support selects its portable executor backend. Omit the
+feature for ordinary execution and gas estimation so the faster native backend
+remains available.
+
+The phase-isolation guests live beside the universal guest but are excluded
+from ordinary builds and tests. Build either one explicitly from `program/`:
+
+```bash
+cargo prove build --docker --tag v6.3.1 --locked \
+  --features profile-probes --binaries randomx-sp1-cache-probe
+cargo prove build --docker --tag v6.3.1 --locked \
+  --features profile-probes --binaries randomx-sp1-no-memory-probe
+```
+
 ## Correctness
 
 The current implementation is checked against:
@@ -122,6 +147,14 @@ The current implementation is checked against:
 - reference/optimized lockstep state comparisons;
 - complete 256 MiB cache digests for multiple keys; and
 - software-floating-point comparisons against Berkeley SoftFloat.
+
+The exhaustive 32-hash reference/optimized lockstep audit is intentionally
+ignored by the default suite. Run it explicitly when changing the interpreter:
+
+```bash
+cargo test --release --locked -p randomx-sp1-audit \
+  --test differential -- --ignored
+```
 
 Current source evidence is under `evidence/`. The SP1-specific unsafe-code,
 syscall, dependency, and provenance review is recorded in
@@ -143,10 +176,12 @@ On a non-GitHub host, configure its CI runner to execute the same commands in
 
 ## Licensing and security
 
-The public library and derived RandomX core are GPL-3.0-only. Independently
-licensed support components retain their MIT and Apache-2.0 terms. See
-`LICENSE`, `LICENSE-MIT`, `LICENSE-APACHE`, and `ATTRIBUTION.md`. Report
-security issues privately according to `SECURITY.md`.
+The public library and derived RandomX core are GPL-3.0-only. Support crates
+declare their applicable licenses in their Cargo manifests. The imported
+Argon2 fork retains its upstream MIT and Apache-2.0 license texts alongside
+the code at `argon2/LICENSE-MIT` and `argon2/LICENSE-APACHE`. See `LICENSE`
+and `ATTRIBUTION.md`. Report security issues privately according to
+`SECURITY.md`.
 
 No Git remote is configured yet, so preserving or independently backing up the
 repository's `.git` directory remains necessary for recovery.

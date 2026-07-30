@@ -8,6 +8,7 @@
 
    ```bash
    cargo prove build --docker --tag v6.3.1 --locked \
+     --binaries randomx-sp1-program \
      --elf-name randomx-sp1-program \
      --output-directory ../artifacts
    ```

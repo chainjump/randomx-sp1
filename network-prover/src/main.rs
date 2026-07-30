@@ -17,11 +17,11 @@ use sp1_sdk::{
 const MAINNET_RPC_URL: &str = "https://rpc.mainnet.succinct.xyz";
 const ETHEREUM_MAINNET_CHAIN_ID: u64 = 1;
 const GROTH16_GATEWAY: &str = "0x397A5f7f3dBd538f23DE225B51f532c34448dA9B";
-const DEFAULT_PGU_LIMIT: u64 = 8_500_000_000;
 const DEFAULT_AUCTION_TIMEOUT_SECS: u64 = 600;
 const MIN_REQUEST_TIMEOUT_SECS: u64 = 600;
 const PROVE_WEI: u128 = 1_000_000_000_000_000_000;
-const APPROVED_ELF_SHA256: Option<&str> = None;
+const APPROVED_ELF_SHA256: Option<&str> =
+    Some("d3a15025cf7619615b1be5d35c7d8e3910aac8a399f009319a44235910518940");
 const USAGE: &str = "usage:
   randomx-sp1-network-prover account <private-key-file> [pgu-limit]
   randomx-sp1-network-prover prove <private-key-file> <elf> <request-id-file> <proof-file> <vkey-file>
@@ -99,7 +99,7 @@ async fn main() -> Result<()> {
                 .next()
                 .map(|value| value.parse().context("parsing PGU limit"))
                 .transpose()?
-                .unwrap_or(DEFAULT_PGU_LIMIT);
+                .unwrap_or(SELECTED_BLOCK.gas_limit);
             ensure_no_more_args(args)?;
             print_account(Path::new(&key_path), pgu_limit).await
         }
@@ -644,8 +644,18 @@ mod tests {
     }
 
     #[test]
-    fn proving_is_disabled_without_an_approved_elf() {
-        assert!(validate_elf(b"not an ELF").is_err());
+    fn unapproved_elf_is_rejected() {
+        let error = validate_elf(b"not the approved ELF").unwrap_err();
+        assert!(error.to_string().contains("ELF SHA-256 mismatch"));
+        assert_eq!(
+            APPROVED_ELF_SHA256,
+            Some("d3a15025cf7619615b1be5d35c7d8e3910aac8a399f009319a44235910518940")
+        );
+    }
+
+    #[test]
+    fn retained_release_elf_is_approved() {
+        validate_elf(include_bytes!("../../artifacts/randomx-sp1-program")).unwrap();
     }
 
     #[test]

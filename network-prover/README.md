@@ -16,12 +16,16 @@ gas limit:   8000000000
 deadline:    3600 seconds
 ```
 
+The pinned reproducible ELF measured 6,447,164,336 SP1 cycles and
+7,797,620,538 calibrated PGU for this block. The configured limits therefore
+leave 52,835,664 cycles and 202,379,462 PGU of deterministic headroom.
+
 The client validates the canonical 77-byte hashing blob against the block ID,
 checks the RandomX epoch height and Monero difficulty, checks the approved ELF
 digest, and refuses to submit if a request-ID or proof file already exists.
-No ELF identity is currently approved. Every proof and EVM-verification
-command therefore fails closed until the final reproducible ELF is reviewed
-and its SHA-256 is deliberately recorded in the client.
+The only approved identity is the reviewed reproducible ELF with SHA-256
+`d3a15025cf7619615b1be5d35c7d8e3910aac8a399f009319a44235910518940`;
+every other ELF fails closed.
 
 ## Build and test
 
@@ -35,11 +39,22 @@ CARGO_TARGET_DIR=target cargo test \
 CARGO_TARGET_DIR=target cargo build \
   --manifest-path network-prover/Cargo.toml \
   --release --locked --offline
+
+cargo audit --file network-prover/Cargo.lock \
+  --ignore RUSTSEC-2026-0002 -D unsound
 ```
 
 The nested workspace intentionally uses the root workspace's ThinLTO release
 profile so Cargo can reuse the existing SP1 host dependency cache without
 changing the guest workspace or its lockfile.
+
+The narrowly ignored `RUSTSEC-2026-0002` advisory affects only
+`lru 0.12.5`'s `IterMut::next` and `next_back` methods. The dependency is
+transitive through `sp1-prover 6.3.1`; that version's two `LruCache` users call
+only `get`, `push`, and `put`, and this client does not use `lru` directly.
+Consequently the unsound API is unreachable here. The audit command denies
+every other current or future unsoundness warning while suppressing this exact
+reviewed exception until SP1 upgrades to a patched `lru` release.
 
 ## Quote, submit, and resume
 
