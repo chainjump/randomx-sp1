@@ -54,7 +54,7 @@ Use an immutable release commit rather than a branch:
 
 ```toml
 [dependencies]
-randomx-sp1 = { git = "https://git.example/repository.git", rev = "<full-commit-hash>" }
+randomx-sp1 = { git = "https://github.com/chainjumper/randomx-sp1.git", rev = "2fef0bf0774af2543c9c78cd3752b700565fad37" }
 ```
 
 The consuming application must commit its own `Cargo.lock` and use `--locked`
@@ -162,13 +162,14 @@ syscall, dependency, and provenance review is recorded in
 
 ## Continuous integration
 
-`.github/workflows/ci.yml` runs on every pull request, every push to `main`,
-every `v*` tag, and manual dispatch. Its independent jobs check formatting,
-Clippy, public documentation, the complete serial release suite, the separate
-prover-client tests, both lockfiles, and consumption through a pinned Git
-revision. CI never reads a prover key, builds a release ELF, executes the
-multi-billion-cycle guest, contacts the prover network, or simulates an EVM
-transaction.
+`.github/workflows/ci.yml` is manual-only. It does not run for commits, pushes,
+pull requests, or tags. A maintainer starts it from **Actions → CI → Run
+workflow** (or with an equivalent GitHub API/CLI dispatch) when validation is
+needed. Its independent jobs check formatting, Clippy, public documentation,
+the complete serial release suite, the separate prover-client tests, both
+lockfiles, and consumption through a pinned Git revision. CI never reads a
+prover key, builds a release ELF, executes the multi-billion-cycle guest,
+contacts the prover network, or simulates an EVM transaction.
 
 On a non-GitHub host, configure its CI runner to execute the same commands in
 `CONTRIBUTING.md`. The release-only build and proof sequence is documented in
@@ -183,5 +184,7 @@ the code at `argon2/LICENSE-MIT` and `argon2/LICENSE-APACHE`. See `LICENSE`
 and `ATTRIBUTION.md`. Report security issues privately according to
 `SECURITY.md`.
 
-No Git remote is configured yet, so preserving or independently backing up the
-repository's `.git` directory remains necessary for recovery.
+The canonical Git remote is
+[`https://github.com/chainjumper/randomx-sp1`](https://github.com/chainjumper/randomx-sp1).
+Consumers should use the public HTTPS URL and pin a full commit rather than a
+moving branch.
