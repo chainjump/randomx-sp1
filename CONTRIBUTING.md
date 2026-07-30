@@ -4,6 +4,14 @@ The repository uses Rust 1.97.1 for host-side checks and SP1 6.3.1's pinned
 Docker image for production guest builds. `rust-toolchain.toml` installs
 `rustfmt` and Clippy automatically through rustup.
 
+Host-side SP1 crates also require the Protocol Buffers compiler (`protoc`). On
+Debian or Ubuntu, install it with:
+
+```bash
+sudo apt-get update
+sudo apt-get install --no-install-recommends -y protobuf-compiler
+```
+
 Before opening a change, run:
 
 ```bash
