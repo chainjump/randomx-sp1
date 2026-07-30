@@ -1,12 +1,13 @@
 [package]
 name = "randomx-sp1-audit"
-version = "0.1.0"
-edition = "2021"
-rust-version = "1.91"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
 description = "Correctness and differential audits for randomx-sp1"
 license = "GPL-3.0-only"
-publish = false
+publish.workspace = true
 build = "build.rs"
+autobins = false
 
 [features]
 official-randomx = []
@@ -15,21 +16,24 @@ official-randomx = []
 name = "official_randomx"
 path = "src/bin/official_randomx.rs"
 required-features = ["official-randomx"]
+test = false
 
 [[bin]]
 name = "network_fixture_builder"
 path = "src/bin/network_fixture_builder.rs"
 required-features = ["official-randomx"]
+test = false
 
 [[bin]]
-name = "monero_blocks"
-path = "src/bin/monero_blocks.rs"
+name = "monero_block_input"
+path = "src/bin/monero_block_input.rs"
+test = false
 
 [dependencies]
-blake2b_simd = "1.0.4"
-randomx-softfp = { path = "../softfp" }
-randomx-sp1-core = { path = "../randomx-core", features = ["unchecked-superscalar"] }
-randomx-sp1 = { path = "../randomx-sp1", features = ["differential-audit"] }
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-tiny-keccak = { version = "2.0.2", features = ["keccak"] }
+blake2b_simd.workspace = true
+randomx-softfp.workspace = true
+randomx-sp1-core = { workspace = true, features = ["unchecked-superscalar"] }
+randomx-sp1 = { workspace = true, features = ["differential-audit"] }
+serde.workspace = true
+serde_json.workspace = true
+tiny-keccak.workspace = true

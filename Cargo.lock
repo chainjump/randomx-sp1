@@ -2046,24 +2046,7 @@ version = "0.1.0"
 dependencies = [
  "softfloat",
  "softfloat-wrapper",
-]
-
-[[package]]
-name = "randomx-softfp-guest"
-version = "0.1.0"
-dependencies = [
- "randomx-softfp",
  "sp1-zkvm",
-]
-
-[[package]]
-name = "randomx-softfp-runner"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "hex",
- "sp1-core-executor",
- "sp1-core-executor-runner",
 ]
 
 [[package]]
@@ -2077,22 +2060,10 @@ dependencies = [
 
 [[package]]
 name = "randomx-sp1-argon2"
-version = "2.1.0"
-dependencies = [
- "base64 0.21.7",
- "blake2b_simd",
- "constant_time_eq 0.3.1",
- "hex",
- "serde",
-]
-
-[[package]]
-name = "randomx-sp1-argon2-audit"
 version = "0.1.0"
 dependencies = [
  "blake2b_simd",
  "hex",
- "randomx-sp1-argon2",
  "rustdom-x-argon2",
 ]
 
@@ -2114,8 +2085,6 @@ name = "randomx-sp1-core"
 version = "0.1.0"
 dependencies = [
  "blake2b_simd",
- "libc",
- "log",
  "randomx-sp1-argon2",
  "strum 0.24.1",
 ]
@@ -2131,21 +2100,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "randomx-sp1-profile-probes"
-version = "0.1.0"
-dependencies = [
- "blake2b_simd",
- "hex",
- "randomx-sp1",
- "randomx-sp1-core",
- "sp1-zkvm",
-]
-
-[[package]]
 name = "randomx-sp1-program"
 version = "0.1.0"
 dependencies = [
  "randomx-sp1",
+ "randomx-sp1-core",
  "sp1-zkvm",
 ]
 

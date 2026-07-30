@@ -4,11 +4,14 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
-description = "SP1 execution and PGU estimation tool for randomx-sp1"
-publish = false
+description = "SP1 execution, profiling, and PGU estimation tool for randomx-sp1"
+publish.workspace = true
+
+[features]
+profiling = ["sp1-core-executor-runner/profiling"]
 
 [dependencies]
-anyhow = "1.0"
-hex = "0.4"
-sp1-core-executor = "=6.3.1"
-sp1-core-executor-runner = "=6.3.1"
+anyhow.workspace = true
+hex.workspace = true
+sp1-core-executor.workspace = true
+sp1-core-executor-runner.workspace = true

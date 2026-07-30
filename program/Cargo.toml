@@ -1,12 +1,34 @@
 [package]
 name = "randomx-sp1-program"
-version = "0.1.0"
-edition = "2021"
-rust-version = "1.91"
-description = "Universal SP1 guest program for RandomX hashing"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description = "Universal SP1 RandomX guest and opt-in profiling probes"
 license = "GPL-3.0-only"
-publish = false
+publish.workspace = true
+autobins = false
+
+[features]
+profile-probes = ["dep:randomx-sp1-core", "randomx-sp1/audit-internals"]
+
+[[bin]]
+name = "randomx-sp1-program"
+path = "src/main.rs"
+test = false
+
+[[bin]]
+name = "randomx-sp1-cache-probe"
+path = "src/bin/cache_probe.rs"
+required-features = ["profile-probes"]
+test = false
+
+[[bin]]
+name = "randomx-sp1-no-memory-probe"
+path = "src/bin/no_memory_probe.rs"
+required-features = ["profile-probes"]
+test = false
 
 [dependencies]
-randomx-sp1 = { path = "../randomx-sp1" }
-sp1-zkvm = "=6.3.1"
+randomx-sp1.workspace = true
+randomx-sp1-core = { workspace = true, optional = true, features = ["unchecked-superscalar"] }
+sp1-zkvm.workspace = true

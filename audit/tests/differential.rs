@@ -1,6 +1,8 @@
 use randomx_sp1::differential_audit;
 
-fn main() {
+#[test]
+#[ignore = "deep 32-hash lockstep audit; run explicitly"]
+fn reference_and_optimized_execution_match_lockstep() {
     for case in 0..32u64 {
         let mut input = [0u8; 96];
         let mut state = case.wrapping_add(1).wrapping_mul(0xd134_2543_de82_ef95);
@@ -14,9 +16,4 @@ fn main() {
 
         let _hash = differential_audit(&input);
     }
-
-    println!(
-        "reference/optimized agreement: 32 hashes, 256 generated programs, \
-         524288 VM iteration states, and every executed instruction state"
-    );
 }

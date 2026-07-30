@@ -1,18 +1,18 @@
 [package]
 name = "randomx-sp1"
-version = "0.1.0"
-edition = "2021"
-rust-version = "1.91"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
 description = "SP1-optimized, runtime-key RandomX hashing"
 readme = "README.md"
 license = "GPL-3.0-only"
-publish = false
+publish.workspace = true
 
 [features]
 audit-internals = []
 differential-audit = ["audit-internals"]
 
 [dependencies]
-blake2b_simd = "=1.0.4"
-randomx-softfp = { path = "../softfp" }
-randomx-sp1-core = { path = "../randomx-core", features = ["unchecked-superscalar"] }
+blake2b_simd.workspace = true
+randomx-softfp.workspace = true
+randomx-sp1-core = { workspace = true, features = ["unchecked-superscalar"] }

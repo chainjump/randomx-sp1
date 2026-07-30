@@ -31,7 +31,8 @@ fn packed(value: [u64; 2]) -> m128d {
     m128d::from_u64(value[1], value[0])
 }
 
-fn main() {
+#[test]
+fn hardware_and_software_rounding_agree() {
     let mut vm = new_vm(Arc::new(VmMemory::no_memory()));
     let modes = [
         RoundingMode::Nearest,
@@ -118,8 +119,4 @@ fn main() {
     }
 
     vm.reset_rounding_mode();
-    println!(
-        "hardware/software agreement: {} cases per operation and mode",
-        CASES_PER_MODE
-    );
 }

@@ -21,8 +21,10 @@ GPL-3.0-only. The original GPL text is retained at
 
 The internal `randomx-sp1-argon2` crate is derived from Martijn Rijkeboer's
 `rust-argon2` 2.1.0 implementation and retains its MIT/Apache-2.0 licensing
-and source notices. It contains a specialized RandomX Argon2d cache path in
-addition to the inherited generic API and tests.
+and source notices. It retains only the code needed for RandomX's fixed
+Argon2d v1.3 cache construction. The generic password-hashing, encoding,
+configuration, and alternate-variant APIs have been removed; an independent
+upstream implementation remains a test-only differential oracle.
 
 Renaming these internal packages does not remove or replace any copyright,
 license, or authorship notice in their source files.

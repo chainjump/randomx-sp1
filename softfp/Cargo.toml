@@ -1,15 +1,26 @@
 [package]
 name = "randomx-softfp"
-version = "0.1.0"
-edition = "2021"
-rust-version = "1.91"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
 description = "Exact RandomX binary64 arithmetic for SP1"
 readme = "README.md"
-license = "MIT OR Apache-2.0"
-publish = false
+license.workspace = true
+publish.workspace = true
+
+[features]
+sp1-guest = ["dep:sp1-zkvm"]
+
+[[bin]]
+name = "randomx-softfp-guest"
+path = "src/guest.rs"
+required-features = ["sp1-guest"]
+
+[dependencies]
+sp1-zkvm = { workspace = true, optional = true }
 
 [target.'cfg(not(target_arch = "riscv64"))'.dependencies]
-softfloat = "=1.0.0"
+softfloat.workspace = true
 
 [dev-dependencies]
-softfloat-wrapper = "=0.3.4"
+softfloat-wrapper.workspace = true

@@ -9,27 +9,76 @@ use sp1_core_executor::{ExecutionReport, GasEstimatingVMEnum, Program, SP1CoreOp
 use sp1_core_executor_runner::MinimalExecutorRunner;
 
 const USAGE: &str =
-    "usage: randomx-sp1-executor [--estimate-gas|--estimate-gas-fast] <elf-path> <expected-public-values-hex> [input-hex ...]";
+    "usage: randomx-sp1-executor [--profile] [--estimate-gas|--estimate-gas-fast] <elf-path> <expected-public-values-hex> [input-hex ...]";
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum GasMode {
     Off,
     Calibrated,
     Fast,
 }
 
+struct Arguments {
+    gas_mode: GasMode,
+    profile: bool,
+    elf_path: String,
+    expected_hex: String,
+    inputs: Vec<Vec<u8>>,
+}
+
+impl Arguments {
+    fn parse(mut args: impl Iterator<Item = String>) -> Result<Self> {
+        let mut gas_mode = GasMode::Off;
+        let mut profile = false;
+        let elf_path = loop {
+            let argument = args.next().context(USAGE)?;
+            match argument.as_str() {
+                "--profile" => profile = true,
+                "--estimate-gas" => {
+                    if gas_mode != GasMode::Off {
+                        bail!("the gas-estimation options are mutually exclusive\n{USAGE}");
+                    }
+                    gas_mode = GasMode::Calibrated;
+                }
+                "--estimate-gas-fast" => {
+                    if gas_mode != GasMode::Off {
+                        bail!("the gas-estimation options are mutually exclusive\n{USAGE}");
+                    }
+                    gas_mode = GasMode::Fast;
+                }
+                _ if argument.starts_with('-') => {
+                    bail!("unknown option {argument:?}\n{USAGE}");
+                }
+                _ => break argument,
+            }
+        };
+        let expected_hex = args.next().context(USAGE)?;
+        let inputs = args
+            .map(|input| hex::decode(&input).context("decoding an input argument"))
+            .collect::<Result<Vec<_>>>()?;
+
+        Ok(Self {
+            gas_mode,
+            profile,
+            elf_path,
+            expected_hex,
+            inputs,
+        })
+    }
+}
+
 fn main() -> Result<()> {
-    let mut args = env::args().skip(1);
-    let first = args.next().context(USAGE)?;
-    let (gas_mode, elf_path) = match first.as_str() {
-        "--estimate-gas" => (GasMode::Calibrated, args.next().context(USAGE)?),
-        "--estimate-gas-fast" => (GasMode::Fast, args.next().context(USAGE)?),
-        _ => (GasMode::Off, first),
-    };
-    let expected_hex = args.next().context(USAGE)?;
-    let inputs = args
-        .map(|input| hex::decode(&input).context("decoding an input argument"))
-        .collect::<Result<Vec<_>>>()?;
+    let Arguments {
+        gas_mode,
+        profile,
+        elf_path,
+        expected_hex,
+        inputs,
+    } = Arguments::parse(env::args().skip(1))?;
+
+    if profile && !cfg!(feature = "profiling") {
+        bail!("--profile requires an executor built with `--features profiling`");
+    }
 
     let expected = hex::decode(&expected_hex).context("decoding expected public values")?;
     if expected.len() != 32 {
@@ -174,7 +223,7 @@ fn main() -> Result<()> {
         );
     }
 
-    let public_values = executor.public_values_stream();
+    let public_values = executor.public_values_stream().clone();
     if public_values.as_slice() != expected {
         bail!(
             "unexpected public values: expected {}, got {}",
@@ -184,6 +233,9 @@ fn main() -> Result<()> {
     }
 
     println!("SP1 cycles: {}", executor.global_clk());
+    if profile {
+        print_cycle_profile(&mut executor);
+    }
     if gas_mode != GasMode::Off {
         let gas = gas_report
             .gas()
@@ -203,7 +255,73 @@ fn main() -> Result<()> {
         println!("gas trace threshold: {gas_trace_threshold}");
         println!("gas estimator workers: {gas_workers}");
     }
-    println!("public RandomX hash: {}", hex::encode(public_values));
+    println!("public values: {}", hex::encode(public_values));
     println!("guest exit code: {}", executor.exit_code());
     Ok(())
+}
+
+#[cfg(feature = "profiling")]
+fn print_cycle_profile(executor: &mut MinimalExecutorRunner) {
+    let invocations = executor.take_invocation_tracker();
+    let mut regions: Vec<_> = executor.take_cycle_tracker_totals().into_iter().collect();
+    regions.sort_unstable_by(|left, right| left.0.cmp(&right.0));
+
+    if regions.is_empty() {
+        println!("cycle profile: no report regions");
+        return;
+    }
+
+    println!("cycle profile:");
+    for (label, cycles) in regions {
+        let count = invocations.get(&label).copied().unwrap_or_default();
+        if count > 1 {
+            println!(
+                "{label}: {cycles} cycles across {count} invocations, {:.3} per invocation",
+                cycles as f64 / count as f64
+            );
+        } else {
+            println!("{label}: {cycles} cycles");
+        }
+    }
+}
+
+#[cfg(not(feature = "profiling"))]
+fn print_cycle_profile(_: &mut MinimalExecutorRunner) {
+    unreachable!("profile availability is checked before execution");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn parse(arguments: &[&str]) -> Result<Arguments> {
+        Arguments::parse(arguments.iter().map(ToString::to_string))
+    }
+
+    #[test]
+    fn parses_profile_and_gas_options_in_either_order() {
+        let arguments = parse(&[
+            "--estimate-gas-fast",
+            "--profile",
+            "guest.elf",
+            "00",
+            "aabb",
+        ])
+        .unwrap();
+
+        assert_eq!(arguments.gas_mode, GasMode::Fast);
+        assert!(arguments.profile);
+        assert_eq!(arguments.elf_path, "guest.elf");
+        assert_eq!(arguments.expected_hex, "00");
+        assert_eq!(arguments.inputs, [vec![0xaa, 0xbb]]);
+    }
+
+    #[test]
+    fn rejects_conflicting_gas_options() {
+        let error = parse(&["--estimate-gas", "--estimate-gas-fast", "guest.elf", "00"])
+            .err()
+            .expect("conflicting gas modes should fail");
+
+        assert!(error.to_string().contains("mutually exclusive"));
+    }
 }

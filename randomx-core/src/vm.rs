@@ -1,6 +1,3 @@
-extern crate blake2b_simd;
-
-use self::blake2b_simd::{Hash, Params, blake2b};
 #[cfg(not(feature = "precompute-reciprocal"))]
 use super::common::randomx_reciprocal;
 use super::common::{mulh, smulh, u64_from_i32_imm};
@@ -8,6 +5,7 @@ use super::hash::{fill_aes_1rx4_u64, gen_program_aes_4rx4, hash_aes_1rx4};
 use super::m128::{m128d, m128i};
 use super::memory::{CACHE_LINE_SIZE, VmMemory};
 use super::program::{Instr, MAX_FLOAT_REG, MAX_REG, Mode, Program, Store};
+use blake2b_simd::{Hash, Params, blake2b};
 use std::convert::TryInto;
 use std::sync::Arc;
 

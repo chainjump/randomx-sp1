@@ -1,7 +1,3 @@
-#[macro_use]
-extern crate log;
-
-pub mod byte_string;
 pub mod common;
 pub mod hash;
 pub mod m128;

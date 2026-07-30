@@ -6,91 +6,15 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-//! Library for hashing passwords using
-//! [Argon2](https://github.com/P-H-C/phc-winner-argon2), the password-hashing
-//! function that won the
-//! [Password Hashing Competition (PHC)](https://password-hashing.net).
+//! RandomX's fixed Argon2d v1.3 cache construction.
 //!
-//! # Usage
-//!
-//! To use this crate, add the following to your Cargo.toml:
-//!
-//! ```toml
-//! [dependencies]
-//! rust-argon2 = "2.1"
-//! ```
-//!
-//! And the following to your crate root:
-//!
-//! ```rust
-//! extern crate argon2;
-//! ```
-//!
-//! # Examples
-//!
-//! Create a password hash using the defaults and verify it:
-//!
-//! ```rust
-//! use argon2::{self, Config};
-//!
-//! let password = b"password";
-//! let salt = b"randomsalt";
-//! let config = Config::default();
-//! let hash = argon2::hash_encoded(password, salt, &config).unwrap();
-//! let matches = argon2::verify_encoded(&hash, password).unwrap();
-//! assert!(matches);
-//! ```
-//!
-//! Create a password hash with custom settings and verify it:
-//!
-//! ```rust
-//! use argon2::{self, Config, Variant, Version};
-//!
-//! let password = b"password";
-//! let salt = b"othersalt";
-//! let config = Config {
-//!     variant: Variant::Argon2i,
-//!     version: Version::Version13,
-//!     mem_cost: 65536,
-//!     time_cost: 10,
-//!     lanes: 4,
-//!     secret: &[],
-//!     ad: &[],
-//!     hash_length: 32
-//! };
-//! let hash = argon2::hash_encoded(password, salt, &config).unwrap();
-//! let matches = argon2::verify_encoded(&hash, password).unwrap();
-//! assert!(matches);
-//! ```
-//!
-//! # Limitations
-//!
-//! This crate has the same limitation as the `blake2-rfc` crate that it uses.
-//! It does not attempt to clear potentially sensitive data from its work
-//! memory. To do so correctly without a heavy performance penalty would
-//! require help from the compiler. It's better to not attempt to do so than to
-//! present a false assurance.
-//!
-//! This version uses the standard implementation and does not yet implement
-//! optimizations. Therefore, it is not the fastest implementation available.
+//! This is deliberately not a general-purpose Argon2 or password-hashing API.
+//! RandomX fixes the salt, memory size, lane count, iteration count, variant,
+//! and version; callers provide only the RandomX key.
 
-mod argon2;
-pub mod block;
+mod block;
 mod common;
-pub mod config;
-pub mod context;
-pub mod core;
-mod decoded;
-mod encoding;
-mod error;
-pub mod memory;
-mod result;
-mod variant;
-mod version;
+mod core;
 
-pub use crate::argon2::*;
-pub use crate::config::Config;
-pub use crate::error::Error;
-pub use crate::result::Result;
-pub use crate::variant::Variant;
-pub use crate::version::Version;
+pub use crate::block::Block;
+pub use crate::core::initialize_randomx;

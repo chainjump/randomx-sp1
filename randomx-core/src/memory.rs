@@ -1,26 +1,16 @@
-extern crate argon2;
-
-use std::sync::{Arc, RwLock};
-use std::time::Instant;
 use std::{mem::align_of, mem::size_of};
 
-use self::argon2::block::Block;
+use randomx_sp1_argon2::Block;
 
-use super::byte_string;
 use super::superscalar::{Blake2Generator, ScProgram};
 
-const RANDOMX_ARGON_LANES: u32 = 1;
 const RANDOMX_ARGON_MEMORY: u32 = 262144;
-const RANDOMX_ARGON_SALT: &[u8; 8] = b"RandomX\x03";
-const RANDOMX_ARGON_ITERATIONS: u32 = 3;
 const RANDOMX_CACHE_ACCESSES: usize = 8;
 
-const ARGON2_SYNC_POINTS: u32 = 4;
 const ARGON_BLOCK_SIZE: u32 = 1024;
 const ARGON_BLOCK_WORDS: usize = ARGON_BLOCK_SIZE as usize / size_of::<u64>();
 
 pub const CACHE_LINE_SIZE: u64 = 64;
-pub const DATASET_ITEM_COUNT: usize = (2147483648 + 33554368) / 64; //34.078.719
 const CACHE_LINE_WORDS: usize = CACHE_LINE_SIZE as usize / size_of::<u64>();
 const CACHE_LINE_COUNT: u64 =
     (RANDOMX_ARGON_MEMORY as u64 * ARGON_BLOCK_SIZE as u64) / CACHE_LINE_SIZE;
@@ -60,8 +50,7 @@ impl SeedMemory {
 
     /// Creates a new initialised seed memory.
     pub fn new_initialised(key: &[u8]) -> SeedMemory {
-        let context = create_argon_context(key);
-        let mem = argon2::core::initialize_memory_randomx(&context);
+        let blocks = randomx_sp1_argon2::initialize_randomx(key);
 
         let mut programs = Vec::with_capacity(RANDOMX_CACHE_ACCESSES);
         let mut generator = Blake2Generator::new(key, 0);
@@ -69,10 +58,7 @@ impl SeedMemory {
             programs.push(ScProgram::generate(&mut generator));
         }
 
-        SeedMemory {
-            blocks: mem.blocks,
-            programs,
-        }
+        SeedMemory { blocks, programs }
     }
 
     pub fn blocks(&self) -> &[Block] {
@@ -81,28 +67,6 @@ impl SeedMemory {
 
     pub fn program_count(&self) -> usize {
         self.programs.len()
-    }
-}
-
-fn create_argon_context<'a>(key: &'a [u8]) -> argon2::context::Context<'a> {
-    let segment_length = RANDOMX_ARGON_MEMORY / (RANDOMX_ARGON_LANES * ARGON2_SYNC_POINTS);
-    let config = argon2::config::Config {
-        ad: &[],
-        hash_length: 0,
-        lanes: RANDOMX_ARGON_LANES,
-        mem_cost: RANDOMX_ARGON_MEMORY,
-        secret: &[],
-        time_cost: RANDOMX_ARGON_ITERATIONS,
-        variant: argon2::Variant::Argon2d,
-        version: argon2::Version::Version13,
-    };
-    argon2::context::Context {
-        config,
-        memory_blocks: RANDOMX_ARGON_MEMORY,
-        pwd: key,
-        salt: RANDOMX_ARGON_SALT,
-        lane_length: segment_length * ARGON2_SYNC_POINTS,
-        segment_length,
     }
 }
 
@@ -154,38 +118,8 @@ pub fn init_dataset_item(seed_mem: &SeedMemory, item_num: u64) -> [u64; 8] {
     ds
 }
 
-#[derive(Clone)]
-pub struct VmMemoryAllocator {
-    pub vm_memory_seed: String,
-    pub vm_memory: Arc<VmMemory>,
-}
-
-impl VmMemoryAllocator {
-    pub fn initial() -> VmMemoryAllocator {
-        VmMemoryAllocator {
-            vm_memory_seed: "".to_string(),
-            vm_memory: Arc::new(VmMemory::no_memory()),
-        }
-    }
-
-    pub fn reallocate(&mut self, seed: String) {
-        if seed != self.vm_memory_seed {
-            let mem_init_start = Instant::now();
-            self.vm_memory = Arc::new(VmMemory::full(&byte_string::string_to_u8_array(&seed)));
-            self.vm_memory_seed = seed;
-            info!(
-                "memory init took {}ms with seed_hash: {}",
-                mem_init_start.elapsed().as_millis(),
-                self.vm_memory_seed,
-            );
-        }
-    }
-}
-
 pub struct VmMemory {
     pub seed_memory: SeedMemory,
-    pub dataset_memory: RwLock<Vec<Option<[u64; 8]>>>,
-    pub cache: bool,
 }
 
 impl VmMemory {
@@ -193,65 +127,18 @@ impl VmMemory {
     pub fn no_memory() -> VmMemory {
         VmMemory {
             seed_memory: SeedMemory::no_memory(),
-            cache: false,
-            dataset_memory: RwLock::new(Vec::with_capacity(0)),
         }
     }
 
     pub fn light(key: &[u8]) -> VmMemory {
         VmMemory {
             seed_memory: SeedMemory::new_initialised(key),
-            cache: false,
-            dataset_memory: RwLock::new(Vec::with_capacity(0)),
-        }
-    }
-    pub fn full(key: &[u8]) -> VmMemory {
-        let seed_mem = SeedMemory::new_initialised(key);
-        let mem = vec![None; DATASET_ITEM_COUNT];
-        VmMemory {
-            seed_memory: seed_mem,
-            cache: true,
-            dataset_memory: RwLock::new(mem),
         }
     }
 
-    pub fn dataset_read(&self, offset: u64, reg: &mut [u64; 8]) {
-        let item_num = offset / CACHE_LINE_SIZE;
-
-        if self.cache {
-            {
-                let mem = self.dataset_memory.read().unwrap();
-                let rl_cached = &mem[item_num as usize];
-                if let Some(rl) = rl_cached {
-                    for i in 0..8 {
-                        reg[i] ^= rl[i];
-                    }
-                    return;
-                }
-            }
-            {
-                let rl = init_dataset_item(&self.seed_memory, item_num);
-                let mut mem_mut = self.dataset_memory.write().unwrap();
-                mem_mut[item_num as usize] = Some(rl);
-                for i in 0..8 {
-                    reg[i] ^= rl[i];
-                }
-            }
-        } else {
-            let rl = init_dataset_item(&self.seed_memory, item_num);
-            for i in 0..8 {
-                reg[i] ^= rl[i];
-            }
-        }
-    }
-
-    /// Derives and mixes a dataset item without consulting the optional full
-    /// dataset cache. The compact verifier is deliberately light-mode only,
-    /// so keeping that hot path separate avoids carrying the locking and
-    /// cache-population branches through every VM iteration.
+    /// Derives and mixes one dataset item in RandomX light mode.
     #[inline(always)]
-    pub fn dataset_read_light(&self, offset: u64, reg: &mut [u64; 8]) {
-        debug_assert!(!self.cache);
+    pub fn dataset_read(&self, offset: u64, reg: &mut [u64; 8]) {
         let item_num = offset / CACHE_LINE_SIZE;
         let rl = init_dataset_item(&self.seed_memory, item_num);
         for i in 0..8 {

@@ -65,7 +65,7 @@ point.
 
 ```text
 cargo test --workspace --release --locked -- --test-threads=1
-174 passed; 0 failed
+44 passed; 0 failed; 1 intentionally ignored
 
 cargo check --release --locked -p randomx-sp1-core --no-default-features
 passed
@@ -75,7 +75,7 @@ cargo check --release --locked -p randomx-sp1-core \
 passed
 ```
 
-The workspace total includes 138 tests from the in-tree `rust-argon2` fork:
-136 inherited generic unit, integration, and documentation tests plus two
-RandomX-specialization invariants. Those validate the modified primitive but
-are separate from the 84 canonical RandomX checks above.
+The workspace total includes six tests in the RandomX-only Argon2 crate: five
+representation/specialization invariants and one complete-cache differential
+test over five keys. Those validate the modified primitive but are separate
+from the 84 canonical RandomX checks above.

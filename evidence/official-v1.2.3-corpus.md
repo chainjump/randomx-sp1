@@ -69,8 +69,8 @@ empty key              faf16925e389d546a2ebf79d1329ed4f8f217902ba00a564144777372
   and mode, including directed-overflow boundaries.
 - Twenty consecutive real Monero blocks match official RandomX and exercise
   all supported floating-point rounding modes.
-- All Argon2d/i/id version 1.0/1.3 integration vectors, unit tests, and
-  documentation tests pass.
+- RandomX-specialization invariants and complete-cache comparisons against an
+  independent generic Argon2 implementation pass.
 
 This is broad differential evidence, not a formal proof over every possible
 key, blob, program, or architecture. Independent official hashes and generic
