@@ -20,6 +20,11 @@ The pinned reproducible ELF measured 6,447,164,336 SP1 cycles and
 7,797,620,538 calibrated PGU for this block. The configured limits therefore
 leave 52,835,664 cycles and 202,379,462 PGU of deterministic headroom.
 
+This exact request was fulfilled on the Succinct Prover Network mainnet,
+verified locally, and accepted by the Ethereum-mainnet verifier simulation.
+The request ID, proof, cost, checksums, and verification evidence are retained
+in `../evidence/network-proof/`.
+
 The client validates the canonical 77-byte hashing blob against the block ID,
 checks the RandomX epoch height and Monero difficulty, checks the approved ELF
 digest, and refuses to submit if a request-ID or proof file already exists.

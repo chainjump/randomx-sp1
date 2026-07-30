@@ -9,11 +9,12 @@ The implementation is universal with respect to RandomX inputs: it does not
 embed an epoch key or a hashing blob. Arbitrary key lengths and empty blobs are
 supported and covered by the differential corpus.
 
-A reproducible SP1 v6.3.1 ELF and locally derived vkey are retained and
-approved for the current source tree. Their identities, disassembly review,
-and real-block execution measurements are recorded in
-`evidence/reproducible-build-2026-07-30.md`. No funded prover request was
-authorized, so no request ID or proof exists.
+A reproducible SP1 v6.3.1 ELF, locally derived vkey, and fulfilled mainnet
+Groth16 proof are retained and approved for the current source tree. Their
+identities, disassembly review, real-block execution measurements, local SP1
+verification, and Ethereum-mainnet `eth_call` verification are recorded in
+`evidence/reproducible-build-2026-07-30.md` and
+`evidence/network-proof/README.md`.
 
 ## Current optimization
 
@@ -54,7 +55,7 @@ Use an immutable release commit rather than a branch:
 
 ```toml
 [dependencies]
-randomx-sp1 = { git = "https://github.com/chainjumper/randomx-sp1.git", rev = "2fef0bf0774af2543c9c78cd3752b700565fad37" }
+randomx-sp1 = { git = "https://github.com/chainjumper/randomx-sp1.git", rev = "3dc340183d6306176c9409bb6bdab4e336b72585" }
 ```
 
 The consuming application must commit its own `Cargo.lock` and use `--locked`

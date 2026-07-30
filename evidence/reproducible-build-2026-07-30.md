@@ -128,6 +128,15 @@ fixtures, complete-cache differential tests, and focused interpreter checks.
 
 ## Proof status
 
-No prover-network request was submitted and no funds or requester key were
-used. Consequently no proof-dependent local verification or Ethereum
-`eth_call` simulation was possible in this build pass.
+The exact retained ELF was submitted to the Succinct Prover Network mainnet as
+request
+`0xf0ca00e4ef3e4c2f78d51977d4e0a6e66168a98ffa0f9b3b137df44ea2a95603`.
+It was fulfilled in 145 seconds with the same 6,447,164,336-cycle and
+7,797,620,538-PGU measurements recorded above. SP1 6.3.1 local verification
+passed, and the proof's public values exactly matched the expected Monero PoW
+hash.
+
+An Ethereum-mainnet `eth_call` to the canonical Groth16 verifier gateway also
+succeeded without a transaction broadcast. The request, cost, proof hashes,
+and both verification results are recorded in `network-proof/README.md`; the
+request ID, proof, and vkey are retained in that directory.

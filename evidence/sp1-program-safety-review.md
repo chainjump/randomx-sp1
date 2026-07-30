@@ -25,8 +25,9 @@ This is a code review and test record, not a formal verification claim.
 The source and dependency review is complete. The current source was built
 twice with SP1 6.3.1's pinned Docker image; the byte-identical ELF, locally
 derived vkey, disassembly review, and real-block execution measurements are
-recorded in `reproducible-build-2026-07-30.md`. Proof-dependent validation is
-pending because no funded prover-network request was authorized.
+recorded in `reproducible-build-2026-07-30.md`. The exact ELF was subsequently
+proven on the Succinct Prover Network, verified locally, and accepted by an
+Ethereum-mainnet verifier simulation as recorded in `network-proof/README.md`.
 
 ## SP1 security guidance applied
 
@@ -162,7 +163,7 @@ fixtures, complete RandomX cache
 comparisons against an independent Argon2 implementation, and all 100 paired
 superscalar handler combinations.
 
-`cargo audit` loaded 1,173 current RustSec advisories and found zero known
+`cargo audit` loaded 1,174 current RustSec advisories and found zero known
 vulnerabilities among 370 locked dependencies. It reported five allowed
 informational unmaintained warnings (`ansi_term`, `bincode`, `number_prefix`,
 `paste`, and `proc-macro-error2`). Of these, only `bincode` is in the guest
@@ -175,10 +176,11 @@ deserializing attacker-chosen bincode values.
   would have linked against an uninstrumented Rust standard library. It failed
   before the tests and is not counted as evidence.
 - The reviewed guest source is committed as
-  `9eeaf6349e4f2cdd2576dc79b5629f05e197e6bb`. A hosted CI result on the final
-  artifact-and-evidence commit must still be recorded before publication.
-- A funded network proof, local verification of that proof, and an
-  Ethereum-mainnet `eth_call` simulation remain pending explicit authorization.
+  `9eeaf6349e4f2cdd2576dc79b5629f05e197e6bb`. The guest source and lockfile did
+  not change between that commit, the reproducible build, and the live proof.
+- Hosted CI passed on the pre-proof release candidate. The final
+  artifact-and-evidence commit must also pass before its release tag is
+  published.
 - Tests, sanitizer runs, dependency scanning, and manual invariant review
   substantially reduce risk but do not prove the absence of every memory
   safety or logic defect.
