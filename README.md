@@ -16,6 +16,142 @@ verification, and Ethereum-mainnet `eth_call` verification are recorded in
 `evidence/reproducible-build-2026-07-30.md` and
 `evidence/network-proof/README.md`.
 
+## Independently verify the retained release
+
+The prover network generated the proof; Ethereum only verifies it. The
+retained tuple has these identities:
+
+| Item | Retained identity |
+| --- | --- |
+| SP1 ELF | SHA-256 `d3a15025cf7619615b1be5d35c7d8e3910aac8a399f009319a44235910518940` |
+| Program vkey | `0x00ef0352217c1bd40da717b661a67da22554bbddc4589ee54fd836f15cc0a771` |
+| Public values | `5cff906139956eb646100adef11db2e00464ffabfdf4d5a194d54f0000000000` |
+| SDK proof file | 1,726 bytes; SHA-256 `0c81249c035a3ab826f9be9e6a61aee5df54198ec7aecea2ea8d4f380fe93a2d` |
+| Network request | `0xf0ca00e4ef3e4c2f78d51977d4e0a6e66168a98ffa0f9b3b137df44ea2a95603` |
+
+The verification chain is:
+
+```text
+source --reproducible build--> ELF --SP1 setup--> program vkey
+                                                       + public values
+                                                       + Groth16 proof
+                                                               |
+                                                     local/EVM verifier
+```
+
+The EVM does **not** receive the ELF or its SHA-256. It receives the 32-byte
+SP1 program vkey, the 32 public-value bytes, and the 356-byte on-chain encoding
+of the Groth16 proof. The vkey is SP1's commitment to the program verification
+key derived from the ELF; it is not simply the ELF's SHA-256. A verifier must
+therefore use a trusted vkey or independently derive it from the ELF.
+
+The proof establishes successful execution of the SP1 program identified by
+that vkey with the stated public values. This standalone guest commits only
+the 32-byte RandomX digest. Its RandomX key and hashing blob are private inputs,
+so the EVM does not learn or independently identify those inputs.
+
+### Minimum proof and EVM verification
+
+These steps trust the published vkey. They require the repository's Rust
+toolchain, `protoc`, and an Ethereum-mainnet JSON-RPC URL. They require no
+prover key, PROVE, ETH, EVM signer, RandomX execution, or proof generation.
+
+First check every retained byte against the committed manifest:
+
+```bash
+(cd evidence/network-proof && sha256sum --check SHA256SUMS)
+```
+
+All four entries must report `OK`. This is an integrity check; the independent
+source-to-ELF and ELF-to-vkey checks are below. If `protoc` is not already
+installed, install it first (on Debian or Ubuntu):
+
+```bash
+sudo apt-get update
+sudo apt-get install --no-install-recommends -y protobuf-compiler libprotobuf-dev
+```
+
+Then build the existing host-side verification client:
+
+```bash
+CARGO_TARGET_DIR=target cargo build --release --locked \
+  --manifest-path network-prover/Cargo.toml
+```
+
+Simulate the exact verifier call against the canonical Ethereum-mainnet
+Groth16 gateway:
+
+```bash
+EVM_RPC_URL='<ethereum-mainnet-rpc-url>' \
+target/release/randomx-sp1-network-prover evm-verify \
+  artifacts/randomx-sp1-program \
+  evidence/network-proof/program-vkey \
+  evidence/network-proof/proof.bin
+```
+
+Success ends with:
+
+```text
+EVM verification simulation: true (eth_call did not revert)
+EVM transaction broadcast: no
+chain: Ethereum mainnet (1)
+Groth16 gateway: 0x397a5f7f3dbd538f23de225b51f532c34448da9b
+program vkey: 0x00ef0352217c1bd40da717b661a67da22554bbddc4589ee54fd836f15cc0a771
+public values: 5cff906139956eb646100adef11db2e00464ffabfdf4d5a194d54f0000000000
+```
+
+The command checks the retained ELF digest and expected public values, decodes
+the committed SDK proof, constructs
+`verifyProof(bytes32 programVKey, bytes publicValues, bytes proofBytes)`,
+requires chain ID 1, and issues `eth_call`. The verifier has no Boolean return
+value: success is a non-reverting call with empty (`0x`) return data. The client
+contains no EVM signer and cannot broadcast a transaction. Succinct documents
+this verifier interface and vkey model in its
+[Solidity verifier guide](https://docs.succinct.xyz/docs/sp1/verification/solidity-sdk)
+and publishes the gateway in its
+[canonical address list](https://docs.succinct.xyz/docs/sp1/verification/contract-addresses).
+
+### Independently bind the source, ELF, and vkey
+
+To avoid trusting the published ELF and vkey identities, also reproduce the
+ELF into a temporary directory and compare it byte-for-byte. This additionally
+requires Docker and the SP1 6.3.1 CLI (`sp1up --version 6.3.1`):
+
+```bash
+rebuild_dir="$(mktemp -d)"
+(
+  cd program
+  cargo prove build --docker --tag v6.3.1 --locked \
+    --binaries randomx-sp1-program \
+    --elf-name randomx-sp1-program \
+    --output-directory "$rebuild_dir"
+)
+cmp artifacts/randomx-sp1-program "$rebuild_dir/randomx-sp1-program"
+sha256sum "$rebuild_dir/randomx-sp1-program"
+```
+
+`cmp` must exit successfully and SHA-256 must be
+`d3a15025cf7619615b1be5d35c7d8e3910aac8a399f009319a44235910518940`.
+Docker is used only to make the guest build reproducible across hosts.
+
+Then derive the program vkey from the retained ELF with the pinned SP1 CLI and
+compare it with the committed value:
+
+```bash
+derived_vkey="$(
+  cargo prove vkey --elf artifacts/randomx-sp1-program | tail -n 1
+)"
+test "$derived_vkey" = "$(tr -d '\r\n' < evidence/network-proof/program-vkey)"
+printf '%s\n' "$derived_vkey"
+```
+
+The expected output is
+`0x00ef0352217c1bd40da717b661a67da22554bbddc4589ee54fd836f15cc0a771`.
+This is an SP1 setup operation, not a RandomX execution or proof. On the release
+host it took 5 minutes 7 seconds and about 6.2 GiB peak memory; the command may
+be silent while SP1 initializes. The executor is not involved in rebuilding
+the ELF, deriving the vkey, or verifying the proof.
+
 ## Current optimization
 
 The hot dataset path retains 16-byte decoded superscalar instructions with
@@ -69,27 +205,12 @@ and carry no compatibility guarantee. The internal crates are not separately
 supported APIs. Their upstream lineage and retained licenses are recorded in
 `ATTRIBUTION.md`.
 
-## Reproduce the ELF
+## Execute and profile the guest
 
-The repository pins SP1 6.3.1 in `Cargo.lock`. From `program/` run:
-
-```bash
-cargo prove build --docker --tag v6.3.1 --locked \
-  --binaries randomx-sp1-program \
-  --elf-name randomx-sp1-program \
-  --output-directory ../artifacts
-```
-
-`--docker` performs the guest build in SP1's build container. `--locked`
-requires Cargo to use the exact dependency versions in `Cargo.lock` and fail
-instead of changing the lockfile. The explicit `v6.3.1` image tag is also the
-SP1 6.3.1 CLI default, but spelling it out makes the build recipe visible.
-
-The output is an SP1 guest ELF for the `riscv64im-succinct-zkvm-elf` target,
-not a native Linux, macOS, or Windows executable. It can be loaded by a
-compatible SP1 executor or prover on any host platform supported by that SP1
-release. A proof and vkey are tied to the exact built ELF and compatible SP1
-circuit.
+The executor is optional developer tooling. It runs the ELF without generating
+or verifying a proof so developers can check public output, SP1 cycle count,
+PGU estimates, and profiling regions. It plays no role in the reproducible
+build or the ELF-to-vkey-to-proof verification chain above.
 
 Build the executor from the repository root:
 
