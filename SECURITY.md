@@ -8,7 +8,7 @@ artifacts not attached to a release are development material.
 ## Reporting a vulnerability
 
 Do not disclose a suspected vulnerability in a public issue. Use GitHub's
-[private vulnerability-reporting form](https://github.com/chainjumper/randomx-sp1/security/advisories/new).
+[private vulnerability-reporting form](https://github.com/chainjump/randomx-sp1/security/advisories/new).
 If that facility is unavailable, contact the repository owner through a
 private channel before sharing technical details.
 

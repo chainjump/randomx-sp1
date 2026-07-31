@@ -54,7 +54,7 @@ Release-only documentation and artifact packaging do not change this source:
 
 ```toml
 [dependencies]
-randomx-sp1 = { git = "https://github.com/chainjumper/randomx-sp1.git", rev = "01d7e7de62b0fa980feb017bde5bc4bb77895c75" }
+randomx-sp1 = { git = "https://github.com/chainjump/randomx-sp1.git", rev = "01d7e7de62b0fa980feb017bde5bc4bb77895c75" }
 sp1-zkvm = "=6.3.1"
 ```
 
@@ -133,7 +133,7 @@ Check the retained production artifacts with:
 (cd artifacts && sha256sum --check SHA256SUMS)
 ```
 
-The [`v0.1.0` GitHub release](https://github.com/chainjumper/randomx-sp1/releases/tag/v0.1.0)
+The [`v0.1.0` GitHub release](https://github.com/chainjump/randomx-sp1/releases/tag/v0.1.0)
 also attaches the ELF, vkey, proof data, request ID, and a flat
 `SHA256SUMS` manifest so the complete release bundle can be checked without a
 repository checkout.
@@ -359,6 +359,6 @@ and `ATTRIBUTION.md`. Report security issues privately according to
 `SECURITY.md`.
 
 The canonical Git remote is
-[`https://github.com/chainjumper/randomx-sp1`](https://github.com/chainjumper/randomx-sp1).
+[`https://github.com/chainjump/randomx-sp1`](https://github.com/chainjump/randomx-sp1).
 Consumers should use the public HTTPS URL and pin a full commit rather than a
 moving branch.

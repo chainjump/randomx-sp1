@@ -5,7 +5,7 @@ this Git repository. The public library is `randomx-sp1`; its internal fork
 lineage and licenses are recorded in `ATTRIBUTION.md`.
 
 The canonical public remote is
-[`https://github.com/chainjumper/randomx-sp1`](https://github.com/chainjumper/randomx-sp1).
+[`https://github.com/chainjump/randomx-sp1`](https://github.com/chainjump/randomx-sp1).
 Release `v0.1.0` is identified by its signed Git tag. The guest source and
 `Cargo.lock` did not change between reviewed source commit
 `9eeaf6349e4f2cdd2576dc79b5629f05e197e6bb`, the reproducible build, the live
