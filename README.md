@@ -9,9 +9,9 @@ The implementation is universal with respect to RandomX inputs: it does not
 embed an epoch key or a hashing blob. Arbitrary key lengths and empty blobs are
 supported and covered by the differential corpus.
 
-A reproducible SP1 v6.3.1 ELF and its derived vkey define the production
-program identity. Separately, one fulfilled mainnet Groth16 proof is retained
-as deployment evidence for a single Monero block.
+A reproducible SP1 v6.3.1 ELF and its derived vkey define this repository's
+standalone program identity. Separately, one fulfilled mainnet Groth16 proof
+is retained as deployment evidence for a single Monero block.
 
 ## Correctness
 
@@ -43,13 +43,83 @@ The detailed corpus is under `evidence/`. The SP1-specific unsafe-code,
 syscall, dependency, and provenance review is recorded in
 `evidence/sp1-program-safety-review.md`.
 
+## Quickstart for dependent SP1 programs
+
+Use `randomx-sp1` as a Rust source dependency inside the dependent program's
+own SP1 guest. The crate is not published to crates.io, so pin the immutable
+`v0.1.0` release commit rather than a moving branch:
+
+```toml
+[dependencies]
+randomx-sp1 = { git = "https://github.com/chainjumper/randomx-sp1.git", rev = "01d7e7de62b0fa980feb017bde5bc4bb77895c75" }
+sp1-zkvm = "=6.3.1"
+```
+
+The only stable library entry point is `randomx_sp1::hash`:
+
+```rust
+#![no_main]
+
+sp1_zkvm::entrypoint!(main);
+
+pub fn main() {
+    let randomx_key = sp1_zkvm::io::read_vec();
+    let hashing_blob = sp1_zkvm::io::read_vec();
+    let digest: [u8; 32] = randomx_sp1::hash(&randomx_key, &hashing_blob);
+    sp1_zkvm::io::commit_slice(&digest);
+}
+```
+
+The library accepts byte slices and performs no SP1 input/output itself. The
+parent program therefore controls how inputs arrive and which values become
+public. In the example, only the digest is public; the key and blob are private.
+If a verifier must bind the result to visible inputs, the parent must also
+commit those inputs or suitable commitments to them. Each `hash` call builds
+the complete 256 MiB RandomX cache, so a parent should account for that cost
+and bound untrusted input lengths as part of its own interface.
+
+Commit the dependent program's `Cargo.lock`, then build and identify the whole
+parent guest—not this repository's standalone guest:
+
+```bash
+cargo prove build --docker --tag v6.3.1 --locked
+cargo prove vkey --elf <path-to-parent-elf>
+```
+
+Before release, the dependent project must execute and test that complete ELF,
+reproduce it from its pinned source and lockfile, derive and publish its own
+vkey, generate its own proof, and verify that proof. If EVM verification is a
+requirement, it must also repeat the verifier `eth_call` with its own vkey,
+public values, and EVM-encoded proof.
+
+The verification boundary is the complete ELF. Linking `randomx-sp1` into a
+parent changes that ELF and gives the parent a different vkey. Consequently:
+
+| Evidence retained here | What it establishes | Required in a dependent project |
+| --- | --- | --- |
+| Standalone ELF reproduction and vkey derivation | Source identity of this repository's standalone wrapper | Reproduce the complete parent ELF and derive its vkey |
+| One-block network proof and Ethereum `eth_call` | One correct live-network execution of that standalone ELF and acceptance by the deployed verifier | Generate and verify a proof for the complete parent ELF |
+
+This repository's ELF, vkey, proof, and EVM verification are therefore a
+demonstration of the library's function and correctness on the live network;
+they do not authenticate a dependent program and are not inherited by it. The
+retained proof is not a reusable subproof. A downstream composition must redo
+these identity and proof checks unless it deliberately implements a separate
+recursive-proof design.
+
+The features whose names contain `audit` and all internal crates are validation
+implementation details, not supported downstream APIs. Upstream lineage and
+retained licenses are recorded in `ATTRIBUTION.md`; the public library is
+GPL-3.0-only.
+
 ## Reproduce the ELF and vkey
 
-The ELF and vkey are the reusable production artifacts. Every proof for this
-standalone program is tied to this program identity; the proof of one block is
-not part of that identity.
+The ELF and vkey below identify only the standalone program in `program/`.
+They may be reused for further proofs of that exact ELF, but not for a parent
+program that links this library. The proof of one block is not part of the
+standalone program identity.
 
-| Artifact | Production identity |
+| Artifact | Standalone program identity |
 | --- | --- |
 | [SP1 ELF](artifacts/randomx-sp1-program) | 289,512 bytes; SHA-256 `d3a15025cf7619615b1be5d35c7d8e3910aac8a399f009319a44235910518940` |
 | [Program vkey](artifacts/randomx-sp1-program.vkey) | `0x00ef0352217c1bd40da717b661a67da22554bbddc4589ee54fd836f15cc0a771` |
@@ -107,7 +177,8 @@ program verification key from the ELF, and on-chain verifiers receive its
 
 The retained proof demonstrates that the Succinct Prover Network and the
 Ethereum verifier accepted one execution for Monero block 3,727,837. It is a
-deployment test, not a general correctness claim or a second program identity.
+deployment test, not a general correctness claim, a second program identity,
+or evidence that can be transferred to a downstream parent program.
 
 | Proof item | Value |
 | --- | --- |
@@ -202,30 +273,6 @@ optimizations generate their state from the runtime key.
 - `network-prover/`: fixed-block Succinct Network request, recovery, local
   proof verification, and EVM `eth_call` verification client.
 - `audit/`: official-RandomX and reference/optimized differential checks.
-
-Consumers should depend on `randomx-sp1` and use its stable entry point:
-
-```rust
-let digest: [u8; 32] = randomx_sp1::hash(&randomx_key, &hashing_blob);
-```
-
-Use an immutable release commit rather than a branch:
-
-```toml
-[dependencies]
-randomx-sp1 = { git = "https://github.com/chainjumper/randomx-sp1.git", rev = "3dc340183d6306176c9409bb6bdab4e336b72585" }
-```
-
-The consuming application must commit its own `Cargo.lock` and use `--locked`
-for reproducible builds. A parent SP1 program links this library into a new
-ELF and must prove that combined ELF; the standalone program's vkey or proof is
-not reusable as a subproof.
-
-The default crate exposes one supported API: `randomx_sp1::hash`. Features
-whose names contain `audit` exist only for this repository's validation tools
-and carry no compatibility guarantee. The internal crates are not separately
-supported APIs. Their upstream lineage and retained licenses are recorded in
-`ATTRIBUTION.md`.
 
 ## Execute and profile the guest
 

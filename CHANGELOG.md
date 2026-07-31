@@ -6,7 +6,9 @@ The format follows Keep a Changelog, and releases use semantic versioning.
 
 ## Unreleased
 
-- Separated the reusable ELF/vkey identity from the single-block proof
+- Added a dependent-program Quickstart and made the downstream ELF, vkey, and
+  proof-verification boundary explicit.
+- Separated the standalone ELF/vkey identity from the single-block proof
   evidence in the repository layout and documentation.
 - Added verifier-ready proof and public-value data for independent
   Ethereum-mainnet verification with an external `cast call`.
