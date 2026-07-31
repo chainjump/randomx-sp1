@@ -75,7 +75,7 @@ target/release/randomx-sp1-network-prover prove \
   artifacts/randomx-sp1-program \
   evidence/network-proof/request-id \
   evidence/network-proof/proof.bin \
-  evidence/network-proof/program-vkey
+  artifacts/randomx-sp1-program.vkey
 ```
 
 The request ID is persisted before waiting. If the waiting process stops,
@@ -87,7 +87,7 @@ target/release/randomx-sp1-network-prover resume \
   artifacts/randomx-sp1-program \
   evidence/network-proof/request-id \
   evidence/network-proof/proof.bin \
-  evidence/network-proof/program-vkey
+  artifacts/randomx-sp1-program.vkey
 ```
 
 The returned proof is accepted only after SP1 verification succeeds and its
@@ -102,7 +102,7 @@ Ethereum mainnet JSON-RPC endpoint:
 EVM_RPC_URL=https://example.invalid \
 target/release/randomx-sp1-network-prover evm-verify \
   artifacts/randomx-sp1-program \
-  evidence/network-proof/program-vkey \
+  artifacts/randomx-sp1-program.vkey \
   evidence/network-proof/proof.bin
 ```
 

@@ -1,6 +1,8 @@
 /target/
 /artifacts/*
 !/artifacts/randomx-sp1-program
+!/artifacts/randomx-sp1-program.vkey
+!/artifacts/SHA256SUMS
 *.elf
 *.log
 *.key

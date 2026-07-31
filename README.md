@@ -9,113 +9,59 @@ The implementation is universal with respect to RandomX inputs: it does not
 embed an epoch key or a hashing blob. Arbitrary key lengths and empty blobs are
 supported and covered by the differential corpus.
 
-A reproducible SP1 v6.3.1 ELF, locally derived vkey, and fulfilled mainnet
-Groth16 proof are retained and approved for the current source tree. Their
-identities, disassembly review, real-block execution measurements, local SP1
-verification, and Ethereum-mainnet `eth_call` verification are recorded in
-`evidence/reproducible-build-2026-07-30.md` and
-`evidence/network-proof/README.md`.
+A reproducible SP1 v6.3.1 ELF and its derived vkey define the production
+program identity. Separately, one fulfilled mainnet Groth16 proof is retained
+as deployment evidence for a single Monero block.
 
-## Independently verify the retained release
+## Correctness
 
-The prover network generated the proof; Ethereum only verifies it. The
-retained tuple has these identities:
+The implementation is checked against:
 
-| Item | Retained identity |
+- all 84 portable checks from the canonical RandomX v1.2.3 `randomx-tests`
+  program (the 11 JIT-, SIMD-, and alternate-implementation checks are not
+  applicable and are itemized in `evidence/canonical-v1.2.3-test-port.md`);
+- 20 consecutive real Monero blocks;
+- 42 official RandomX v1.2.3 light-mode hashes across seven key shapes and six
+  blob shapes;
+- reference/optimized lockstep state comparisons;
+- complete 256 MiB cache digests for multiple keys; and
+- software-floating-point comparisons against Berkeley SoftFloat.
+
+These tests and differential checks are the general correctness evidence. The
+single proof retained later in this README demonstrates deployment of one
+execution; it does not replace or strengthen this corpus.
+
+The exhaustive 32-hash reference/optimized lockstep audit is intentionally
+ignored by the default suite. Run it explicitly when changing the interpreter:
+
+```bash
+cargo test --release --locked -p randomx-sp1-audit \
+  --test differential -- --ignored
+```
+
+The detailed corpus is under `evidence/`. The SP1-specific unsafe-code,
+syscall, dependency, and provenance review is recorded in
+`evidence/sp1-program-safety-review.md`.
+
+## Reproduce the ELF and vkey
+
+The ELF and vkey are the reusable production artifacts. Every proof for this
+standalone program is tied to this program identity; the proof of one block is
+not part of that identity.
+
+| Artifact | Production identity |
 | --- | --- |
-| SP1 ELF | SHA-256 `d3a15025cf7619615b1be5d35c7d8e3910aac8a399f009319a44235910518940` |
-| Program vkey | `0x00ef0352217c1bd40da717b661a67da22554bbddc4589ee54fd836f15cc0a771` |
-| Public values | `5cff906139956eb646100adef11db2e00464ffabfdf4d5a194d54f0000000000` |
-| SDK proof file | 1,726 bytes; SHA-256 `0c81249c035a3ab826f9be9e6a61aee5df54198ec7aecea2ea8d4f380fe93a2d` |
-| Network request | `0xf0ca00e4ef3e4c2f78d51977d4e0a6e66168a98ffa0f9b3b137df44ea2a95603` |
+| [SP1 ELF](artifacts/randomx-sp1-program) | 289,512 bytes; SHA-256 `d3a15025cf7619615b1be5d35c7d8e3910aac8a399f009319a44235910518940` |
+| [Program vkey](artifacts/randomx-sp1-program.vkey) | `0x00ef0352217c1bd40da717b661a67da22554bbddc4589ee54fd836f15cc0a771` |
 
-The verification chain is:
-
-```text
-source --reproducible build--> ELF --SP1 setup--> program vkey
-                                                       + public values
-                                                       + Groth16 proof
-                                                               |
-                                                     local/EVM verifier
-```
-
-The EVM does **not** receive the ELF or its SHA-256. It receives the 32-byte
-SP1 program vkey, the 32 public-value bytes, and the 356-byte on-chain encoding
-of the Groth16 proof. The vkey is SP1's commitment to the program verification
-key derived from the ELF; it is not simply the ELF's SHA-256. A verifier must
-therefore use a trusted vkey or independently derive it from the ELF.
-
-The proof establishes successful execution of the SP1 program identified by
-that vkey with the stated public values. This standalone guest commits only
-the 32-byte RandomX digest. Its RandomX key and hashing blob are private inputs,
-so the EVM does not learn or independently identify those inputs.
-
-### Minimum proof and EVM verification
-
-These steps trust the published vkey. They require the repository's Rust
-toolchain, `protoc`, and an Ethereum-mainnet JSON-RPC URL. They require no
-prover key, PROVE, ETH, EVM signer, RandomX execution, or proof generation.
-
-First check every retained byte against the committed manifest:
+Check the retained production artifacts with:
 
 ```bash
-(cd evidence/network-proof && sha256sum --check SHA256SUMS)
+(cd artifacts && sha256sum --check SHA256SUMS)
 ```
 
-All four entries must report `OK`. This is an integrity check; the independent
-source-to-ELF and ELF-to-vkey checks are below. If `protoc` is not already
-installed, install it first (on Debian or Ubuntu):
-
-```bash
-sudo apt-get update
-sudo apt-get install --no-install-recommends -y protobuf-compiler libprotobuf-dev
-```
-
-Then build the existing host-side verification client:
-
-```bash
-CARGO_TARGET_DIR=target cargo build --release --locked \
-  --manifest-path network-prover/Cargo.toml
-```
-
-Simulate the exact verifier call against the canonical Ethereum-mainnet
-Groth16 gateway:
-
-```bash
-EVM_RPC_URL='<ethereum-mainnet-rpc-url>' \
-target/release/randomx-sp1-network-prover evm-verify \
-  artifacts/randomx-sp1-program \
-  evidence/network-proof/program-vkey \
-  evidence/network-proof/proof.bin
-```
-
-Success ends with:
-
-```text
-EVM verification simulation: true (eth_call did not revert)
-EVM transaction broadcast: no
-chain: Ethereum mainnet (1)
-Groth16 gateway: 0x397a5f7f3dbd538f23de225b51f532c34448da9b
-program vkey: 0x00ef0352217c1bd40da717b661a67da22554bbddc4589ee54fd836f15cc0a771
-public values: 5cff906139956eb646100adef11db2e00464ffabfdf4d5a194d54f0000000000
-```
-
-The command checks the retained ELF digest and expected public values, decodes
-the committed SDK proof, constructs
-`verifyProof(bytes32 programVKey, bytes publicValues, bytes proofBytes)`,
-requires chain ID 1, and issues `eth_call`. The verifier has no Boolean return
-value: success is a non-reverting call with empty (`0x`) return data. The client
-contains no EVM signer and cannot broadcast a transaction. Succinct documents
-this verifier interface and vkey model in its
-[Solidity verifier guide](https://docs.succinct.xyz/docs/sp1/verification/solidity-sdk)
-and publishes the gateway in its
-[canonical address list](https://docs.succinct.xyz/docs/sp1/verification/contract-addresses).
-
-### Independently bind the source, ELF, and vkey
-
-To avoid trusting the published ELF and vkey identities, also reproduce the
-ELF into a temporary directory and compare it byte-for-byte. This additionally
-requires Docker and the SP1 6.3.1 CLI (`sp1up --version 6.3.1`):
+To independently bind the source to the ELF, install Docker and the SP1 6.3.1
+CLI (`sp1up --version 6.3.1`), then build into a temporary directory:
 
 ```bash
 rebuild_dir="$(mktemp -d)"
@@ -130,27 +76,100 @@ cmp artifacts/randomx-sp1-program "$rebuild_dir/randomx-sp1-program"
 sha256sum "$rebuild_dir/randomx-sp1-program"
 ```
 
-`cmp` must exit successfully and SHA-256 must be
+`cmp` must succeed and SHA-256 must be
 `d3a15025cf7619615b1be5d35c7d8e3910aac8a399f009319a44235910518940`.
-Docker is used only to make the guest build reproducible across hosts.
+The command was independently rerun after writing this procedure and produced
+a byte-identical ELF.
 
-Then derive the program vkey from the retained ELF with the pinned SP1 CLI and
-compare it with the committed value:
+Then derive the vkey from that exact ELF and compare it with the retained
+value:
 
 ```bash
 derived_vkey="$(
-  cargo prove vkey --elf artifacts/randomx-sp1-program | tail -n 1
+  cargo prove vkey --elf "$rebuild_dir/randomx-sp1-program" | tail -n 1
 )"
-test "$derived_vkey" = "$(tr -d '\r\n' < evidence/network-proof/program-vkey)"
+test "$derived_vkey" = "$(tr -d '\r\n' < artifacts/randomx-sp1-program.vkey)"
 printf '%s\n' "$derived_vkey"
 ```
 
 The expected output is
 `0x00ef0352217c1bd40da717b661a67da22554bbddc4589ee54fd836f15cc0a771`.
-This is an SP1 setup operation, not a RandomX execution or proof. On the release
-host it took 5 minutes 7 seconds and about 6.2 GiB peak memory; the command may
-be silent while SP1 initializes. The executor is not involved in rebuilding
-the ELF, deriving the vkey, or verifying the proof.
+This SP1 setup operation may be silent while it initializes; on the release
+host it took 5 minutes 7 seconds and about 6.2 GiB peak memory. It does not
+execute RandomX or generate a proof. The optional executor described below is
+not involved in either reproduction step.
+
+The EVM never needs the full ELF or the ELF SHA-256. SP1 setup derives the
+program verification key from the ELF, and on-chain verifiers receive its
+32-byte `programVKey` commitment. This value is not simply the ELF SHA-256.
+
+## One-block proof: deployment evidence
+
+The retained proof demonstrates that the Succinct Prover Network and the
+Ethereum verifier accepted one execution for Monero block 3,727,837. It is a
+deployment test, not a general correctness claim or a second program identity.
+
+| Proof item | Value |
+| --- | --- |
+| [Network request](https://explorer.succinct.xyz/request/0xf0ca00e4ef3e4c2f78d51977d4e0a6e66168a98ffa0f9b3b137df44ea2a95603) | `0xf0ca00e4ef3e4c2f78d51977d4e0a6e66168a98ffa0f9b3b137df44ea2a95603` |
+| [Public RandomX digest](evidence/network-proof/public-values.hex) | `5cff906139956eb646100adef11db2e00464ffabfdf4d5a194d54f0000000000` |
+| [SDK proof](evidence/network-proof/proof.bin) | 1,726 bytes; SHA-256 `0c81249c035a3ab826f9be9e6a61aee5df54198ec7aecea2ea8d4f380fe93a2d` |
+| [EVM proof encoding](evidence/network-proof/proof-evm.hex) | 356 bytes; SHA-256 `2309bc02f6babbb1d786e7e06c9b620649f0b57fa9c7d8ed0b1c5807f7d7fff6` |
+
+The proof shows successful execution of the program identified by the vkey
+with those public-value bytes. The standalone guest commits only the RandomX
+digest; its key and hashing blob remain private. Consequently, the EVM does
+not itself identify the Monero block or expose its RandomX inputs.
+
+### Verify on Ethereum without repository code
+
+This procedure uses only the external Foundry `cast` CLI, three retained data
+files, and an Ethereum-mainnet RPC URL. It does not compile or run any Rust—or
+any other executable code—from this repository. It assumes the program vkey
+has already been accepted or independently reproduced as described above.
+Install Foundry from its
+[official instructions](https://getfoundry.sh/introduction/installation) if
+`cast --version` is unavailable.
+
+First verify the downloaded data files:
+
+```bash
+(cd evidence/network-proof && sha256sum --check SHA256SUMS)
+```
+
+Then issue the read-only verifier call:
+
+```bash
+export EVM_RPC_URL='<ethereum-mainnet-rpc-url>'
+test "$(cast chain-id --rpc-url "$EVM_RPC_URL")" = '1'
+
+program_vkey="$(tr -d '\r\n' < artifacts/randomx-sp1-program.vkey)"
+public_values="$(tr -d '\r\n' < evidence/network-proof/public-values.hex)"
+proof_bytes="$(tr -d '\r\n' < evidence/network-proof/proof-evm.hex)"
+
+cast call 0x397a5f7f3dbd538f23de225b51f532c34448da9b \
+  'verifyProof(bytes32,bytes,bytes)' \
+  "$program_vkey" "$public_values" "$proof_bytes" \
+  --rpc-url "$EVM_RPC_URL"
+```
+
+Success prints `0x`: the verifier function returned no data and did not
+revert. `cast call` uses `eth_call`; it does not sign or broadcast a transaction
+and requires no private key, ETH, or PROVE. The EVM receives only the 32-byte
+program vkey, 32 public-value bytes, and 356 proof bytes.
+
+The three files are transparent data, not executables. `proof-evm.hex` is the
+verifier-ready encoding of the same proof stored in SP1's 1,726-byte
+`proof.bin` container. The command above was tested independently with Foundry
+1.7.1 against Ethereum mainnet and returned `0x`.
+
+Succinct documents the interface in its
+[Solidity verifier guide](https://docs.succinct.xyz/docs/sp1/verification/solidity-sdk)
+and publishes the gateway in its
+[canonical address list](https://docs.succinct.xyz/docs/sp1/verification/contract-addresses).
+Foundry documents `cast call` in its
+[CLI reference](https://getfoundry.sh/cast/reference/cast-call.md). Full request,
+cost, and execution details are in `evidence/network-proof/README.md`.
 
 ## Current optimization
 
@@ -175,6 +194,9 @@ optimizations generate their state from the runtime key.
   opt-in validation guest.
 - `argon2/`: the RandomX-only subset of an in-tree `rust-argon2` fork, with
   fixed-parameter Argon2d cache construction and upstream differential tests.
+- `artifacts/`: the approved reusable ELF/vkey identity and its checksum
+  manifest.
+- `evidence/network-proof/`: data for the separate one-block deployment proof.
 - `executor/`: lightweight execution, cycle-region profiling, and calibrated
   PGU estimation.
 - `network-prover/`: fixed-block Succinct Network request, recovery, local
@@ -210,7 +232,7 @@ supported APIs. Their upstream lineage and retained licenses are recorded in
 The executor is optional developer tooling. It runs the ELF without generating
 or verifying a proof so developers can check public output, SP1 cycle count,
 PGU estimates, and profiling regions. It plays no role in the reproducible
-build or the ELF-to-vkey-to-proof verification chain above.
+ELF/vkey identity or the proof verification procedure above.
 
 Build the executor from the repository root:
 
@@ -255,32 +277,6 @@ cargo prove build --docker --tag v6.3.1 --locked \
 cargo prove build --docker --tag v6.3.1 --locked \
   --features profile-probes --binaries randomx-sp1-no-memory-probe
 ```
-
-## Correctness
-
-The current implementation is checked against:
-
-- all 84 portable checks from the canonical RandomX v1.2.3 `randomx-tests`
-  program (the 11 JIT-, SIMD-, and alternate-implementation checks are not
-  applicable and are itemized in `evidence/canonical-v1.2.3-test-port.md`);
-- 20 consecutive real Monero blocks;
-- 42 official RandomX v1.2.3 light-mode hashes across seven key shapes and six
-  blob shapes;
-- reference/optimized lockstep state comparisons;
-- complete 256 MiB cache digests for multiple keys; and
-- software-floating-point comparisons against Berkeley SoftFloat.
-
-The exhaustive 32-hash reference/optimized lockstep audit is intentionally
-ignored by the default suite. Run it explicitly when changing the interpreter:
-
-```bash
-cargo test --release --locked -p randomx-sp1-audit \
-  --test differential -- --ignored
-```
-
-Current source evidence is under `evidence/`. The SP1-specific unsafe-code,
-syscall, dependency, and provenance review is recorded in
-`evidence/sp1-program-safety-review.md`.
 
 ## Continuous integration
 

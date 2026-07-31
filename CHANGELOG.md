@@ -6,7 +6,10 @@ The format follows Keep a Changelog, and releases use semantic versioning.
 
 ## Unreleased
 
-No unreleased changes.
+- Separated the reusable ELF/vkey identity from the single-block proof
+  evidence in the repository layout and documentation.
+- Added verifier-ready proof and public-value data for independent
+  Ethereum-mainnet verification with an external `cast call`.
 
 ## 0.1.0 - 2026-07-30
 

@@ -3,6 +3,8 @@
 On 2026-07-30, the approved reproducible SP1 ELF was proven through the
 Succinct Prover Network's mainnet auction and verified locally and through the
 Ethereum-mainnet verifier gateway. No EVM transaction was signed or broadcast.
+This is evidence for one execution, not a substitute for the implementation's
+correctness corpus or the reproducible ELF/vkey identity.
 
 ## Request
 
@@ -66,15 +68,25 @@ ID 1) against the canonical Groth16 gateway
 verification returned true. The client has no EVM signer and broadcast no
 transaction.
 
+`proof-evm.hex` retains the exact 356 proof bytes accepted by the Solidity
+verifier, and `public-values.hex` retains the exact 32 public-value bytes. They
+allow anyone to repeat the `eth_call` with an external EVM tool without
+building or running this repository's Rust code. The root README gives the
+copy-paste `cast call` command. On 2026-07-31, that command was tested with
+Foundry 1.7.1 against Ethereum mainnet and returned `0x`.
+
 ## Retained files
 
 ```text
 request-id SHA-256:   efeb49a1991f01e15bf2bd9d9aa3e5ef2bd157e96aea00ccdc8387e9e5ee4a16
 proof.bin SHA-256:    0c81249c035a3ab826f9be9e6a61aee5df54198ec7aecea2ea8d4f380fe93a2d
 proof.bin SHA-512:    4eec27e3fd5d8e22528468b26dda35a3540fba9c99d1f6276d6bbbb398a7c3c19fec9ed89f471168650888b4c8caeef0a115a368b8e72e942a43ac819507d8b2
-program-vkey SHA-256: 917de01d1d774600fffae819abdb5b299a654aa18e0acb7a40926b36b8f1a66b
+proof-evm.hex SHA-256: 2309bc02f6babbb1d786e7e06c9b620649f0b57fa9c7d8ed0b1c5807f7d7fff6
+public-values.hex SHA-256: 1cb618a56fd9aad8e28d2a23a24b0183a5db997f0887b3b7a1a3bddca10580d9
 ```
 
 `proof.bin` is the SP1 proof-with-public-values serialization consumed by the
-local verifier and EVM simulation client. `SHA256SUMS` also covers the retained
-ELF so the complete release tuple can be checked together.
+local verifier and original EVM simulation client. `proof-evm.hex` and
+`public-values.hex` are its verifier-ready data representation, not additional
+proofs. `SHA256SUMS` covers the one-block proof evidence. The ELF and vkey have
+their separate identity manifest in `../../artifacts/SHA256SUMS`.
