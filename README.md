@@ -15,12 +15,14 @@ is retained as deployment evidence for a single Monero block.
 
 ## Correctness
 
-The implementation is checked against:
+**As part of the test suite, the complete RandomX hash ran and matched the
+expected results for 20 consecutive real Monero blocks.**
+
+The implementation is also checked against:
 
 - all 84 portable checks from the canonical RandomX v1.2.3 `randomx-tests`
   program (the 11 JIT-, SIMD-, and alternate-implementation checks are not
   applicable and are itemized in `evidence/canonical-v1.2.3-test-port.md`);
-- 20 consecutive real Monero blocks;
 - 42 official RandomX v1.2.3 light-mode hashes across seven key shapes and six
   blob shapes;
 - reference/optimized lockstep state comparisons;
