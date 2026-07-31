@@ -25,7 +25,12 @@
    simulate verification with an Ethereum-mainnet `eth_call`. Do not broadcast
    an EVM transaction.
 10. Commit the artifact and complete evidence, require CI to pass, create a
-    signed `v0.1.0` tag, and push the commit and tag to the release remote.
+    signed version tag, and push the commit and tag to the release remote.
+11. Attach the ELF, vkey, serialized proof, EVM proof encoding, public values,
+    request ID, and `release/SHA256SUMS` to the GitHub release using the flat
+    filenames in that manifest. Download every asset into an empty directory
+    and require `sha256sum --check SHA256SUMS` to pass before announcing the
+    release.
 
 The CI workflow validates code and dependencies but intentionally does not
 build a release ELF, access secrets, execute the multi-billion-cycle guest, or

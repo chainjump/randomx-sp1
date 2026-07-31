@@ -49,7 +49,8 @@ syscall, dependency, and provenance review is recorded in
 
 Use `randomx-sp1` as a Rust source dependency inside the dependent program's
 own SP1 guest. The crate is not published to crates.io, so pin the immutable
-`v0.1.0` release commit rather than a moving branch:
+reviewed library-source revision used by `v0.1.0` rather than a moving branch.
+Release-only documentation and artifact packaging do not change this source:
 
 ```toml
 [dependencies]
@@ -132,6 +133,11 @@ Check the retained production artifacts with:
 (cd artifacts && sha256sum --check SHA256SUMS)
 ```
 
+The [`v0.1.0` GitHub release](https://github.com/chainjumper/randomx-sp1/releases/tag/v0.1.0)
+also attaches the ELF, vkey, proof data, request ID, and a flat
+`SHA256SUMS` manifest so the complete release bundle can be checked without a
+repository checkout.
+
 To independently bind the source to the ELF, install Docker and the SP1 6.3.1
 CLI (`sp1up --version 6.3.1`), then build into a temporary directory:
 
@@ -196,18 +202,19 @@ not itself identify the Monero block or expose its RandomX inputs.
 
 ### Verify on Ethereum without repository code
 
-This procedure uses only the external Foundry `cast` CLI, three retained data
-files, and an Ethereum-mainnet RPC URL. It does not compile or run any Rust—or
-any other executable code—from this repository. It assumes the program vkey
-has already been accepted or independently reproduced as described above.
-Install Foundry from its
+This procedure uses only the external Foundry `cast` CLI, release data files,
+and an Ethereum-mainnet RPC URL. It does not require a repository checkout and
+does not compile or run any Rust—or any other executable code—from this
+repository. It assumes the program vkey has already been accepted or
+independently reproduced as described above. Install Foundry from its
 [official instructions](https://getfoundry.sh/introduction/installation) if
 `cast --version` is unavailable.
 
-First verify the downloaded data files:
+Download every `v0.1.0` asset into one empty directory, change into that
+directory, and verify the complete bundle:
 
 ```bash
-(cd evidence/network-proof && sha256sum --check SHA256SUMS)
+sha256sum --check SHA256SUMS
 ```
 
 Then issue the read-only verifier call:
@@ -216,9 +223,9 @@ Then issue the read-only verifier call:
 export EVM_RPC_URL='<ethereum-mainnet-rpc-url>'
 test "$(cast chain-id --rpc-url "$EVM_RPC_URL")" = '1'
 
-program_vkey="$(tr -d '\r\n' < artifacts/randomx-sp1-program.vkey)"
-public_values="$(tr -d '\r\n' < evidence/network-proof/public-values.hex)"
-proof_bytes="$(tr -d '\r\n' < evidence/network-proof/proof-evm.hex)"
+program_vkey="$(tr -d '\r\n' < randomx-sp1-program.vkey)"
+public_values="$(tr -d '\r\n' < public-values.hex)"
+proof_bytes="$(tr -d '\r\n' < proof-evm.hex)"
 
 cast call 0x397a5f7f3dbd538f23de225b51f532c34448da9b \
   'verifyProof(bytes32,bytes,bytes)' \
