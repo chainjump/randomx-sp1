@@ -17,7 +17,7 @@ reqwest = { version = "0.12", default-features = false, features = ["json", "rus
 rustls = { version = "0.23", features = ["ring"] }
 serde_json = "1"
 sha2 = "0.10"
-sp1-sdk = { version = "=6.3.1", default-features = false, features = ["network"] }
+sp1-sdk = { version = "=6.5.0", default-features = false, features = ["network"] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 
 [workspace]
