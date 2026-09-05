@@ -311,6 +311,8 @@ impl ScInstr<'_> {
                 group_par_is_source: false,
                 op_group_par: -1,
             },
+            // High multiplies allow register reuse and retain a random group
+            // parameter independent of the source register (RandomX v1.2.3).
             ScOpcode::IMULH_R => ScInstr {
                 info,
                 dst: -1,
@@ -319,8 +321,8 @@ impl ScInstr<'_> {
                 imm32: 0,
                 reciprocal: 0,
                 op_group: ScOpcode::IMULH_R,
-                group_par_is_source: true,
-                can_reuse: false,
+                group_par_is_source: false,
+                can_reuse: true,
                 op_group_par: generator.get_u32() as i32,
             },
             ScOpcode::ISMULH_R => ScInstr {
@@ -331,8 +333,8 @@ impl ScInstr<'_> {
                 imm32: 0,
                 reciprocal: 0,
                 op_group: ScOpcode::ISMULH_R,
-                group_par_is_source: true,
-                can_reuse: false,
+                group_par_is_source: false,
+                can_reuse: true,
                 op_group_par: generator.get_u32() as i32,
             },
             ScOpcode::IMUL_RCP => {
@@ -1399,6 +1401,49 @@ fn schedule_uop(
 #[cfg(test)]
 mod generator_tests {
     use super::*;
+
+    #[test]
+    fn high_multiply_destination_selection_uses_random_group_parameter() {
+        let mut generator = Blake2Generator::new(b"high multiply group parameters", 0);
+
+        for info in [&IMULH_R, &ISMULH_R] {
+            let mut previous = ScInstr::create(info, &mut generator);
+            let random_parameter = previous.op_group_par;
+            let source = if random_parameter == 3 { 4 } else { 3 };
+            let mut registers = [RegisterInfo {
+                latency: 1,
+                ..RegisterInfo::new()
+            }; 8];
+            registers[source].latency = 0;
+            assert!(previous.select_source(0, &registers, &mut generator));
+            assert_eq!(previous.src, source as i32);
+
+            // Record the selected instruction's group metadata as the scheduler
+            // does on retirement, leaving r2 as the only ready destination.
+            registers[source].latency = 1;
+            registers[2] = RegisterInfo {
+                latency: 0,
+                last_op_group: previous.op_group,
+                last_op_par: previous.op_group_par,
+            };
+
+            // Force both rare comparisons: a repeated random token must exclude
+            // r2, while a token equal to the previous source must leave it usable.
+            for (next_parameter, available) in [(random_parameter, false), (source as i32, true)] {
+                let mut next = ScInstr::create(info, &mut generator);
+                next.op_group_par = next_parameter;
+                assert_eq!(
+                    next.select_destination(0, false, &registers, &mut generator),
+                    available,
+                    "{:?}: group parameter {next_parameter}",
+                    info.op,
+                );
+                if available {
+                    assert_eq!(next.dst, 2);
+                }
+            }
+        }
+    }
 
     #[test]
     fn blake_generator_truncates_long_seed_to_sixty_bytes() {

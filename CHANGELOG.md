@@ -6,6 +6,9 @@ The format follows Keep a Changelog, and releases use semantic versioning.
 
 ## Unreleased
 
+- Fixed superscalar `IMULH_R` and `ISMULH_R` register-selection metadata to
+  match RandomX v1.2.3, preserving random group parameters during source selection.
+
 ## 0.1.0 - 2026-07-31
 
 - Added a dependent-program Quickstart and made the downstream ELF, vkey, and
