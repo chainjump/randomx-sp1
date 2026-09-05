@@ -11,25 +11,25 @@ embed an epoch key or a hashing blob. Canonical RandomX specifies keys of
 behavior is implementation-defined; see the review below for the known
 difference at key lengths of 2^32 bytes and above.
 
-A reproducible SP1 v6.3.1 ELF and its derived vkey retain the standalone
-program identity of release `v0.1.0`. Separately, one fulfilled mainnet
-Groth16 proof is retained as historical deployment evidence for a single
-Monero block.
+A reproducible SP1 v6.3.1 ELF and its derived vkey identify the corrected
+`v0.1.1` standalone program. Its mainnet Groth16 proof passed both local SP1
+verification and the Ethereum-mainnet verifier demonstration.
 
 ## Current source and release status
 
-Commit `48e096823fd332076c2b5ab0e272beee27b2b473` fixes the superscalar
-high-multiply register-selection metadata. Release `v0.1.0`, its earlier
-dependency pin, and the retained ELF predate this fix.
+Release [`v0.1.1`](https://github.com/chainjump/randomx-sp1/releases/tag/v0.1.1)
+includes the superscalar high-multiply correction from
+`48e096823fd332076c2b5ab0e272beee27b2b473`. Two clean Docker builds reproduced
+the corrected ELF; 49 executions of that exact ELF matched canonical RandomX
+v1.2.3. A fresh network proof passed local verification and Ethereum-mainnet
+`eth_call` checks through two RPC providers, including rejection controls.
 
-The [2026-09-05 review](evidence/randomx-review-2026-09-05/README.md) records
-the defect, regression, canonical comparisons, remaining differences, and
-production-validation gaps. No further critical hash discrepancy was found
-for the specified key domain. The corrected source has extensive host-side
-validation, but the final production SP1 guest still needs to be built,
-executed against canonical results, and proven and verified with its own
-verification key before funds are put at risk. The retained artifacts do
-not validate this corrected source. No new release is being announced.
+The [production record](evidence/production-2026-09-05/README.md) contains the
+source revision, new ELF/vkey, proof, verification results, and reproduction
+commands. The [source review](evidence/randomx-review-2026-09-05/README.md)
+records the defect, regression, canonical comparisons, and remaining
+differences. No further critical hash discrepancy was found in the specified
+key domain. The `v0.1.0` artifacts below remain historical; they predate the fix.
 
 ## Correctness
 
@@ -47,9 +47,9 @@ The implementation is also checked against:
 - complete 256 MiB cache digests for multiple keys; and
 - software-floating-point comparisons against Berkeley SoftFloat.
 
-These tests and differential checks are the general correctness evidence. The
-single proof retained later in this README demonstrates deployment of one
-execution; it does not replace or strengthen this corpus.
+These tests and differential checks are the general correctness evidence.
+Each retained proof demonstrates deployment of one execution; it does not
+establish correctness for every possible input.
 
 The exhaustive 32-hash reference/optimized lockstep audit is intentionally
 ignored by the default suite. Run it explicitly when changing the interpreter:
@@ -71,11 +71,11 @@ source revision containing the superscalar correction:
 
 ```toml
 [dependencies]
-randomx-sp1 = { git = "https://github.com/chainjump/randomx-sp1.git", rev = "48e096823fd332076c2b5ab0e272beee27b2b473" }
+randomx-sp1 = { git = "https://github.com/chainjump/randomx-sp1.git", rev = "5b18879863d140d7ae1aaa25fb2534da4bf89de4" }
 sp1-zkvm = "=6.3.1"
 ```
 
-This is the corrected development source, not a new validated binary release.
+This is the guest source revision used for the validated `v0.1.1` ELF.
 The previous pin, `01d7e7de62b0fa980feb017bde5bc4bb77895c75`, contains the bug.
 
 The only stable library entry point is `randomx_sp1::hash`:
@@ -205,7 +205,7 @@ The EVM never needs the full ELF or the ELF SHA-256. SP1 setup derives the
 program verification key from the ELF, and on-chain verifiers receive its
 32-byte `programVKey` commitment. This value is not simply the ELF SHA-256.
 
-## One-block proof: deployment evidence
+## Historical v0.1.0 one-block proof
 
 The retained proof demonstrates that the Succinct Prover Network and the
 Ethereum verifier accepted one execution for Monero block 3,727,837. It is a
@@ -298,9 +298,11 @@ optimizations generate their state from the runtime key.
   opt-in validation guest.
 - `argon2/`: the RandomX-only subset of an in-tree `rust-argon2` fork, with
   fixed-parameter Argon2d cache construction and upstream differential tests.
-- `artifacts/`: the approved reusable ELF/vkey identity and its checksum
-  manifest.
-- `evidence/network-proof/`: data for the separate one-block deployment proof.
+- `artifacts/v0.1.1/`: the corrected ELF/vkey; earlier artifacts remain in
+  `artifacts/`, whose checksum manifest covers both versions.
+- `evidence/production-2026-09-05/`: corrected guest builds, execution corpus,
+  network proof, and local/EVM verification.
+- `evidence/network-proof/`: historical `v0.1.0` deployment proof.
 - `executor/`: lightweight execution, cycle-region profiling, and calibrated
   PGU estimation.
 - `network-prover/`: fixed-block Succinct Network request, recovery, local
@@ -325,7 +327,7 @@ first input is the runtime RandomX key and the second is the hashing blob:
 
 ```bash
 target/release/randomx-sp1-executor \
-  artifacts/randomx-sp1-program \
+  artifacts/v0.1.1/randomx-sp1-program \
   50966d5e6f491b5c2dccefb149c314d996fe36e73e4a18ae4d9f0d0100000000 \
   11c798e5ac6515218bc3efcb5416e5b68c599e42a61b86efe5746bb78eb4be8e \
   101093ba9fd306c6afa883a69ae61498cc8edc5b04ad42664ca1d70cb4f6e14f609d65af22e8a6a8910b0f68387e426a3e54920779782c55fab88b05da6b989d97e67ced90f93a2237a17601

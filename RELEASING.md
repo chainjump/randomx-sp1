@@ -10,8 +10,10 @@
    cargo prove build --docker --tag v6.3.1 --locked \
      --binaries randomx-sp1-program \
      --elf-name randomx-sp1-program \
-     --output-directory ../artifacts
+     --output-directory ../artifacts/v0.1.1
    ```
+
+   Use the new release's versioned directory; preserve earlier artifacts.
 
 5. Record the source commit, `Cargo.lock` hash, Docker image digest, ELF size,
    SHA-256, SHA-512, disassembly review, and locally derived vkey.

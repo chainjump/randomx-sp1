@@ -1,4 +1,4 @@
-import hashlib,json,pathlib,subprocess,sys,urllib.request
+import hashlib,json,pathlib,subprocess,sys
 root=pathlib.Path(__file__).parent
 proof_dir=pathlib.Path(sys.argv[1]).resolve()
 vkey_path=pathlib.Path(sys.argv[2]).resolve()
@@ -11,15 +11,17 @@ assert len(public)==64 and len(proof)==712 and len(vkey)==66
 
 def rpc(url,method,params):
     body=json.dumps({'jsonrpc':'2.0','id':1,'method':method,'params':params}).encode()
-    req=urllib.request.Request(url,data=body,headers={'content-type':'application/json'})
-    with urllib.request.urlopen(req,timeout=30) as r:return json.loads(r.read())
+    response=subprocess.run(['curl','--fail-with-body','--silent','--show-error',
+        '--max-time','30','-H','content-type: application/json',
+        '--data-binary','@-',url],input=body,capture_output=True,check=True)
+    return json.loads(response.stdout)
 def result(url,method,params):
     r=rpc(url,method,params)
     assert 'error' not in r,r
     return r['result']
 def calldata(key,values,proof):
     return subprocess.check_output(['cast','calldata','verifyProof(bytes32,bytes,bytes)',key,'0x'+values,'0x'+proof],text=True).strip()
-providers=['https://ethereum.publicnode.com','https://rpc.flashbots.net']
+providers=['https://ethereum.publicnode.com','https://eth.drpc.org']
 assert result(providers[0],'eth_chainId',[])=='0x1'
 block=result(providers[0],'eth_getBlockByNumber',['finalized',False])
 number=block['number'];block_hash=block['hash']

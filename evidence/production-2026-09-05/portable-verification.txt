@@ -1,0 +1,6 @@
+saved SDK proof: circuit version, EVM encoding, and public values match
+SP1 6.3.1 portable Groth16 verifier: valid proof accepted
+historical program verification key: rejected
+changed public RandomX digest: rejected
+six proof mutations (verifier prefix, exit code, recursion root, nonce, curve proof): rejected
+empty proof: rejected

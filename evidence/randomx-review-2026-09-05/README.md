@@ -1,5 +1,10 @@
 # RandomX correctness and production-readiness review
 
+The later [production validation record](../production-2026-09-05/README.md)
+completes the corrected standalone guest build, execution, network proof,
+and local/EVM verification. The status below describes the earlier source
+review and is retained as historical context.
+
 Review date: 2026-09-05 UTC. Corrected source:
 [`48e096823fd332076c2b5ab0e272beee27b2b473`](https://github.com/chainjump/randomx-sp1/commit/48e096823fd332076c2b5ab0e272beee27b2b473).
 The review began at `a7de1d52c5d2c507f7c8bd6cbaa95f3fa52a8b0a`; the archived

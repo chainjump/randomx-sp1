@@ -5,14 +5,19 @@ fn main() {
     let args: Vec<_> = env::args().collect();
     assert_eq!(
         args.len(),
-        5,
-        "usage: verify-proof <proof.hex> <public-values.hex> <vkey> <historical-vkey>"
+        6,
+        "usage: verify-proof <proof.hex> <public-values.hex> <vkey> <historical-vkey> <proof.bin>"
     );
     let proof = hex::decode(fs::read_to_string(&args[1]).unwrap().trim()).unwrap();
     let public = hex::decode(fs::read_to_string(&args[2]).unwrap().trim()).unwrap();
     let vkey = fs::read_to_string(&args[3]).unwrap();
     let historical_vkey = fs::read_to_string(&args[4]).unwrap();
     assert_eq!(public.len(), 32);
+    let saved = sp1_sdk::SP1ProofWithPublicValues::load(&args[5]).unwrap();
+    assert_eq!(saved.sp1_version, sp1_sdk::SP1_CIRCUIT_VERSION);
+    assert_eq!(saved.bytes(), proof);
+    assert_eq!(saved.public_values.as_slice(), public);
+    println!("saved SDK proof: circuit version, EVM encoding, and public values match");
     let verify = |proof: &[u8], public: &[u8], key: &str| {
         Groth16Verifier::verify(proof, public, key.trim(), &GROTH16_VK_BYTES)
     };

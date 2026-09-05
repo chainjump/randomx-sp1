@@ -1,0 +1,113 @@
+{
+  "gateway": "0x397a5f7f3dbd538f23de225b51f532c34448da9b",
+  "chain_id": 1,
+  "block_number": 25908376,
+  "block_hash": "0x9d4290449b01f9888573f1dd54f9c3af22f9679ae59f4ed2e53ab651f3770bd9",
+  "program_vkey": "0x00360be15dc8e8f448b5a9ab15bb368ed6301842244316a7705380dce0501d66",
+  "public_values": "5cff906139956eb646100adef11db2e00464ffabfdf4d5a194d54f0000000000",
+  "broadcast_transaction": false,
+  "providers": [
+    {
+      "rpc": "https://ethereum.publicnode.com",
+      "gateway_code_bytes": 1975,
+      "gateway_code_sha256": "1737176c32d30d81e72e7902d887a3bdcd5aef8be64cddeb93a82c5ca31f59ae",
+      "calls": [
+        {
+          "case": "valid",
+          "response": {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "result": "0x"
+          }
+        },
+        {
+          "case": "historical-vkey",
+          "response": {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "error": {
+              "code": 3,
+              "message": "execution reverted",
+              "data": "0x7fcdd1f4"
+            }
+          }
+        },
+        {
+          "case": "changed-public-values",
+          "response": {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "error": {
+              "code": 3,
+              "message": "execution reverted",
+              "data": "0x7fcdd1f4"
+            }
+          }
+        },
+        {
+          "case": "changed-proof",
+          "response": {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "error": {
+              "code": 3,
+              "message": "execution reverted",
+              "data": "0x7fcdd1f4"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "rpc": "https://eth.drpc.org",
+      "gateway_code_bytes": 1975,
+      "gateway_code_sha256": "1737176c32d30d81e72e7902d887a3bdcd5aef8be64cddeb93a82c5ca31f59ae",
+      "calls": [
+        {
+          "case": "valid",
+          "response": {
+            "id": 1,
+            "jsonrpc": "2.0",
+            "result": "0x"
+          }
+        },
+        {
+          "case": "historical-vkey",
+          "response": {
+            "id": 1,
+            "jsonrpc": "2.0",
+            "error": {
+              "code": 3,
+              "message": "execution reverted",
+              "data": "0x7fcdd1f4"
+            }
+          }
+        },
+        {
+          "case": "changed-public-values",
+          "response": {
+            "id": 1,
+            "jsonrpc": "2.0",
+            "error": {
+              "code": 3,
+              "message": "execution reverted",
+              "data": "0x7fcdd1f4"
+            }
+          }
+        },
+        {
+          "case": "changed-proof",
+          "response": {
+            "id": 1,
+            "jsonrpc": "2.0",
+            "error": {
+              "code": 3,
+              "message": "execution reverted",
+              "data": "0x7fcdd1f4"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

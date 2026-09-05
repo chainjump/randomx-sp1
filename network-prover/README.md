@@ -21,8 +21,10 @@ The pinned reproducible ELF measured 6,447,168,673 SP1 cycles and
 leave 52,831,327 cycles and 202,148,251 PGU of deterministic headroom.
 
 The corrected ELF has been reproduced and executed against the canonical
-hash for this block. Its new network proof and verification record are being
-prepared under `../evidence/production-2026-09-05/`.
+hash for this block. Its fresh network proof passed local SP1 verification
+and Ethereum-mainnet verification through two RPC providers, including
+rejection controls. The [completed record](../evidence/production-2026-09-05/README.md)
+contains the proof and exact identities.
 
 The client validates the canonical 77-byte hashing blob against the block ID,
 checks the RandomX epoch height and Monero difficulty, checks the approved ELF
