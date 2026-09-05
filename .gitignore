@@ -3,6 +3,10 @@
 !/artifacts/randomx-sp1-program
 !/artifacts/randomx-sp1-program.vkey
 !/artifacts/SHA256SUMS
+!/artifacts/v0.1.1/
+/artifacts/v0.1.1/*
+!/artifacts/v0.1.1/randomx-sp1-program
+!/artifacts/v0.1.1/randomx-sp1-program.vkey
 *.elf
 *.log
 *.key

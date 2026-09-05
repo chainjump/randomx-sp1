@@ -2042,7 +2042,7 @@ dependencies = [
 
 [[package]]
 name = "randomx-softfp"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "softfloat",
  "softfloat-wrapper",
@@ -2051,7 +2051,7 @@ dependencies = [
 
 [[package]]
 name = "randomx-sp1"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "blake2b_simd",
  "randomx-softfp",
@@ -2060,7 +2060,7 @@ dependencies = [
 
 [[package]]
 name = "randomx-sp1-argon2"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "blake2b_simd",
  "hex",
@@ -2069,7 +2069,7 @@ dependencies = [
 
 [[package]]
 name = "randomx-sp1-audit"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "blake2b_simd",
  "randomx-softfp",
@@ -2082,7 +2082,7 @@ dependencies = [
 
 [[package]]
 name = "randomx-sp1-core"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "blake2b_simd",
  "randomx-sp1-argon2",
@@ -2091,7 +2091,7 @@ dependencies = [
 
 [[package]]
 name = "randomx-sp1-executor"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "hex",
@@ -2101,7 +2101,7 @@ dependencies = [
 
 [[package]]
 name = "randomx-sp1-program"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "randomx-sp1",
  "randomx-sp1-core",

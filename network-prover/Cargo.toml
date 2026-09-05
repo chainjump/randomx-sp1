@@ -1,6 +1,6 @@
 [package]
 name = "randomx-sp1-network-prover"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 rust-version = "1.94.1"
 description = "Succinct Network proof and EVM simulation client for randomx-sp1"
