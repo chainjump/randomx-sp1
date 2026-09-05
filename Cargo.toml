@@ -33,7 +33,7 @@ softfloat-wrapper = "=0.3.4"
 sp1-core-executor = "=6.3.1"
 sp1-core-executor-runner = "=6.3.1"
 sp1-zkvm = "=6.3.1"
-strum = { version = "=0.24.1", features = ["derive"] }
+strum = { version = "=0.27.2", features = ["derive"] }
 tiny-keccak = { version = "=2.0.2", features = ["keccak"] }
 
 [profile.release]
