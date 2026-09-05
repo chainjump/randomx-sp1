@@ -1,0 +1,50 @@
+[
+  {
+    "label": "a",
+    "source_commit": "5b18879863d140d7ae1aaa25fb2534da4bf89de4",
+    "cargo_lock_sha256": "806fdd855632ccd1b432efd0cc5381b924fa7ea1cd4a08fc4b8060442597d161",
+    "command": [
+      "cargo",
+      "prove",
+      "build",
+      "--docker",
+      "--tag",
+      "v6.3.1",
+      "--locked",
+      "--binaries",
+      "randomx-sp1-program",
+      "--elf-name",
+      "randomx-sp1-program",
+      "--output-directory",
+      "/tmp/randomx-production-2026-09-05-uacqfqyg/output-a"
+    ],
+    "seconds": 175.834,
+    "bytes": 289528,
+    "sha256": "a2c35c9e93f6bf4d891be3d21ad22caa34b6e710805f2e634c246aaa6a1b3884",
+    "sha512": "1770ea6fb1a95720bbdda89d8db0c67356c6950278daee151e75bf6d0de6a3b599e8baf154f3b1836664b39664a5fa009bf7607648be3358bf4b75c704b555ff"
+  },
+  {
+    "label": "b",
+    "source_commit": "5b18879863d140d7ae1aaa25fb2534da4bf89de4",
+    "cargo_lock_sha256": "806fdd855632ccd1b432efd0cc5381b924fa7ea1cd4a08fc4b8060442597d161",
+    "command": [
+      "cargo",
+      "prove",
+      "build",
+      "--docker",
+      "--tag",
+      "v6.3.1",
+      "--locked",
+      "--binaries",
+      "randomx-sp1-program",
+      "--elf-name",
+      "randomx-sp1-program",
+      "--output-directory",
+      "/tmp/randomx-production-2026-09-05-uacqfqyg/output-b"
+    ],
+    "seconds": 153.593,
+    "bytes": 289528,
+    "sha256": "a2c35c9e93f6bf4d891be3d21ad22caa34b6e710805f2e634c246aaa6a1b3884",
+    "sha512": "1770ea6fb1a95720bbdda89d8db0c67356c6950278daee151e75bf6d0de6a3b599e8baf154f3b1836664b39664a5fa009bf7607648be3358bf4b75c704b555ff"
+  }
+]

@@ -34,7 +34,7 @@ CARGO_TARGET_DIR=target cargo test \
   --manifest-path network-prover/Cargo.toml --release --locked
 cargo audit -D unsound
 cargo audit --file network-prover/Cargo.lock \
-  --ignore RUSTSEC-2026-0002 -D unsound
+  --ignore RUSTSEC-2026-0002 --ignore RUSTSEC-2026-0253 -D unsound
 ```
 
 The serial test setting prevents multiple 256 MiB RandomX cache tests from

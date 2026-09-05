@@ -108,4 +108,4 @@ jobs:
       - name: Audit guest workspace
         run: cargo audit -D unsound
       - name: Audit prover client
-        run: cargo audit --file network-prover/Cargo.lock --ignore RUSTSEC-2026-0002 -D unsound
+        run: cargo audit --file network-prover/Cargo.lock --ignore RUSTSEC-2026-0002 --ignore RUSTSEC-2026-0253 -D unsound

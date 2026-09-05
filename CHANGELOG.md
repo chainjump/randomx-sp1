@@ -6,6 +6,9 @@ The format follows Keep a Changelog, and releases use semantic versioning.
 
 ## Unreleased
 
+- Updated network-client `h2` and `chacha20` dependencies; documented the
+  unreachable `lru::LruCache::pop` advisory and pinned the corrected guest.
+
 - Fixed superscalar `IMULH_R` and `ISMULH_R` register-selection metadata to
   match RandomX v1.2.3, preserving random group parameters during source selection.
 - Documented the canonical and adversarial host review, remaining differences,

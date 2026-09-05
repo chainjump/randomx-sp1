@@ -1,0 +1,41 @@
+estimated gas chunk 1 through SP1 cycle 943759170: 1191209881 PGU
+estimated gas chunk 2 through SP1 cycle 1866653001: 1219275427 PGU
+estimated gas chunk 3 through SP1 cycle 2723315653: 1122045430 PGU
+estimated gas chunk 4 through SP1 cycle 3580782048: 1123205467 PGU
+estimated gas chunk 5 through SP1 cycle 4437603999: 1120362251 PGU
+estimated gas chunk 6 through SP1 cycle 5210820834: 994792806 PGU
+estimated gas chunk 7 through SP1 cycle 5607939631: 328260612 PGU
+estimated gas chunk 8 through SP1 cycle 6035676815: 356391574 PGU
+estimated gas chunk 9 through SP1 cycle 6419155677: 315155483 PGU
+estimated gas chunk 10 through SP1 cycle 6447168673: 27152813 PGU
+SP1 cycles: 6447168673
+SP1 PGU: 7797851749
+gas trace chunks: 10
+estimated gas trace chunks: 10
+gas trace threshold: 134217728
+gas estimator workers: 1
+public values: 5cff906139956eb646100adef11db2e00464ffabfdf4d5a194d54f0000000000
+guest exit code: 0
+	Command being timed: "target/release/randomx-sp1-executor --estimate-gas /root/experiment/randomx-sp1/artifacts/v0.1.1/randomx-sp1-program 5cff906139956eb646100adef11db2e00464ffabfdf4d5a194d54f0000000000 0e3b4521acd1982c62a99b6b76ad8504eaa80e164d8e9df3f047b1cf6607f2bd 1010ba9ca3d306df66d34b58d9c65ee20ca8e7c307608db0f7c4e7c6b450bc38e3348d2778f51b4940173c7c0f26941324afc7aa4e30ffa1b2cd80a84ebbfc464833d6222bee72886d3a9d8a01"
+	User time (seconds): 498.71
+	System time (seconds): 10.56
+	Percent of CPU this job got: 77%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 10:59.22
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 2634732
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 75
+	Minor (reclaiming a frame) page faults: 696043
+	Voluntary context switches: 13261
+	Involuntary context switches: 155928
+	Swaps: 0
+	File system inputs: 1792
+	File system outputs: 72
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

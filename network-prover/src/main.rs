@@ -21,7 +21,7 @@ const DEFAULT_AUCTION_TIMEOUT_SECS: u64 = 600;
 const MIN_REQUEST_TIMEOUT_SECS: u64 = 600;
 const PROVE_WEI: u128 = 1_000_000_000_000_000_000;
 const APPROVED_ELF_SHA256: Option<&str> =
-    Some("d3a15025cf7619615b1be5d35c7d8e3910aac8a399f009319a44235910518940");
+    Some("a2c35c9e93f6bf4d891be3d21ad22caa34b6e710805f2e634c246aaa6a1b3884");
 const USAGE: &str = "usage:
   randomx-sp1-network-prover account <private-key-file> [pgu-limit]
   randomx-sp1-network-prover prove <private-key-file> <elf> <request-id-file> <proof-file> <vkey-file>
@@ -649,13 +649,13 @@ mod tests {
         assert!(error.to_string().contains("ELF SHA-256 mismatch"));
         assert_eq!(
             APPROVED_ELF_SHA256,
-            Some("d3a15025cf7619615b1be5d35c7d8e3910aac8a399f009319a44235910518940")
+            Some("a2c35c9e93f6bf4d891be3d21ad22caa34b6e710805f2e634c246aaa6a1b3884")
         );
     }
 
     #[test]
     fn retained_release_elf_is_approved() {
-        validate_elf(include_bytes!("../../artifacts/randomx-sp1-program")).unwrap();
+        validate_elf(include_bytes!("../../artifacts/v0.1.1/randomx-sp1-program")).unwrap();
     }
 
     #[test]
