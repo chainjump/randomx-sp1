@@ -1,0 +1,9 @@
+unchecked superscalar: 4096 programs match
+unchecked superscalar: 8192 programs match
+unchecked superscalar: 12288 programs match
+unchecked superscalar: 16384 programs match
+unchecked superscalar: 20480 programs match
+unchecked superscalar: 24576 programs match
+unchecked superscalar: 28672 programs match
+unchecked superscalar: 32768 programs match
+PASS: 32768 production unchecked superscalar executions and address registers match canonical

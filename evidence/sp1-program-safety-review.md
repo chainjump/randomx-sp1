@@ -2,6 +2,11 @@
 
 Review date: 2026-07-29 UTC
 
+Historical scope: this record concerns the pre-fix source and guest identified
+below. The [2026-09-05 review](randomx-review-2026-09-05/README.md) subsequently
+found and corrected a RandomX superscalar correctness defect. Its host-side
+validation does not refresh the ELF or proof evidence in this older record.
+
 ## Result
 
 No known SP1-unsupported or proof-unsound behavior is reachable from the
@@ -22,8 +27,8 @@ This is a code review and test record, not a formal verification claim.
 
 ## Build status
 
-The source and dependency review is complete. The current source was built
-twice with SP1 6.3.1's pinned Docker image; the byte-identical ELF, locally
+The source and dependency review for that revision was completed. That source
+was built twice with SP1 6.3.1's pinned Docker image; the byte-identical ELF, locally
 derived vkey, disassembly review, and real-block execution measurements are
 recorded in `reproducible-build-2026-07-30.md`. The exact ELF was subsequently
 proven on the Succinct Prover Network, verified locally, and accepted by an

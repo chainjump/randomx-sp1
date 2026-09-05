@@ -1,0 +1,12 @@
+{
+  "argon2/src/core.rs": "f59cc8799aae2802cd837478ecfa062d5583c9bba9fadceb4fc9f78f400a1379",
+  "argon2/src/block.rs": "3d9044e6ea2907c44bde753e480f19faa3dde9842f4d75c28c4541987b080a75",
+  "randomx-core/src/superscalar.rs": "6aff80741777a144567fe9a28f6322438247015a0a8f26a44136dbfa51cd9be0",
+  "randomx-core/src/memory.rs": "9e990e3795d9eb070a77ad2d5a2131135d7f647a340d0a1756e9c168e060a16c",
+  "randomx-core/src/hash.rs": "9220398f7cfaf77948917beb24b10aff4c6429b7f72cfc6032dc03986cac6eb7",
+  "randomx-core/src/m128.rs": "e42525d9c84cfa771d505388bc0e833fc96337eb0593f151ef004065b78ec639",
+  "randomx-core/src/vm.rs": "6a1829fd5b3e6ae56aae1a86e7c38d9670eab653b6a7e7485c519c5c8522a726",
+  "randomx-sp1/src/lib.rs": "24aa44c45544a29e1c1bf90115cc25983f0de9862de7d01bacc330efee21b450",
+  "softfp/src/lib.rs": "e4a8c385c520d808d3cd2b393b023ce746074138f45960dad0d8d09a0afa3fb0",
+  "program/src/main.rs": "63f6178cd1d1e88ac36b74941d1a396f1c6843d64ade08dbc8e9c7565c9ac169"
+}

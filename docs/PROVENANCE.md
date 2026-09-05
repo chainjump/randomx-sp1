@@ -11,6 +11,13 @@ Release `v0.1.0` is identified by its signed Git tag. The guest source and
 `9eeaf6349e4f2cdd2576dc79b5629f05e197e6bb`, the reproducible build, the live
 proof, and the release.
 
+The subsequent superscalar correctness fix is committed in
+`48e096823fd332076c2b5ab0e272beee27b2b473`. The retained `v0.1.0` ELF, vkey and
+proof below all predate that fix. The
+[2026-09-05 review](../evidence/randomx-review-2026-09-05/README.md) records the
+new host-side evidence; a production guest using the corrected revision still
+needs its own build, execution, proof and verification record.
+
 ## Retained identities
 
 - `artifacts/randomx-sp1-program` is the reproducible SP1 ELF with SHA-256

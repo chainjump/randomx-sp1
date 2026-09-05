@@ -1,0 +1,4 @@
+PASS 49152 Argon compression cases (including uninitialized Rust destinations on first pass)
+PASS 7864300 Argon reference indices covering every block position in all three passes
+PASS 4097 Argon initial hashes, key lengths 0 through 4096
+PASS 30720 Argon H-prime cases, output lengths 1 through 2048

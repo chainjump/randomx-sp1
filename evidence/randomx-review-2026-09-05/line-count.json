@@ -1,0 +1,97 @@
+{
+  "definition": "Nonblank, noncomment Rust source lines, counting attributes. Implementation: library src plus main guest, excluding trailing cfg(test) sections, canonical_v1_tests.rs, tools, audit crate, probes, benchmarks and network-prover. Includes alternate target/feature implementations and internal reference code. Third-party dependencies excluded.",
+  "components": [
+    {
+      "file": "randomx-sp1/src/lib.rs",
+      "active_source_lines": 1088,
+      "all_code_lines": 1451,
+      "test_tail_starts_at": 1247
+    },
+    {
+      "file": "randomx-core/src/common.rs",
+      "active_source_lines": 49,
+      "all_code_lines": 49,
+      "test_tail_starts_at": null
+    },
+    {
+      "file": "randomx-core/src/hash.rs",
+      "active_source_lines": 146,
+      "all_code_lines": 146,
+      "test_tail_starts_at": null
+    },
+    {
+      "file": "randomx-core/src/lib.rs",
+      "active_source_lines": 9,
+      "all_code_lines": 11,
+      "test_tail_starts_at": 12
+    },
+    {
+      "file": "randomx-core/src/m128.rs",
+      "active_source_lines": 376,
+      "all_code_lines": 535,
+      "test_tail_starts_at": 449
+    },
+    {
+      "file": "randomx-core/src/memory.rs",
+      "active_source_lines": 111,
+      "all_code_lines": 148,
+      "test_tail_starts_at": 150
+    },
+    {
+      "file": "randomx-core/src/program.rs",
+      "active_source_lines": 682,
+      "all_code_lines": 719,
+      "test_tail_starts_at": 726
+    },
+    {
+      "file": "randomx-core/src/superscalar.rs",
+      "active_source_lines": 1291,
+      "all_code_lines": 1465,
+      "test_tail_starts_at": 1401
+    },
+    {
+      "file": "randomx-core/src/vm.rs",
+      "active_source_lines": 634,
+      "all_code_lines": 634,
+      "test_tail_starts_at": null
+    },
+    {
+      "file": "argon2/src/block.rs",
+      "active_source_lines": 28,
+      "all_code_lines": 52,
+      "test_tail_starts_at": 46
+    },
+    {
+      "file": "argon2/src/common.rs",
+      "active_source_lines": 6,
+      "all_code_lines": 6,
+      "test_tail_starts_at": null
+    },
+    {
+      "file": "argon2/src/core.rs",
+      "active_source_lines": 327,
+      "all_code_lines": 410,
+      "test_tail_starts_at": 419
+    },
+    {
+      "file": "argon2/src/lib.rs",
+      "active_source_lines": 5,
+      "all_code_lines": 5,
+      "test_tail_starts_at": null
+    },
+    {
+      "file": "softfp/src/lib.rs",
+      "active_source_lines": 387,
+      "all_code_lines": 640,
+      "test_tail_starts_at": 466
+    },
+    {
+      "file": "program/src/main.rs",
+      "active_source_lines": 9,
+      "all_code_lines": 9,
+      "test_tail_starts_at": null
+    }
+  ],
+  "implementation_total": 5148,
+  "all_rust_except_network_prover": 8663
+}

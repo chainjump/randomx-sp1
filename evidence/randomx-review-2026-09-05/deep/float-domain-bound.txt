@@ -1,0 +1,8 @@
+step=1: max |F| <= 0x1.fffffffffffffp+32 (unbiased exponent 32)
+step=2: max |F| <= 0x1.8000000000001p+33 (unbiased exponent 33)
+step=16: max |F| <= 0x1.000580000000bp+64 (unbiased exponent 64)
+step=64: max |F| <= 0x1.0000000d8001bp+80 (unbiased exponent 80)
+step=256: max |F| <= 0x1.000000000001ap+176 (unbiased exponent 176)
+step=512: max |F| <= 0x1.000000000001ap+304 (unbiased exponent 304)
+step=768: max |F| <= 0x1.000000000001ap+432 (unbiased exponent 432)
+PASS: conservative F-domain upper bound excludes both infinity and FSCAL-to-NaN for every instruction sequence of length <= 768

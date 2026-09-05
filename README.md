@@ -6,12 +6,30 @@ runtime, constructs the complete 256 MiB Argon2d cache, derives each requested
 dataset item, executes all eight RandomX programs, and commits the hash.
 
 The implementation is universal with respect to RandomX inputs: it does not
-embed an epoch key or a hashing blob. Arbitrary key lengths and empty blobs are
-supported and covered by the differential corpus.
+embed an epoch key or a hashing blob. Canonical RandomX specifies keys of
+0–60 bytes and permits empty blobs. Longer keys are accepted, but their
+behavior is implementation-defined; see the review below for the known
+difference at key lengths of 2^32 bytes and above.
 
-A reproducible SP1 v6.3.1 ELF and its derived vkey define this repository's
-standalone program identity. Separately, one fulfilled mainnet Groth16 proof
-is retained as deployment evidence for a single Monero block.
+A reproducible SP1 v6.3.1 ELF and its derived vkey retain the standalone
+program identity of release `v0.1.0`. Separately, one fulfilled mainnet
+Groth16 proof is retained as historical deployment evidence for a single
+Monero block.
+
+## Current source and release status
+
+Commit `48e096823fd332076c2b5ab0e272beee27b2b473` fixes the superscalar
+high-multiply register-selection metadata. Release `v0.1.0`, its earlier
+dependency pin, and the retained ELF predate this fix.
+
+The [2026-09-05 review](evidence/randomx-review-2026-09-05/README.md) records
+the defect, regression, canonical comparisons, remaining differences, and
+production-validation gaps. No further critical hash discrepancy was found
+for the specified key domain. The corrected source has extensive host-side
+validation, but the final production SP1 guest still needs to be built,
+executed against canonical results, and proven and verified with its own
+verification key before funds are put at risk. The retained artifacts do
+not validate this corrected source. No new release is being announced.
 
 ## Correctness
 
@@ -48,15 +66,17 @@ syscall, dependency, and provenance review is recorded in
 ## Quickstart for dependent SP1 programs
 
 Use `randomx-sp1` as a Rust source dependency inside the dependent program's
-own SP1 guest. The crate is not published to crates.io, so pin the immutable
-reviewed library-source revision used by `v0.1.0` rather than a moving branch.
-Release-only documentation and artifact packaging do not change this source:
+own SP1 guest. The crate is not published to crates.io. Pin the immutable
+source revision containing the superscalar correction:
 
 ```toml
 [dependencies]
-randomx-sp1 = { git = "https://github.com/chainjump/randomx-sp1.git", rev = "01d7e7de62b0fa980feb017bde5bc4bb77895c75" }
+randomx-sp1 = { git = "https://github.com/chainjump/randomx-sp1.git", rev = "48e096823fd332076c2b5ab0e272beee27b2b473" }
 sp1-zkvm = "=6.3.1"
 ```
+
+This is the corrected development source, not a new validated binary release.
+The previous pin, `01d7e7de62b0fa980feb017bde5bc4bb77895c75`, contains the bug.
 
 The only stable library entry point is `randomx_sp1::hash`:
 
@@ -86,7 +106,7 @@ parent guest—not this repository's standalone guest:
 
 ```bash
 cargo prove build --docker --tag v6.3.1 --locked
-cargo prove vkey --elf <path-to-parent-elf>
+cargo prove vkey --elf /path/to/parent-elf
 ```
 
 Before release, the dependent project must execute and test that complete ELF,
@@ -115,19 +135,19 @@ implementation details, not supported downstream APIs. Upstream lineage and
 retained licenses are recorded in `ATTRIBUTION.md`; the public library is
 GPL-3.0-only.
 
-## Reproduce the ELF and vkey
+## Reproduce the historical ELF and vkey
 
-The ELF and vkey below identify only the standalone program in `program/`.
-They may be reused for further proofs of that exact ELF, but not for a parent
-program that links this library. The proof of one block is not part of the
-standalone program identity.
+The ELF and vkey below identify the pre-fix `v0.1.0` standalone program.
+They are retained for provenance and do not identify the corrected source or
+a parent program that links this library. The proof of one block is not part
+of the standalone program identity.
 
 | Artifact | Standalone program identity |
 | --- | --- |
 | [SP1 ELF](artifacts/randomx-sp1-program) | 289,512 bytes; SHA-256 `d3a15025cf7619615b1be5d35c7d8e3910aac8a399f009319a44235910518940` |
 | [Program vkey](artifacts/randomx-sp1-program.vkey) | `0x00ef0352217c1bd40da717b661a67da22554bbddc4589ee54fd836f15cc0a771` |
 
-Check the retained production artifacts with:
+Check the retained historical artifacts with:
 
 ```bash
 (cd artifacts && sha256sum --check SHA256SUMS)
@@ -138,13 +158,17 @@ also attaches the ELF, vkey, proof data, request ID, and a flat
 `SHA256SUMS` manifest so the complete release bundle can be checked without a
 repository checkout.
 
-To independently bind the source to the ELF, install Docker and the SP1 6.3.1
-CLI (`sp1up --version 6.3.1`), then build into a temporary directory:
+To reproduce this historical ELF, install Docker and the SP1 6.3.1 CLI
+(`sp1up --version 6.3.1`), then build its recorded source revision in an
+isolated worktree. Building current corrected source is expected to produce
+a different ELF and requires deriving a new vkey.
 
 ```bash
 rebuild_dir="$(mktemp -d)"
+git worktree add --detach "$rebuild_dir/source" \
+  9eeaf6349e4f2cdd2576dc79b5629f05e197e6bb
 (
-  cd program
+  cd "$rebuild_dir/source/program"
   cargo prove build --docker --tag v6.3.1 --locked \
     --binaries randomx-sp1-program \
     --elf-name randomx-sp1-program \

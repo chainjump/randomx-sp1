@@ -1,0 +1,6 @@
+PASS Superscalar source outside the replaced RNG is unchanged; private scheduler wrapper appended.
+PASS argon2/src/core.rs: exact original prefix preserved.
+PASS randomx-sp1/src/lib.rs: exact original prefix preserved.
+PASS Directed floating-point source outside replaced nearest-helper module is unchanged.
+PASS All 40 recorded repository source/configuration digests remain unchanged.
+PASS All local report links resolve.

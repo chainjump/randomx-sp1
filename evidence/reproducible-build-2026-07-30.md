@@ -2,6 +2,12 @@
 
 Date: 2026-07-30 UTC
 
+This is historical evidence for the source revision recorded below. It predates
+the superscalar correction in `48e096823fd332076c2b5ab0e272beee27b2b473` and
+does not validate the corrected source. See the
+[2026-09-05 review](randomx-review-2026-09-05/README.md) for current findings and
+the remaining production SP1 validation.
+
 ## Build identity
 
 The universal guest was built twice with:

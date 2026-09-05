@@ -1,0 +1,5 @@
+biased generator: mode=0 cases=1024 event_counts=[1376211, 524678, 851533, 3450, 3066, 3066, 0, 0, 1025, 0, 0, 0, 0, 0, 0]
+
+thread 'main' (3911747) panicked at src/bin/superscalar_old.rs:16:36:
+program seed=283a6d78569c2e2b mode=1 byte=Some(513)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

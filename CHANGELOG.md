@@ -8,6 +8,9 @@ The format follows Keep a Changelog, and releases use semantic versioning.
 
 - Fixed superscalar `IMULH_R` and `ISMULH_R` register-selection metadata to
   match RandomX v1.2.3, preserving random group parameters during source selection.
+- Documented the canonical and adversarial host review, remaining differences,
+  and production-validation gaps; updated the dependency pin to the corrected
+  source and marked the retained `v0.1.0` guest evidence as historical.
 
 ## 0.1.0 - 2026-07-31
 

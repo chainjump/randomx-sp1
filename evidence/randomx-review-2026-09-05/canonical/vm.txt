@@ -1,0 +1,10 @@
+VM: 262144 instruction cases match
+VM: 524288 instruction cases match
+VM: 786432 instruction cases match
+VM: 1048576 instruction cases match
+VM: 1310720 instruction cases match
+VM: 1572864 instruction cases match
+VM: 1835008 instruction cases match
+VM: 2097152 instruction cases match
+VM: 2359296 instruction cases match
+PASS: 2359296 canonical instruction compile/execute comparisons, all 256 opcodes, 256 modifiers, register aliases, boundary immediates, taken branches, rounding modes, scratchpad writes and 1024 mixed programs for register-usage tracking

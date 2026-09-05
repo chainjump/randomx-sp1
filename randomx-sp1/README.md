@@ -14,6 +14,12 @@ all four `CFROUND` modes in software on SP1. It does not embed a key or blob.
 Each call constructs a fresh cache and is intentionally expensive. Consumers
 must impose any application-specific input-length and resource limits.
 
+Canonical compatibility is reviewed for RandomX's specified 0–60-byte key
+domain. Longer-key behavior is implementation-defined. See the
+[2026-09-05 review](../evidence/randomx-review-2026-09-05/README.md) for the
+superscalar fix, the known large-key difference, and the production SP1
+validation still required. The retained `v0.1.0` ELF predates the fix.
+
 The `randomx-sp1-core`, `randomx-sp1-argon2`, and `randomx-softfp` crates are
 implementation details. Their public Rust items support repository audit and
 profiling tools but are not part of this crate's stable consumer API. The

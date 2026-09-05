@@ -1,0 +1,9 @@
+superscalar: 512 keys, 4096 programs match
+superscalar: 1024 keys, 8192 programs match
+superscalar: 1536 keys, 12288 programs match
+superscalar: 2048 keys, 16384 programs match
+superscalar: 2560 keys, 20480 programs match
+superscalar: 3072 keys, 24576 programs match
+superscalar: 3584 keys, 28672 programs match
+superscalar: 4096 keys, 32768 programs match
+PASS: 2097152 mixed Blake2Generator requests; 32768 serialized superscalar programs, address registers, metrics and executions; 128 AES stage cases

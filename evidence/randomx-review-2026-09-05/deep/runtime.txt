@@ -1,0 +1,2 @@
+PASS 3996180 arithmetic comparisons using pinned toolchain integer helpers and portable sqrt, all four rounding modes
+PASS 1982725 additional nearest-helper checks, including subnormals, signed zeros, underflow and infinity

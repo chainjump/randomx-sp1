@@ -1,0 +1,25 @@
+biased production: mode=0 cumulative cases=1024 matched
+biased production: mode=1 cumulative cases=2048 matched
+biased production: mode=2 cumulative cases=3072 matched
+biased production: mode=3 cumulative cases=4096 matched
+biased production: mode=4 cumulative cases=5120 matched
+biased production: mode=5 cumulative cases=6144 matched
+biased production: mode=6 cumulative cases=7168 matched
+biased production: mode=7 cumulative cases=8192 matched
+biased production: mode=8 cumulative cases=9216 matched
+biased production: mode=9 cumulative cases=10240 matched
+biased production: mode=10 cumulative cases=11264 matched
+biased production: mode=11 cumulative cases=12288 matched
+biased production: mode=12 cumulative cases=13312 matched
+biased production: mode=13 cumulative cases=14336 matched
+biased production: mode=14 cumulative cases=15360 matched
+biased production: mode=15 cumulative cases=16384 matched
+biased production: mode=16 cumulative cases=17408 matched
+biased production: mode=17 cumulative cases=18432 matched
+biased production: mode=18 cumulative cases=19456 matched
+biased production: mode=19 cumulative cases=20480 matched
+biased production: mode=20 cumulative cases=21504 matched
+biased production: mode=21 cumulative cases=22528 matched
+biased production: mode=22 cumulative cases=23552 matched
+biased production: mode=23 cumulative cases=24576 matched
+PASS 24576 biased superscalar programs with compact=true, unchecked=true, precomputed_reciprocal=true
