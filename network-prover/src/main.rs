@@ -2,7 +2,7 @@ use std::{env, fs, path::Path, str::FromStr, time::Duration};
 
 use alloy_primitives::{keccak256, Address, Bytes, B256};
 use alloy_sol_types::{sol, SolCall};
-use anyhow::{bail, ensure, Context, Result};
+use anyhow::{bail, Context, Result};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use sp1_sdk::{
@@ -407,15 +407,6 @@ async fn query_quote(client: &NetworkClient, pgu_limit: u64) -> Result<Quote> {
 
     let raw_price = parse_u64(&params.max_price_per_pgu, "max price per PGU")?;
     let sdk_price_cap = align_to_tick(raw_price.saturating_mul(120) / 100, params.tick_size);
-    let network_floor = if params.network_floor_price_per_pgu.is_empty() {
-        0
-    } else {
-        parse_u64(&params.network_floor_price_per_pgu, "minimum price per PGU")?
-    };
-    ensure!(
-        sdk_price_cap >= network_floor,
-        "quoted proof price cap is below the network minimum"
-    );
     let base_fee = parse_u64(&params.base_fee, "Groth16 base fee")?;
     let cost_cap = u128::from(base_fee)
         .checked_add(u128::from(sdk_price_cap) * u128::from(pgu_limit))
@@ -664,7 +655,10 @@ mod tests {
 
     #[test]
     fn retained_release_elf_is_approved() {
-        validate_elf(include_bytes!("../../artifacts/randomx-sp1-program")).unwrap();
+        validate_elf(include_bytes!(
+            "../../artifacts/sp1-6.10.0/randomx-sp1-program"
+        ))
+        .unwrap();
     }
 
     #[test]

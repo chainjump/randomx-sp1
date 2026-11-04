@@ -16,9 +16,16 @@ gas limit:   8000000000
 deadline:    3600 seconds
 ```
 
-The current candidate uses SP1 6.10.0. Its local execution measurements are
-recorded in `../artifacts/MANIFEST.json`. No network proof or live gateway test
-has been performed for this guest; older release artifacts have been removed.
+The pinned reproducible ELF measured 6,485,505,563 SP1 cycles and
+7,857,197,602 calibrated PGU for this block. The configured limits therefore
+leave 14,494,437 cycles and 142,802,398 PGU of deterministic headroom.
+
+The earlier SP1 6.3.1 ELF was reproduced and executed against the canonical
+hash for this block. Its network proof passed local SP1 verification
+and Ethereum-mainnet verification through two RPC providers, including
+rejection controls. The [completed record](../evidence/production-2026-09-05/README.md)
+contains that proof and its exact identities. The SP1 6.10.0 guest has no
+network proof yet.
 
 The client validates the canonical 77-byte hashing blob against the block ID,
 checks the RandomX epoch height and Monero difficulty, checks the approved ELF
@@ -48,11 +55,16 @@ The nested workspace intentionally uses the root workspace's ThinLTO release
 profile so Cargo can reuse the existing SP1 host dependency cache without
 changing the guest workspace or its lockfile.
 
-The SP1 upgrade removes the old SP1 `lru` dependencies. The remaining
-vulnerability finding is `RUSTSEC-2026-0387` in transitive `crypto-bigint 0.5.5`;
-its fix requires a newer, incompatible dependency line. The raw audit command
-reports this finding and upstream maintenance warnings. Review
-`../artifacts/dependency-audit.json` before authorizing a funded request.
+The prior SP1 6.3.1 audit had two narrowly scoped exceptions for `lru 0.12.5`:
+`RUSTSEC-2026-0002` affects `IterMut::next` and `next_back`, and
+`RUSTSEC-2026-0253` affects `LruCache::pop` when a key's destructor panics.
+The dependency is transitive through the pinned `sp1-prover 6.3.1`; its two
+private `LruCache` fields use only construction, `get`, `push`, and `put`.
+Neither affected API is called, and this client does not use `lru` directly.
+The audit command denies every other unsoundness advisory. Reassess these
+exceptions when changing SP1 or its cache usage. The HTTP/2 dependency is
+updated to `h2 0.4.16` to fix `RUSTSEC-2026-0258`; `chacha20 0.10.2`
+replaces the yanked version with its CPU feature-detection fix.
 
 ## Quote, submit, and resume
 
@@ -65,10 +77,10 @@ target/release/randomx-sp1-network-prover account \
 
 target/release/randomx-sp1-network-prover prove \
   .secrets/succinct-network-requester.key \
-  artifacts/randomx-sp1-program \
-  evidence/current-network-proof/request-id \
-  evidence/current-network-proof/proof.bin \
-  artifacts/randomx-sp1-program.vkey
+  artifacts/sp1-6.10.0/randomx-sp1-program \
+  out/sp1-6.10.0/request-id \
+  out/sp1-6.10.0/proof.bin \
+  artifacts/sp1-6.10.0/randomx-sp1-program.vkey
 ```
 
 The request ID is persisted before waiting. If the waiting process stops,
@@ -77,10 +89,10 @@ resume without submitting or paying for a second request:
 ```bash
 target/release/randomx-sp1-network-prover resume \
   .secrets/succinct-network-requester.key \
-  artifacts/randomx-sp1-program \
-  evidence/current-network-proof/request-id \
-  evidence/current-network-proof/proof.bin \
-  artifacts/randomx-sp1-program.vkey
+  artifacts/sp1-6.10.0/randomx-sp1-program \
+  out/sp1-6.10.0/request-id \
+  out/sp1-6.10.0/proof.bin \
+  artifacts/sp1-6.10.0/randomx-sp1-program.vkey
 ```
 
 The returned proof is accepted only after SP1 verification succeeds and its
@@ -94,9 +106,9 @@ Ethereum mainnet JSON-RPC endpoint:
 ```bash
 EVM_RPC_URL=https://example.invalid \
 target/release/randomx-sp1-network-prover evm-verify \
-  artifacts/randomx-sp1-program \
-  artifacts/randomx-sp1-program.vkey \
-  evidence/current-network-proof/proof.bin
+  artifacts/sp1-6.10.0/randomx-sp1-program \
+  artifacts/sp1-6.10.0/randomx-sp1-program.vkey \
+  out/sp1-6.10.0/proof.bin
 ```
 
 This command only issues `eth_chainId` and `eth_call`, and rejects any chain ID

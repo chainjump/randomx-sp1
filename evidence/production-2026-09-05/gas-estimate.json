@@ -1,0 +1,16 @@
+{
+  "command": [
+    "/usr/bin/time",
+    "-v",
+    "target/release/randomx-sp1-executor",
+    "--estimate-gas",
+    "/root/experiment/randomx-sp1/artifacts/v0.1.1/randomx-sp1-program",
+    "5cff906139956eb646100adef11db2e00464ffabfdf4d5a194d54f0000000000",
+    "0e3b4521acd1982c62a99b6b76ad8504eaa80e164d8e9df3f047b1cf6607f2bd",
+    "1010ba9ca3d306df66d34b58d9c65ee20ca8e7c307608db0f7c4e7c6b450bc38e3348d2778f51b4940173c7c0f26941324afc7aa4e30ffa1b2cd80a84ebbfc464833d6222bee72886d3a9d8a01"
+  ],
+  "elf_sha256": "a2c35c9e93f6bf4d891be3d21ad22caa34b6e710805f2e634c246aaa6a1b3884",
+  "exit_code": 0,
+  "seconds": 659.268,
+  "log": "estimated gas chunk 1 through SP1 cycle 943759170: 1191209881 PGU\nestimated gas chunk 2 through SP1 cycle 1866653001: 1219275427 PGU\nestimated gas chunk 3 through SP1 cycle 2723315653: 1122045430 PGU\nestimated gas chunk 4 through SP1 cycle 3580782048: 1123205467 PGU\nestimated gas chunk 5 through SP1 cycle 4437603999: 1120362251 PGU\nestimated gas chunk 6 through SP1 cycle 5210820834: 994792806 PGU\nestimated gas chunk 7 through SP1 cycle 5607939631: 328260612 PGU\nestimated gas chunk 8 through SP1 cycle 6035676815: 356391574 PGU\nestimated gas chunk 9 through SP1 cycle 6419155677: 315155483 PGU\nestimated gas chunk 10 through SP1 cycle 6447168673: 27152813 PGU\nSP1 cycles: 6447168673\nSP1 PGU: 7797851749\ngas trace chunks: 10\nestimated gas trace chunks: 10\ngas trace threshold: 134217728\ngas estimator workers: 1\npublic values: 5cff906139956eb646100adef11db2e00464ffabfdf4d5a194d54f0000000000\nguest exit code: 0\n\tCommand being timed: \"target/release/randomx-sp1-executor --estimate-gas /root/experiment/randomx-sp1/artifacts/v0.1.1/randomx-sp1-program 5cff906139956eb646100adef11db2e00464ffabfdf4d5a194d54f0000000000 0e3b4521acd1982c62a99b6b76ad8504eaa80e164d8e9df3f047b1cf6607f2bd 1010ba9ca3d306df66d34b58d9c65ee20ca8e7c307608db0f7c4e7c6b450bc38e3348d2778f51b4940173c7c0f26941324afc7aa4e30ffa1b2cd80a84ebbfc464833d6222bee72886d3a9d8a01\"\n\tUser time (seconds): 498.71\n\tSystem time (seconds): 10.56\n\tPercent of CPU this job got: 77%\n\tElapsed (wall clock) time (h:mm:ss or m:ss): 10:59.22\n\tAverage shared text size (kbytes): 0\n\tAverage unshared data size (kbytes): 0\n\tAverage stack size (kbytes): 0\n\tAverage total size (kbytes): 0\n\tMaximum resident set size (kbytes): 2634732\n\tAverage resident set size (kbytes): 0\n\tMajor (requiring I/O) page faults: 75\n\tMinor (reclaiming a frame) page faults: 696043\n\tVoluntary context switches: 13261\n\tInvoluntary context switches: 155928\n\tSwaps: 0\n\tFile system inputs: 1792\n\tFile system outputs: 72\n\tSocket messages sent: 0\n\tSocket messages received: 0\n\tSignals delivered: 0\n\tPage size (bytes): 4096\n\tExit status: 0\n"
+}

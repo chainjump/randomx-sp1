@@ -1,0 +1,299 @@
+{
+  "elf_sha256": "a2c35c9e93f6bf4d891be3d21ad22caa34b6e710805f2e634c246aaa6a1b3884",
+  "results": [
+    {
+      "name": "empty/empty",
+      "exit_code": 0,
+      "seconds": 17.408,
+      "output": "SP1 cycles: 6465194065\npublic values: 3123524bf9b08bb26a819572c58672f0196bf9aac2982aed0a39e6096f0b72a1\nguest exit code: 0\n"
+    },
+    {
+      "name": "empty/one-byte",
+      "exit_code": 0,
+      "seconds": 16.223,
+      "output": "SP1 cycles: 6519819902\npublic values: 252369624145d157a0b259e760a0765f8bf8abb6e14a146bf5433ae31fa7e210\nguest exit code: 0\n"
+    },
+    {
+      "name": "empty/text",
+      "exit_code": 0,
+      "seconds": 15.682,
+      "output": "SP1 cycles: 6523276163\npublic values: b6fb4936cda630deaf6c358eb18aa807cc6cc5f7b7b78dc75d45491109dbef77\nguest exit code: 0\n"
+    },
+    {
+      "name": "empty/blob-76",
+      "exit_code": 0,
+      "seconds": 18.669,
+      "output": "SP1 cycles: 6573308887\npublic values: 005d35c440130b7c203a865ebcdc3c52a395414f2510b8ac127ce5ea30c1a645\nguest exit code: 0\n"
+    },
+    {
+      "name": "empty/blob-257",
+      "exit_code": 0,
+      "seconds": 19.261,
+      "output": "SP1 cycles: 6354119632\npublic values: f050a6fb202560de486d08175f1891ea1c7ca123d8764306497ad21875b1e386\nguest exit code: 0\n"
+    },
+    {
+      "name": "empty/blob-4096",
+      "exit_code": 0,
+      "seconds": 21.25,
+      "output": "SP1 cycles: 6494463044\npublic values: 1fe140c8386b6acbcf2b74479ae5595652f7ef5c5c494ebc5bacc1d7b1275846\nguest exit code: 0\n"
+    },
+    {
+      "name": "one-byte/empty",
+      "exit_code": 0,
+      "seconds": 22.001,
+      "output": "SP1 cycles: 6456486844\npublic values: 6b7de79ef1c6590d250e9b33b47e3030ca107f2f41fba1b703680d3bb283a35f\nguest exit code: 0\n"
+    },
+    {
+      "name": "one-byte/one-byte",
+      "exit_code": 0,
+      "seconds": 21.183,
+      "output": "SP1 cycles: 6506788244\npublic values: 17be7bd3bbbb2f75bff4a79aad25bbb6082eaf1caf77cb32d754a4ed07f33a70\nguest exit code: 0\n"
+    },
+    {
+      "name": "one-byte/text",
+      "exit_code": 0,
+      "seconds": 20.582,
+      "output": "SP1 cycles: 6465937842\npublic values: 66f3a7e7beb111d0931b4cefca15db29bfcbcf507d3eb8edf0f8d7114146fe92\nguest exit code: 0\n"
+    },
+    {
+      "name": "one-byte/blob-76",
+      "exit_code": 0,
+      "seconds": 20.604,
+      "output": "SP1 cycles: 6434447184\npublic values: dc4dead592b9c98817dbfa84017768e4a71b648774cd56720f2b42628f04b86f\nguest exit code: 0\n"
+    },
+    {
+      "name": "one-byte/blob-257",
+      "exit_code": 0,
+      "seconds": 19.281,
+      "output": "SP1 cycles: 6426140934\npublic values: fa0ed1f6f39c7eaf921f37b23ccb5282433f04e3df5c331745a56f841a82cefe\nguest exit code: 0\n"
+    },
+    {
+      "name": "one-byte/blob-4096",
+      "exit_code": 0,
+      "seconds": 20.535,
+      "output": "SP1 cycles: 6488269386\npublic values: c4c2d8d271e4167dc4966abf6466449d67217ce17256e926273d2b6899ab06a6\nguest exit code: 0\n"
+    },
+    {
+      "name": "test-key/empty",
+      "exit_code": 0,
+      "seconds": 21.181,
+      "output": "SP1 cycles: 6468306290\npublic values: 7bfae546a780892da6142b5b1316ac1d97c091ef529e66ab49a37867a984f0f5\nguest exit code: 0\n"
+    },
+    {
+      "name": "test-key/one-byte",
+      "exit_code": 0,
+      "seconds": 21.408,
+      "output": "SP1 cycles: 6468844217\npublic values: 4064779f20419afbf0205fe654188058ef1d37479c6ea631ba16f679a7a68680\nguest exit code: 0\n"
+    },
+    {
+      "name": "test-key/text",
+      "exit_code": 0,
+      "seconds": 20.657,
+      "output": "SP1 cycles: 6536585838\npublic values: ad4f5466b4a2818580eccbbff645c72815bac870420324d16bbd478374270add\nguest exit code: 0\n"
+    },
+    {
+      "name": "test-key/blob-76",
+      "exit_code": 0,
+      "seconds": 24.378,
+      "output": "SP1 cycles: 6464917451\npublic values: 9b0d27753eabdadf8f5a5dc0dfd741c86a2c646b4648d8e19b0f98dbc2215ec0\nguest exit code: 0\n"
+    },
+    {
+      "name": "test-key/blob-257",
+      "exit_code": 0,
+      "seconds": 20.994,
+      "output": "SP1 cycles: 6426647377\npublic values: 51a3e4f2ddd81d13f954991a5f451255fa4df020167f87b90af5b3c125765927\nguest exit code: 0\n"
+    },
+    {
+      "name": "test-key/blob-4096",
+      "exit_code": 0,
+      "seconds": 21.089,
+      "output": "SP1 cycles: 6507293288\npublic values: 98fb8448a21ad13e79e696a4101800fb16826f9c172de77b331eb0a60a8cfa0d\nguest exit code: 0\n"
+    },
+    {
+      "name": "zero-32/empty",
+      "exit_code": 0,
+      "seconds": 21.993,
+      "output": "SP1 cycles: 6446691681\npublic values: 536582394cbba53e9bd3c5162a0fe9a001e32ff2d7aee66a887ddec9775ad95d\nguest exit code: 0\n"
+    },
+    {
+      "name": "zero-32/one-byte",
+      "exit_code": 0,
+      "seconds": 22.102,
+      "output": "SP1 cycles: 6471145230\npublic values: 0b7857b63b15bb0ba58889912b02b1d30d7ecbd281d498a8b1b44f66a9c70fc3\nguest exit code: 0\n"
+    },
+    {
+      "name": "zero-32/text",
+      "exit_code": 0,
+      "seconds": 22.969,
+      "output": "SP1 cycles: 6523875397\npublic values: 39c8e33336f93ccf809ce402896514a337b7ce0928576abf17babcef98e598e4\nguest exit code: 0\n"
+    },
+    {
+      "name": "zero-32/blob-76",
+      "exit_code": 0,
+      "seconds": 20.905,
+      "output": "SP1 cycles: 6435989944\npublic values: d649c70b1d8c1b301813fb79cfd1ba607c52a536dea044e551b78053d66124a6\nguest exit code: 0\n"
+    },
+    {
+      "name": "zero-32/blob-257",
+      "exit_code": 0,
+      "seconds": 22.935,
+      "output": "SP1 cycles: 6473479542\npublic values: 141febe0be102159ff891f9f52ee5a0b6a2c80479f5d2feacc5ee266522afec8\nguest exit code: 0\n"
+    },
+    {
+      "name": "zero-32/blob-4096",
+      "exit_code": 0,
+      "seconds": 21.831,
+      "output": "SP1 cycles: 6484079792\npublic values: 89224085007e8fc8f77b4453e147fa7819ea798809c41cffe5ba7e4dc4612071\nguest exit code: 0\n"
+    },
+    {
+      "name": "monero/empty",
+      "exit_code": 0,
+      "seconds": 21.168,
+      "output": "SP1 cycles: 6442289122\npublic values: 50dbd5c85d1d6a62333f3b38180297a985e8afaa98362d2ae6e883e7c18adb9f\nguest exit code: 0\n"
+    },
+    {
+      "name": "monero/one-byte",
+      "exit_code": 0,
+      "seconds": 23.097,
+      "output": "SP1 cycles: 6536805179\npublic values: e7de3835ec1dc0611fc42057e2378e5ab655038444d55402a330d6eb75af2929\nguest exit code: 0\n"
+    },
+    {
+      "name": "monero/text",
+      "exit_code": 0,
+      "seconds": 23.721,
+      "output": "SP1 cycles: 6476228209\npublic values: ab180f44bbe851dbbac5c8f5bedbebc7208f5e4964c35270ca41438d54915e04\nguest exit code: 0\n"
+    },
+    {
+      "name": "monero/blob-76",
+      "exit_code": 0,
+      "seconds": 19.96,
+      "output": "SP1 cycles: 6456863629\npublic values: 26cf76d035746f1bea24ec6ba6b2634f49a529d017eed4ac4270005b33e9c074\nguest exit code: 0\n"
+    },
+    {
+      "name": "monero/blob-257",
+      "exit_code": 0,
+      "seconds": 18.696,
+      "output": "SP1 cycles: 6370469156\npublic values: a70643582a234581766cdcfa7bbef6603ebe906a381f9990fc788c6faf8e0713\nguest exit code: 0\n"
+    },
+    {
+      "name": "monero/blob-4096",
+      "exit_code": 0,
+      "seconds": 17.769,
+      "output": "SP1 cycles: 6543323755\npublic values: 89b416697a0efc991c33f26010732bec07365d34ae16e4e2137feade5ece78e8\nguest exit code: 0\n"
+    },
+    {
+      "name": "pattern-60/empty",
+      "exit_code": 0,
+      "seconds": 16.202,
+      "output": "SP1 cycles: 6513617209\npublic values: 5a51f4730822921fe4db839099355d54096692eb05e5c67e2806a3758dd0a69f\nguest exit code: 0\n"
+    },
+    {
+      "name": "pattern-60/one-byte",
+      "exit_code": 0,
+      "seconds": 17.12,
+      "output": "SP1 cycles: 6500418260\npublic values: 7769e98f5372da4462292a1a742b4101ef3dee38005fe0bd2e2b8f8fbd7983f8\nguest exit code: 0\n"
+    },
+    {
+      "name": "pattern-60/text",
+      "exit_code": 0,
+      "seconds": 16.076,
+      "output": "SP1 cycles: 6545658031\npublic values: b6c5a1be7b7edd7759488948762ef2e4445686dbaffe67f45a4ea4a33b4202d6\nguest exit code: 0\n"
+    },
+    {
+      "name": "pattern-60/blob-76",
+      "exit_code": 0,
+      "seconds": 16.28,
+      "output": "SP1 cycles: 6495390544\npublic values: 229e7386a3ef4d20cbf42d7f9212d82049f4ec79c143e7864c448cea874e0c9a\nguest exit code: 0\n"
+    },
+    {
+      "name": "pattern-60/blob-257",
+      "exit_code": 0,
+      "seconds": 16.035,
+      "output": "SP1 cycles: 6392928338\npublic values: 6246c9d5c65535d45be787b74f7085374750c06a2783ec72b5950dec0c40d150\nguest exit code: 0\n"
+    },
+    {
+      "name": "pattern-60/blob-4096",
+      "exit_code": 0,
+      "seconds": 15.115,
+      "output": "SP1 cycles: 6510466218\npublic values: ddceadabcb0c308cc17f2db42e47771c50a71843aa5ac443e95104a981895b67\nguest exit code: 0\n"
+    },
+    {
+      "name": "pattern-64/empty",
+      "exit_code": 0,
+      "seconds": 14.736,
+      "output": "SP1 cycles: 6494535783\npublic values: 3e44fcb25b0fcf78c0243bcaa66f6a0b5935703581d73a71f558cff621d6982c\nguest exit code: 0\n"
+    },
+    {
+      "name": "pattern-64/one-byte",
+      "exit_code": 0,
+      "seconds": 15.377,
+      "output": "SP1 cycles: 6536731059\npublic values: e9ddb35160c8f2e59f1b705f7b32d4aa94792b713bf00225a457d35ed05ba6cb\nguest exit code: 0\n"
+    },
+    {
+      "name": "pattern-64/text",
+      "exit_code": 0,
+      "seconds": 14.627,
+      "output": "SP1 cycles: 6502514821\npublic values: 0b27a4c14145598806eb54d08d01db8baa8225de3c6420133bea69fb389c7991\nguest exit code: 0\n"
+    },
+    {
+      "name": "pattern-64/blob-76",
+      "exit_code": 0,
+      "seconds": 15.919,
+      "output": "SP1 cycles: 6488474884\npublic values: 7f0a24500c5e7c03d744794223e0dd0568e1da37174ddd168e73524638773f80\nguest exit code: 0\n"
+    },
+    {
+      "name": "pattern-64/blob-257",
+      "exit_code": 0,
+      "seconds": 15.786,
+      "output": "SP1 cycles: 6463275514\npublic values: 5232dc484b4b0747512cb93c50987a754007da42a34ec4d23331e70bc20d90a6\nguest exit code: 0\n"
+    },
+    {
+      "name": "pattern-64/blob-4096",
+      "exit_code": 0,
+      "seconds": 15.521,
+      "output": "SP1 cycles: 6502094519\npublic values: 6058778ebf38f7d6e5c29bf7ffbaa84b84b65aa7b9cb26af213eb07692861b26\nguest exit code: 0\n"
+    },
+    {
+      "name": "pattern-257/empty",
+      "exit_code": 0,
+      "seconds": 15.724,
+      "output": "SP1 cycles: 6510300234\npublic values: 865c379e56ad8e31f9a49d26516972786c4de17a382819db83a3c1453b5f4bf1\nguest exit code: 0\n"
+    },
+    {
+      "name": "pattern-257/one-byte",
+      "exit_code": 0,
+      "seconds": 15.769,
+      "output": "SP1 cycles: 6437170709\npublic values: e2684c9426106407255fba4d0c01b6e046e3a514e217f8150b905a32fbf86a64\nguest exit code: 0\n"
+    },
+    {
+      "name": "pattern-257/text",
+      "exit_code": 0,
+      "seconds": 15.154,
+      "output": "SP1 cycles: 6564631552\npublic values: 09dd2ce68f13675a08abb02e2d0bca94e5b9a439bf51f20309a9d4e63ebf4740\nguest exit code: 0\n"
+    },
+    {
+      "name": "pattern-257/blob-76",
+      "exit_code": 0,
+      "seconds": 15.387,
+      "output": "SP1 cycles: 6488697866\npublic values: d5f6db035431269a6e467d8f517a9325faa6d8a3172ff88c91da28168216d6c6\nguest exit code: 0\n"
+    },
+    {
+      "name": "pattern-257/blob-257",
+      "exit_code": 0,
+      "seconds": 14.738,
+      "output": "SP1 cycles: 6439496372\npublic values: 647e4f6444265f58493c602eaa0c5ea58a28454b43a162803bd0625d2d88d1cf\nguest exit code: 0\n"
+    },
+    {
+      "name": "pattern-257/blob-4096",
+      "exit_code": 0,
+      "seconds": 14.122,
+      "output": "SP1 cycles: 6507520452\npublic values: 3c9fa1434e1b6d830b39f9d45a49bbc546b49f9ae81abae397076a5591b92439\nguest exit code: 0\n"
+    },
+    {
+      "name": "monero-3727837/network-blob",
+      "exit_code": 0,
+      "seconds": 18.145,
+      "output": "SP1 cycles: 6447168673\npublic values: 5cff906139956eb646100adef11db2e00464ffabfdf4d5a194d54f0000000000\nguest exit code: 0\n"
+    }
+  ]
+}

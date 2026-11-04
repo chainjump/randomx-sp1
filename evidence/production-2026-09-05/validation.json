@@ -1,0 +1,277 @@
+{
+  "guest_source_commit": "5b18879863d140d7ae1aaa25fb2534da4bf89de4",
+  "client_source_commit": "66d1f39f5af381b079e009fe608f7844080cd836",
+  "workspace_checks": [
+    {
+      "name": "fmt",
+      "command": [
+        "cargo",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0,
+      "seconds": 0.395
+    },
+    {
+      "name": "clippy-workspace",
+      "command": [
+        "cargo",
+        "clippy",
+        "--workspace",
+        "--all-targets",
+        "--locked",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "seconds": 6.733
+    },
+    {
+      "name": "clippy-profiling",
+      "command": [
+        "cargo",
+        "clippy",
+        "-p",
+        "randomx-sp1-executor",
+        "--all-targets",
+        "--features",
+        "profiling",
+        "--locked",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "seconds": 1.426
+    },
+    {
+      "name": "clippy-softfp",
+      "command": [
+        "cargo",
+        "clippy",
+        "-p",
+        "randomx-softfp",
+        "--all-targets",
+        "--features",
+        "sp1-guest",
+        "--locked",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "seconds": 1.114
+    },
+    {
+      "name": "clippy-probes",
+      "command": [
+        "cargo",
+        "clippy",
+        "-p",
+        "randomx-sp1-program",
+        "--all-targets",
+        "--features",
+        "profile-probes",
+        "--locked",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "seconds": 2.673
+    },
+    {
+      "name": "clippy-audit",
+      "command": [
+        "cargo",
+        "clippy",
+        "-p",
+        "randomx-sp1",
+        "--all-targets",
+        "--features",
+        "differential-audit",
+        "--locked",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "seconds": 2.142
+    },
+    {
+      "name": "doc",
+      "command": [
+        "cargo",
+        "doc",
+        "-p",
+        "randomx-sp1",
+        "--no-deps",
+        "--locked"
+      ],
+      "exit_code": 0,
+      "seconds": 2.516
+    },
+    {
+      "name": "test-workspace",
+      "command": [
+        "cargo",
+        "test",
+        "--workspace",
+        "--release",
+        "--locked",
+        "--",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 198.168
+    }
+  ],
+  "client_checks": [
+    {
+      "name": "fmt-client-final",
+      "command": [
+        "cargo",
+        "fmt",
+        "--manifest-path",
+        "network-prover/Cargo.toml",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0,
+      "seconds": 0.198
+    },
+    {
+      "name": "clippy-client-final",
+      "command": [
+        "cargo",
+        "clippy",
+        "--manifest-path",
+        "network-prover/Cargo.toml",
+        "--all-targets",
+        "--locked",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "seconds": 121.092
+    },
+    {
+      "name": "test-client-final",
+      "command": [
+        "cargo",
+        "test",
+        "--manifest-path",
+        "network-prover/Cargo.toml",
+        "--release",
+        "--locked"
+      ],
+      "exit_code": 0,
+      "seconds": 610.459
+    },
+    {
+      "name": "build-client",
+      "command": [
+        "cargo",
+        "build",
+        "--manifest-path",
+        "network-prover/Cargo.toml",
+        "--release",
+        "--locked"
+      ],
+      "exit_code": 0,
+      "seconds": 267.332
+    },
+    {
+      "name": "audit-client-final",
+      "command": [
+        "cargo",
+        "audit",
+        "--file",
+        "network-prover/Cargo.lock",
+        "--ignore",
+        "RUSTSEC-2026-0002",
+        "--ignore",
+        "RUSTSEC-2026-0253",
+        "-D",
+        "unsound"
+      ],
+      "exit_code": 0,
+      "seconds": 2.937
+    }
+  ],
+  "workspace_test_counts": {
+    "passed": 45,
+    "failed": 0,
+    "intentionally_ignored": 1
+  },
+  "client_test_counts": {
+    "passed": 7,
+    "failed": 0
+  },
+  "ci_before_paid_request": {
+    "databaseId": 33941470183,
+    "headSha": "66d1f39f5af381b079e009fe608f7844080cd836",
+    "url": "https://github.com/chainjump/randomx-sp1/actions/runs/33941470183",
+    "conclusion": "success"
+  },
+  "ci_jobs": [
+    {
+      "name": "Dependency audit",
+      "conclusion": "success"
+    },
+    {
+      "name": "Release tests",
+      "conclusion": "success"
+    },
+    {
+      "name": "Pinned Git dependency",
+      "conclusion": "success"
+    },
+    {
+      "name": "Format, lint, and document",
+      "conclusion": "success"
+    },
+    {
+      "name": "Prover-client checks",
+      "conclusion": "success"
+    }
+  ],
+  "audit": {
+    "workspace_command": [
+      "cargo",
+      "audit",
+      "-D",
+      "unsound"
+    ],
+    "workspace_exit_code": 0,
+    "workspace_unmaintained_warnings": 5,
+    "client_unmaintained_warnings": 9,
+    "client_reviewed_unsound_exceptions": [
+      "RUSTSEC-2026-0002",
+      "RUSTSEC-2026-0253"
+    ]
+  },
+  "portable_verifier_build_command": [
+    "rustc",
+    "--edition=2021",
+    "-O",
+    "--crate-name",
+    "randomx_release_verify",
+    "/root/experiment/randomx-sp1/evidence/production-2026-09-05/verify-proof.rs",
+    "-L",
+    "dependency=/root/experiment/randomx-sp1/target/release/deps",
+    "--extern",
+    "hex=/root/experiment/randomx-sp1/target/release/deps/libhex-7e333f820fcdaf24.rlib",
+    "--extern",
+    "sp1_verifier=/root/experiment/randomx-sp1/target/release/deps/libsp1_verifier-06ad5cb737627805.rlib",
+    "--extern",
+    "sp1_sdk=/root/experiment/randomx-sp1/target/release/deps/libsp1_sdk-05f8ee411ec9a07a.rlib",
+    "-o",
+    "/tmp/randomx-production-2026-09-05-uacqfqyg/verify-proof"
+  ]
+}

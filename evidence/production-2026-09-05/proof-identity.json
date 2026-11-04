@@ -1,0 +1,9 @@
+{
+  "program_vkey": "0x00360be15dc8e8f448b5a9ab15bb368ed6301842244316a7705380dce0501d66",
+  "request_id": "0xa4e4dbc495e25cedb2569e22fb4071bd11adc0393a504daced092a2dbe1c6a83",
+  "public_values": "5cff906139956eb646100adef11db2e00464ffabfdf4d5a194d54f0000000000",
+  "sdk_verification": "passed",
+  "proof_bytes": 1725,
+  "proof_sha256": "e144061e4835e92df22130c5b012004b8cca524fd0fd45c01dd39841a63d348f",
+  "verifier_proof_bytes": 356
+}

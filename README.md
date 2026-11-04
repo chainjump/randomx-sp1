@@ -11,10 +11,29 @@ embed an epoch key or a hashing blob. Canonical RandomX specifies keys of
 behavior is implementation-defined; see the review below for the known
 difference at key lengths of 2^32 bytes and above.
 
-Current source targets SP1 6.10.0. The rebuilt standalone candidate is retained
-under `artifacts/`, with local validation recorded alongside it. No
-network proof or live RPC test has been performed for this candidate. Older
-release artifacts have been removed.
+Current source uses SP1 6.10.0. Its rebuilt ELF and vkey are in
+`artifacts/sp1-6.10.0/`; no network proof has been generated for that guest.
+The earlier artifacts and evidence below retain their original identities.
+
+A reproducible SP1 v6.3.1 ELF and its derived vkey identify the corrected
+`v0.1.1` standalone program. Its mainnet Groth16 proof passed both local SP1
+verification and the Ethereum-mainnet verifier demonstration.
+
+## SP1 6.3.1 release status
+
+Release [`v0.1.1`](https://github.com/chainjump/randomx-sp1/releases/tag/v0.1.1)
+includes the superscalar high-multiply correction from
+`48e096823fd332076c2b5ab0e272beee27b2b473`. Two clean Docker builds reproduced
+the corrected ELF; 49 executions of that exact ELF matched canonical RandomX
+v1.2.3. A fresh network proof passed local verification and Ethereum-mainnet
+`eth_call` checks through two RPC providers, including rejection controls.
+
+The [production record](evidence/production-2026-09-05/README.md) contains the
+source revision, new ELF/vkey, proof, verification results, and reproduction
+commands. The [source review](evidence/randomx-review-2026-09-05/README.md)
+records the defect, regression, canonical comparisons, and remaining
+differences. No further critical hash discrepancy was found in the specified
+key domain. The `v0.1.0` artifacts below remain historical; they predate the fix.
 
 ## Correctness
 
@@ -33,8 +52,8 @@ The implementation is also checked against:
 - software-floating-point comparisons against Berkeley SoftFloat.
 
 These tests and differential checks are the general correctness evidence.
-A proof authenticates one execution; it does not establish correctness for
-every possible input.
+Each retained proof demonstrates deployment of one execution; it does not
+establish correctness for every possible input.
 
 The exhaustive 32-hash reference/optimized lockstep audit is intentionally
 ignored by the default suite. Run it explicitly when changing the interpreter:
@@ -51,15 +70,18 @@ syscall, dependency, and provenance review is recorded in
 ## Quickstart for dependent SP1 programs
 
 Use `randomx-sp1` as a Rust source dependency inside the dependent program's
-own SP1 guest. The crate is not published to crates.io. Replace
-`<reviewed-commit>` below with the full commit returned by `git rev-parse HEAD`
-in a reviewed checkout of this SP1 6.10.0 source:
+own SP1 guest. The crate is not published to crates.io. Pin the immutable
+source revision containing the superscalar correction:
 
 ```toml
 [dependencies]
-randomx-sp1 = { git = "https://github.com/chainjump/randomx-sp1.git", rev = "<reviewed-commit>" }
+randomx-sp1 = { git = "https://github.com/chainjump/randomx-sp1.git", rev = "a51cbed4e364e0a346e9e3f1c48e7468757d081b" }
 sp1-zkvm = "=6.10.0"
 ```
+
+The SP1 6.3.1 `v0.1.1` ELF used source revision
+`5b18879863d140d7ae1aaa25fb2534da4bf89de4`; its proof does not cover this upgrade.
+The previous pin, `01d7e7de62b0fa980feb017bde5bc4bb77895c75`, contains the bug.
 
 The only stable library entry point is `randomx_sp1::hash`:
 
@@ -88,7 +110,7 @@ Commit the dependent program's `Cargo.lock`, then build and identify the whole
 parent guest—not this repository's standalone guest:
 
 ```bash
-cargo prove build --docker --tag v6.10.0 --no-docker-cache --locked
+cargo prove build --docker --tag v6.10.0 --locked
 SP1_PROVER=light cargo prove vkey --elf /path/to/parent-elf
 ```
 
@@ -101,44 +123,162 @@ public values, and EVM-encoded proof.
 The verification boundary is the complete ELF. Linking `randomx-sp1` into a
 parent changes that ELF and gives the parent a different vkey. Consequently:
 
-| Check | What it establishes | Required in a dependent project |
+| Evidence retained here | What it establishes | Required in a dependent project |
 | --- | --- | --- |
 | Standalone ELF reproduction and vkey derivation | Source identity of this repository's standalone wrapper | Reproduce the complete parent ELF and derive its vkey |
-| Network proof and Ethereum `eth_call` (pending for this guest) | Execution of that standalone ELF and acceptance by the deployed verifier | Generate and verify a proof for the complete parent ELF |
+| One-block network proof and Ethereum `eth_call` | One correct live-network execution of that standalone ELF and acceptance by the deployed verifier | Generate and verify a proof for the complete parent ELF |
 
-The current standalone ELF and vkey do not authenticate a dependent program.
-A downstream composition must perform its own identity and proof checks unless
-it deliberately implements a separate recursive-proof design. No proof is
-retained for the current SP1 6.10.0 guest.
+This repository's ELF, vkey, proof, and EVM verification are therefore a
+demonstration of the library's function and correctness on the live network;
+they do not authenticate a dependent program and are not inherited by it. The
+retained proof is not a reusable subproof. A downstream composition must redo
+these identity and proof checks unless it deliberately implements a separate
+recursive-proof design.
 
 The features whose names contain `audit` and all internal crates are validation
 implementation details, not supported downstream APIs. Upstream lineage and
 retained licenses are recorded in `ATTRIBUTION.md`; the public library is
 GPL-3.0-only.
 
-## Reproduce the current ELF and vkey
+## Reproduce the historical ELF and vkey
 
-Build from this source and its checked-in lockfile with SP1 6.10.0:
+The ELF and vkey below identify the pre-fix `v0.1.0` standalone program.
+They are retained for provenance and do not identify the corrected source or
+a parent program that links this library. The proof of one block is not part
+of the standalone program identity.
+
+| Artifact | Standalone program identity |
+| --- | --- |
+| [SP1 ELF](artifacts/randomx-sp1-program) | 289,512 bytes; SHA-256 `d3a15025cf7619615b1be5d35c7d8e3910aac8a399f009319a44235910518940` |
+| [Program vkey](artifacts/randomx-sp1-program.vkey) | `0x00ef0352217c1bd40da717b661a67da22554bbddc4589ee54fd836f15cc0a771` |
+
+Check the retained historical artifacts with:
 
 ```bash
-cargo prove build --docker --tag v6.10.0 --no-docker-cache --locked \
-  --binaries randomx-sp1-program --output-directory /tmp/randomx-sp1-rebuild
-cmp artifacts/randomx-sp1-program /tmp/randomx-sp1-rebuild/randomx-sp1-program
-SP1_PROVER=light cargo prove vkey --elf artifacts/randomx-sp1-program
 (cd artifacts && sha256sum --check SHA256SUMS)
-sha256sum --check artifacts/SOURCE_SHA256SUMS
 ```
 
-`artifacts/MANIFEST.json` records the current toolchain, guest identity,
-reproducibility and local execution. Older ELFs, keys and proof bundles have
-been removed. A new proof and gateway validation remain pending for this guest.
+The [`v0.1.0` GitHub release](https://github.com/chainjump/randomx-sp1/releases/tag/v0.1.0)
+also attaches the ELF, vkey, proof data, request ID, and a flat
+`SHA256SUMS` manifest so the complete release bundle can be checked without a
+repository checkout.
 
-The upgrade validation passed all 45 native tests (one deep audit remains
-intentionally ignored), strict workspace and feature Clippy checks, and public
-documentation generation. All seven requester tests and its strict release
-Clippy check also passed. The rebuilt guest matched the selected Monero PoW
-hash at 6,485,505,563 cycles and 7,857,197,602 PGU, within the existing limits.
-Builds and checks ran offline with bounded memory; no proof was generated.
+To reproduce this historical ELF, install Docker and the SP1 6.3.1 CLI
+(`sp1up --version 6.3.1`), then build its recorded source revision in an
+isolated worktree. Building current corrected source is expected to produce
+a different ELF and requires deriving a new vkey.
+
+```bash
+rebuild_dir="$(mktemp -d)"
+git worktree add --detach "$rebuild_dir/source" \
+  9eeaf6349e4f2cdd2576dc79b5629f05e197e6bb
+(
+  cd "$rebuild_dir/source/program"
+  cargo prove build --docker --tag v6.3.1 --locked \
+    --binaries randomx-sp1-program \
+    --elf-name randomx-sp1-program \
+    --output-directory "$rebuild_dir"
+)
+cmp artifacts/randomx-sp1-program "$rebuild_dir/randomx-sp1-program"
+sha256sum "$rebuild_dir/randomx-sp1-program"
+```
+
+`cmp` must succeed and SHA-256 must be
+`d3a15025cf7619615b1be5d35c7d8e3910aac8a399f009319a44235910518940`.
+The command was independently rerun after writing this procedure and produced
+a byte-identical ELF.
+
+Then derive the vkey from that exact ELF and compare it with the retained
+value:
+
+```bash
+derived_vkey="$(
+  cargo prove vkey --elf "$rebuild_dir/randomx-sp1-program" | tail -n 1
+)"
+test "$derived_vkey" = "$(tr -d '\r\n' < artifacts/randomx-sp1-program.vkey)"
+printf '%s\n' "$derived_vkey"
+```
+
+The expected output is
+`0x00ef0352217c1bd40da717b661a67da22554bbddc4589ee54fd836f15cc0a771`.
+This SP1 setup operation may be silent while it initializes; on the release
+host it took 5 minutes 7 seconds and about 6.2 GiB peak memory. It does not
+execute RandomX or generate a proof. The optional executor described below is
+not involved in either reproduction step.
+
+The EVM never needs the full ELF or the ELF SHA-256. SP1 setup derives the
+program verification key from the ELF, and on-chain verifiers receive its
+32-byte `programVKey` commitment. This value is not simply the ELF SHA-256.
+
+## Historical v0.1.0 one-block proof
+
+The retained proof demonstrates that the Succinct Prover Network and the
+Ethereum verifier accepted one execution for Monero block 3,727,837. It is a
+deployment test, not a general correctness claim, a second program identity,
+or evidence that can be transferred to a downstream parent program.
+
+| Proof item | Value |
+| --- | --- |
+| [Network request](https://explorer.succinct.xyz/request/0xf0ca00e4ef3e4c2f78d51977d4e0a6e66168a98ffa0f9b3b137df44ea2a95603) | `0xf0ca00e4ef3e4c2f78d51977d4e0a6e66168a98ffa0f9b3b137df44ea2a95603` |
+| [Public RandomX digest](evidence/network-proof/public-values.hex) | `5cff906139956eb646100adef11db2e00464ffabfdf4d5a194d54f0000000000` |
+| [SDK proof](evidence/network-proof/proof.bin) | 1,726 bytes; SHA-256 `0c81249c035a3ab826f9be9e6a61aee5df54198ec7aecea2ea8d4f380fe93a2d` |
+| [EVM proof encoding](evidence/network-proof/proof-evm.hex) | 356 bytes; SHA-256 `2309bc02f6babbb1d786e7e06c9b620649f0b57fa9c7d8ed0b1c5807f7d7fff6` |
+
+The proof shows successful execution of the program identified by the vkey
+with those public-value bytes. The standalone guest commits only the RandomX
+digest; its key and hashing blob remain private. Consequently, the EVM does
+not itself identify the Monero block or expose its RandomX inputs.
+
+### Verify on Ethereum without repository code
+
+This procedure uses only the external Foundry `cast` CLI, release data files,
+and an Ethereum-mainnet RPC URL. It does not require a repository checkout and
+does not compile or run any Rust—or any other executable code—from this
+repository. It assumes the program vkey has already been accepted or
+independently reproduced as described above. Install Foundry from its
+[official instructions](https://getfoundry.sh/introduction/installation) if
+`cast --version` is unavailable.
+
+Download every `v0.1.0` asset into one empty directory, change into that
+directory, and verify the complete bundle:
+
+```bash
+sha256sum --check SHA256SUMS
+```
+
+Then issue the read-only verifier call:
+
+```bash
+export EVM_RPC_URL='<ethereum-mainnet-rpc-url>'
+test "$(cast chain-id --rpc-url "$EVM_RPC_URL")" = '1'
+
+program_vkey="$(tr -d '\r\n' < randomx-sp1-program.vkey)"
+public_values="$(tr -d '\r\n' < public-values.hex)"
+proof_bytes="$(tr -d '\r\n' < proof-evm.hex)"
+
+cast call 0x397a5f7f3dbd538f23de225b51f532c34448da9b \
+  'verifyProof(bytes32,bytes,bytes)' \
+  "$program_vkey" "$public_values" "$proof_bytes" \
+  --rpc-url "$EVM_RPC_URL"
+```
+
+Success prints `0x`: the verifier function returned no data and did not
+revert. `cast call` uses `eth_call`; it does not sign or broadcast a transaction
+and requires no private key, ETH, or PROVE. The EVM receives only the 32-byte
+program vkey, 32 public-value bytes, and 356 proof bytes.
+
+The three files are transparent data, not executables. `proof-evm.hex` is the
+verifier-ready encoding of the same proof stored in SP1's 1,726-byte
+`proof.bin` container. The command above was tested independently with Foundry
+1.7.1 against Ethereum mainnet and returned `0x`.
+
+Succinct documents the interface in its
+[Solidity verifier guide](https://docs.succinct.xyz/docs/sp1/verification/solidity-sdk)
+and publishes the gateway in its
+[canonical address list](https://docs.succinct.xyz/docs/sp1/verification/contract-addresses).
+Foundry documents `cast call` in its
+[CLI reference](https://getfoundry.sh/cast/reference/cast-call.md). Full request,
+cost, and execution details are in `evidence/network-proof/README.md`.
 
 ## Current optimization
 
@@ -163,8 +303,12 @@ optimizations generate their state from the runtime key.
   opt-in validation guest.
 - `argon2/`: the RandomX-only subset of an in-tree `rust-argon2` fork, with
   fixed-parameter Argon2d cache construction and upstream differential tests.
-- `artifacts/`: the current ELF, vkey, build manifest, checksums and dependency
-  audit. Superseded binaries and proof bundles have been removed.
+- `artifacts/sp1-6.10.0/`: current SP1 6.10.0 ELF and vkey.
+- `artifacts/v0.1.1/`: the corrected ELF/vkey; earlier artifacts remain in
+  `artifacts/`, whose checksum manifest covers both versions.
+- `evidence/production-2026-09-05/`: corrected guest builds, execution corpus,
+  network proof, and local/EVM verification.
+- `evidence/network-proof/`: historical `v0.1.0` deployment proof.
 - `executor/`: lightweight execution, cycle-region profiling, and calibrated
   PGU estimation.
 - `network-prover/`: fixed-block Succinct Network request, recovery, local
@@ -189,7 +333,7 @@ first input is the runtime RandomX key and the second is the hashing blob:
 
 ```bash
 target/release/randomx-sp1-executor \
-  artifacts/randomx-sp1-program \
+  artifacts/sp1-6.10.0/randomx-sp1-program \
   50966d5e6f491b5c2dccefb149c314d996fe36e73e4a18ae4d9f0d0100000000 \
   11c798e5ac6515218bc3efcb5416e5b68c599e42a61b86efe5746bb78eb4be8e \
   101093ba9fd306c6afa883a69ae61498cc8edc5b04ad42664ca1d70cb4f6e14f609d65af22e8a6a8910b0f68387e426a3e54920779782c55fab88b05da6b989d97e67ced90f93a2237a17601
@@ -216,9 +360,9 @@ The phase-isolation guests live beside the universal guest but are excluded
 from ordinary builds and tests. Build either one explicitly from `program/`:
 
 ```bash
-cargo prove build --docker --tag v6.10.0 --no-docker-cache --locked \
+cargo prove build --docker --tag v6.10.0 --locked \
   --features profile-probes --binaries randomx-sp1-cache-probe
-cargo prove build --docker --tag v6.10.0 --no-docker-cache --locked \
+cargo prove build --docker --tag v6.10.0 --locked \
   --features profile-probes --binaries randomx-sp1-no-memory-probe
 ```
 
@@ -251,15 +395,6 @@ The canonical Git remote is
 Consumers should use the public HTTPS URL and pin a full commit rather than a
 moving branch.
 
-## Shared Cargo intermediates
-
-Sibling checkouts use `../.cargo-build` through `.cargo/config.toml`. Final host
-binaries remain under each repository's `target/`; existing deployment paths
-still apply. Compatible dependencies share intermediates. Incremental builds
-and development/test debug information are disabled, and release profiles are
-aligned to avoid unnecessary variants. Keep host lockfiles aligned when updating
-SP1. Do not export `CARGO_BUILD_BUILD_DIR` globally: SP1's native executor runs
-a nested Cargo build with a separate lock.
-
-The cache is disposable and can be removed when no builds are running. Guest
-reproduction uses isolated directories so it cannot reuse a previous guest build.
+Sibling Rust checkouts share compatible Cargo intermediates in `../.cargo-build`;
+final binaries remain under each repository’s `target/`. Do not export
+`CARGO_BUILD_BUILD_DIR`: SP1’s nested native-executor build uses a separate lock.

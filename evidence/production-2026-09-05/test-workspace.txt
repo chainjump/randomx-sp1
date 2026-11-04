@@ -1,0 +1,136 @@
+   Compiling randomx-sp1-argon2 v0.1.1 (/root/experiment/randomx-sp1/argon2)
+   Compiling randomx-softfp v0.1.1 (/root/experiment/randomx-sp1/softfp)
+   Compiling randomx-sp1-core v0.1.1 (/root/experiment/randomx-sp1/randomx-core)
+   Compiling randomx-sp1-audit v0.1.1 (/root/experiment/randomx-sp1/audit)
+   Compiling randomx-sp1 v0.1.1 (/root/experiment/randomx-sp1/randomx-sp1)
+   Compiling randomx-sp1-executor v0.1.1 (/root/experiment/randomx-sp1/executor)
+    Finished `release` profile [optimized] target(s) in 1m 59s
+     Running unittests src/lib.rs (target/release/deps/randomx_softfp-b88a2cc1630fe4c6)
+
+running 7 tests
+test tests::exact_cancellation_has_ieee_sign ... ok
+test tests::finite_input_overflow_matches_berkeley_softfloat ... ok
+test tests::infinity_propagation_matches_berkeley_softfloat ... ok
+test tests::official_randomx_vectors ... ok
+test tests::randomized_randomx_domain_matches_berkeley_softfloat ... ok
+test tests::signed_zero_operands_match_berkeley_softfloat ... ok
+test tests::validated_fprc_conversion_matches_checked_conversion ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+
+     Running unittests src/lib.rs (target/release/deps/randomx_sp1-c55e1f79dcff8619)
+
+running 9 tests
+test tests::all_rounding_modes_hash_matches_official_randomx ... ok
+test tests::canonical_v1_interpreter_hash_and_rounding_vectors ... ok
+test tests::compact_hash_rejects_malformed_scratchpad - should panic ... ok
+test tests::compact_instruction_is_32_bytes ... ok
+test tests::every_opcode_byte_matches_reference_decoder_at_boundaries ... ok
+test tests::original_block_hash_matches_reference_and_official_randomx ... ok
+test tests::predecoded_register_offsets_are_aligned_and_bounded ... ok
+test tests::stable_hash_api_matches_canonical_vector ... ok
+test tests::vm_rejects_invalid_rounding_mode - should panic ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 22.44s
+
+     Running unittests src/lib.rs (target/release/deps/randomx_sp1_argon2-21217c14a5bbba82)
+
+running 5 tests
+test block::tests::as_u8_mut_returns_correct_slice ... ok
+test block::tests::as_u8_returns_correct_slice ... ok
+test block::tests::zero_creates_block_will_all_zeros ... ok
+test core::randomx_specialization_tests::fused_scratch_index_maps_are_exact_partitions ... ok
+test core::randomx_specialization_tests::randomx_reference_formula_matches_optimized_boundaries ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/randomx_cache_differential.rs (target/release/deps/randomx_cache_differential-4189e9e1e6d0d0f4)
+
+running 1 test
+test complete_randomx_caches_match_upstream_and_frozen_digests ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 22.32s
+
+     Running unittests src/lib.rs (target/release/deps/randomx_sp1_audit-2539278ab6eb8db5)
+
+running 5 tests
+test canonical_v1_tests::canonical_commitment_vector ... ok
+test monero::tests::difficulty_checks_full_256_bit_product ... ok
+test monero::tests::tree_hash_shapes ... ok
+test monero::tests::varint_boundaries ... ok
+test network_fixtures::tests::twenty_recent_mainnet_blocks_match_fixed_pow_hashes ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 29.81s
+
+     Running tests/differential.rs (target/release/deps/differential-fb3d852442bc8c66)
+
+running 1 test
+test reference_and_optimized_execution_match_lockstep ... ignored, deep 32-hash lockstep audit; run explicitly
+
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/hardware_rounding.rs (target/release/deps/hardware_rounding-f85bef54da6b6b09)
+
+running 1 test
+test hardware_and_software_rounding_agree ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+
+     Running unittests src/lib.rs (target/release/deps/randomx_sp1_core-a47bc2ffe4f18635)
+
+running 15 tests
+test canonical_v1_tests::canonical_aes_generator_1r_vector ... ok
+test canonical_v1_tests::canonical_cache_and_dataset_initialization_vectors ... ok
+test canonical_v1_tests::canonical_instruction_decode_and_execute_vectors ... ok
+test canonical_v1_tests::canonical_reciprocal_vectors ... ok
+test canonical_v1_tests::canonical_superscalar_generator_vectors ... ok
+test m128::tests::aesenc_perf_smoke ... ok
+test memory::tests::flattened_mix_index_matches_block_and_word_addressing ... ok
+test program::reciprocal_tests::vm_power_of_two_reciprocal_remains_a_nop ... ok
+test program::reciprocal_tests::vm_reciprocal_is_computed_during_decode ... ok
+test program::reciprocal_tests::vm_unsigned_high_bit_power_of_two_matches_reference_nop ... ok
+test superscalar::compact_tests::compact_execution_matches_reference_execution ... ok
+test superscalar::compact_tests::every_paired_handler_matches_sequential_dispatch ... ok
+test superscalar::generator_tests::blake_generator_truncates_long_seed_to_sixty_bytes ... ok
+test superscalar::generator_tests::high_multiply_destination_selection_uses_random_group_parameter ... ok
+test superscalar::reciprocal_tests::superscalar_reciprocal_is_computed_during_generation ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.98s
+
+     Running unittests src/main.rs (target/release/deps/randomx_sp1_executor-ec7ab5ca3424baf9)
+
+running 2 tests
+test tests::parses_profile_and_gas_options_in_either_order ... ok
+test tests::rejects_conflicting_gas_options ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests randomx_softfp
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests randomx_sp1
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests randomx_sp1_argon2
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests randomx_sp1_audit
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests randomx_sp1_core
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s

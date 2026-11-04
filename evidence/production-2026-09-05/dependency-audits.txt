@@ -1,0 +1,125 @@
+Workspace: cargo audit -D unsound
+    Fetching advisory database from `https://github.com/RustSec/advisory-db.git`
+      Loaded 1239 security advisories (from /root/.cargo/advisory-db)
+    Updating crates.io index
+    Scanning Cargo.lock for vulnerabilities (370 crate dependencies)
+Crate:     ansi_term
+Version:   0.12.1
+Warning:   unmaintained
+Title:     ansi_term is Unmaintained
+Date:      2021-08-18
+ID:        RUSTSEC-2021-0139
+URL:       https://rustsec.org/advisories/RUSTSEC-2021-0139
+
+Crate:     bincode
+Version:   1.3.3
+Warning:   unmaintained
+Title:     Bincode is unmaintained
+Date:      2025-12-16
+ID:        RUSTSEC-2025-0141
+URL:       https://rustsec.org/advisories/RUSTSEC-2025-0141
+
+Crate:     number_prefix
+Version:   0.4.0
+Warning:   unmaintained
+Title:     number_prefix crate is unmaintained
+Date:      2025-11-17
+ID:        RUSTSEC-2025-0119
+URL:       https://rustsec.org/advisories/RUSTSEC-2025-0119
+
+Crate:     paste
+Version:   1.0.15
+Warning:   unmaintained
+Title:     paste - no longer maintained
+Date:      2024-10-07
+ID:        RUSTSEC-2024-0436
+URL:       https://rustsec.org/advisories/RUSTSEC-2024-0436
+
+Crate:     proc-macro-error2
+Version:   2.0.1
+Warning:   unmaintained
+Title:     proc-macro-error2 is unmaintained
+Date:      2026-06-07
+ID:        RUSTSEC-2026-0173
+URL:       https://rustsec.org/advisories/RUSTSEC-2026-0173
+
+warning: 5 allowed warnings found
+
+Network client: cargo audit --file network-prover/Cargo.lock --ignore RUSTSEC-2026-0002 --ignore RUSTSEC-2026-0253 -D unsound
+    Fetching advisory database from `https://github.com/RustSec/advisory-db.git`
+      Loaded 1239 security advisories (from /root/.cargo/advisory-db)
+    Updating crates.io index
+    Scanning network-prover/Cargo.lock for vulnerabilities (706 crate dependencies)
+Crate:     ansi_term
+Version:   0.12.1
+Warning:   unmaintained
+Title:     ansi_term is Unmaintained
+Date:      2021-08-18
+ID:        RUSTSEC-2021-0139
+URL:       https://rustsec.org/advisories/RUSTSEC-2021-0139
+
+Crate:     backoff
+Version:   0.4.0
+Warning:   unmaintained
+Title:     `backoff` is unmaintained.
+Date:      2025-03-04
+ID:        RUSTSEC-2025-0012
+URL:       https://rustsec.org/advisories/RUSTSEC-2025-0012
+
+Crate:     bincode
+Version:   1.3.3
+Warning:   unmaintained
+Title:     Bincode is unmaintained
+Date:      2025-12-16
+ID:        RUSTSEC-2025-0141
+URL:       https://rustsec.org/advisories/RUSTSEC-2025-0141
+
+Crate:     derivative
+Version:   2.2.0
+Warning:   unmaintained
+Title:     `derivative` is unmaintained; consider using an alternative
+Date:      2024-06-26
+ID:        RUSTSEC-2024-0388
+URL:       https://rustsec.org/advisories/RUSTSEC-2024-0388
+
+Crate:     instant
+Version:   0.1.13
+Warning:   unmaintained
+Title:     `instant` is unmaintained
+Date:      2024-09-01
+ID:        RUSTSEC-2024-0384
+URL:       https://rustsec.org/advisories/RUSTSEC-2024-0384
+
+Crate:     number_prefix
+Version:   0.4.0
+Warning:   unmaintained
+Title:     number_prefix crate is unmaintained
+Date:      2025-11-17
+ID:        RUSTSEC-2025-0119
+URL:       https://rustsec.org/advisories/RUSTSEC-2025-0119
+
+Crate:     paste
+Version:   1.0.15
+Warning:   unmaintained
+Title:     paste - no longer maintained
+Date:      2024-10-07
+ID:        RUSTSEC-2024-0436
+URL:       https://rustsec.org/advisories/RUSTSEC-2024-0436
+
+Crate:     proc-macro-error2
+Version:   2.0.1
+Warning:   unmaintained
+Title:     proc-macro-error2 is unmaintained
+Date:      2026-06-07
+ID:        RUSTSEC-2026-0173
+URL:       https://rustsec.org/advisories/RUSTSEC-2026-0173
+
+Crate:     rustls-pemfile
+Version:   2.2.0
+Warning:   unmaintained
+Title:     rustls-pemfile is unmaintained
+Date:      2025-11-28
+ID:        RUSTSEC-2025-0134
+URL:       https://rustsec.org/advisories/RUSTSEC-2025-0134
+
+warning: 9 allowed warnings found

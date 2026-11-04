@@ -1,0 +1,195 @@
+{
+  "disassembly_sha256": "e211c8f27d62e0bd6538d36fd1233d43a638428fc5eb7002bb62fd82461c78bb",
+  "ecalls": [
+    {
+      "address": "0x78026e5c",
+      "symbols": [
+        "syscall_halt"
+      ]
+    },
+    {
+      "address": "0x78026e70",
+      "symbols": [
+        "syscall_halt"
+      ]
+    },
+    {
+      "address": "0x78026e84",
+      "symbols": [
+        "syscall_halt"
+      ]
+    },
+    {
+      "address": "0x78026e98",
+      "symbols": [
+        "syscall_halt"
+      ]
+    },
+    {
+      "address": "0x78026eac",
+      "symbols": [
+        "syscall_halt"
+      ]
+    },
+    {
+      "address": "0x78026ec0",
+      "symbols": [
+        "syscall_halt"
+      ]
+    },
+    {
+      "address": "0x78026ed4",
+      "symbols": [
+        "syscall_halt"
+      ]
+    },
+    {
+      "address": "0x78026ee8",
+      "symbols": [
+        "syscall_halt"
+      ]
+    },
+    {
+      "address": "0x78026ef8",
+      "symbols": [
+        "syscall_halt"
+      ]
+    },
+    {
+      "address": "0x78026f08",
+      "symbols": [
+        "syscall_halt"
+      ]
+    },
+    {
+      "address": "0x78026f18",
+      "symbols": [
+        "syscall_halt"
+      ]
+    },
+    {
+      "address": "0x78026f28",
+      "symbols": [
+        "syscall_halt"
+      ]
+    },
+    {
+      "address": "0x78026f38",
+      "symbols": [
+        "syscall_halt"
+      ]
+    },
+    {
+      "address": "0x78026f48",
+      "symbols": [
+        "syscall_halt"
+      ]
+    },
+    {
+      "address": "0x78026f58",
+      "symbols": [
+        "syscall_halt"
+      ]
+    },
+    {
+      "address": "0x78026f68",
+      "symbols": [
+        "syscall_halt"
+      ]
+    },
+    {
+      "address": "0x78026f74",
+      "symbols": [
+        "syscall_halt"
+      ]
+    },
+    {
+      "address": "0x78027834",
+      "symbols": [
+        "syscall_hint_len"
+      ]
+    },
+    {
+      "address": "0x78027844",
+      "symbols": [
+        "syscall_hint_read"
+      ]
+    },
+    {
+      "address": "0x78027870",
+      "symbols": [
+        "syscall_write"
+      ]
+    }
+  ],
+  "opcodes": {
+    "addi": 2160,
+    "sd": 3253,
+    "mv": 1302,
+    "bnez": 214,
+    "li": 1477,
+    "auipc": 1167,
+    "jalr": 660,
+    "add": 3777,
+    "bltu": 218,
+    "ld": 4165,
+    "slli": 3306,
+    "j": 442,
+    "bne": 262,
+    "ret": 319,
+    "neg": 17,
+    "and": 1278,
+    "mulhu": 50,
+    "mul": 906,
+    "sub": 166,
+    "beqz": 366,
+    "srli": 2774,
+    "bgeu": 163,
+    "jr": 68,
+    "srliw": 724,
+    "snez": 29,
+    "sb": 791,
+    "andi": 194,
+    "ori": 22,
+    "lbu": 912,
+    "zext.b": 50,
+    "bgez": 16,
+    "or": 2266,
+    "seqz": 58,
+    "sltiu": 4,
+    "sltu": 73,
+    "xor": 2594,
+    "beq": 153,
+    "lui": 245,
+    "subw": 46,
+    "lw": 94,
+    "slliw": 1,
+    "lb": 22,
+    "slti": 6,
+    "xori": 13,
+    "not": 46,
+    "lwu": 32,
+    "lhu": 34,
+    "bltz": 54,
+    "blt": 21,
+    "sw": 105,
+    "sh": 34,
+    "srl": 58,
+    "negw": 37,
+    "sll": 127,
+    "sext.w": 16,
+    "srai": 41,
+    "slt": 17,
+    "mulh": 23,
+    "addiw": 19,
+    "divu": 2,
+    "remuw": 2,
+    "sgtz": 3,
+    "bge": 17,
+    "ecall": 20,
+    "unimp": 2,
+    "blez": 2,
+    "bgtz": 1,
+    "sraiw": 1
+  }
+}

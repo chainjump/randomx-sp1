@@ -1,0 +1,20 @@
+{
+  "docker_image": "ghcr.io/succinctlabs/sp1:v6.3.1",
+  "docker_repo_digest": "ghcr.io/succinctlabs/sp1@sha256:0942a27dbe8e38f4b14f3732e779df4027b17bde93e9fbc9e8c773c15eb63400",
+  "docker_image_source_revision": "8252c2905ce32964df68248117015c61ebb854db",
+  "guest_rustc": "rustc 1.94.0-dev",
+  "guest_rustc_path": "/root/.sp1/toolchains/g7wv95WZT7/bin/rustc",
+  "host_rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+  "cargo_prove": "cargo-prove sp1 (8252c29 2026-06-25T11:50:01.543258355Z)",
+  "cast": "cast Version: 1.7.1\nCommit SHA: 4072e48705af9d93e3c0f6e29e93b5e9a40caed8\nBuild Timestamp: 2026-05-08T07:50:55.527285345Z (1778226655)\nBuild Profile: dist",
+  "binaries": {
+    "target/release/randomx-sp1-executor": {
+      "sha256": "3767797f84963da7f568fa30a562dc59b98d83e9c88c1763136129a1e0e512fc",
+      "bytes": 4721872
+    },
+    "target/release/randomx-sp1-network-prover": {
+      "sha256": "b57d3ef56e1f79f0fe127db0f93d26d1a2a26166396cc26e928201ff47527d5d",
+      "bytes": 26548176
+    }
+  }
+}
