@@ -20,7 +20,7 @@ version = "0.1.1"
 [workspace.dependencies]
 anyhow = "1.0"
 baseline = { package = "rustdom-x-argon2", version = "=2.1.0" }
-blake2b_simd = "=1.0.4"
+blake2b_simd = "=1.0.5"
 hex = "=0.4.3"
 randomx-softfp = { path = "softfp" }
 randomx-sp1 = { path = "randomx-sp1" }
