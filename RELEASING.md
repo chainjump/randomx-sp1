@@ -7,13 +7,13 @@
 4. From `program/`, build the guest with the pinned production command:
 
    ```bash
-   cargo prove build --docker --tag v6.3.1 --locked \
+   cargo prove build --docker --tag v6.10.0 --no-docker-cache --locked \
      --binaries randomx-sp1-program \
      --elf-name randomx-sp1-program \
-     --output-directory ../artifacts/v0.1.1
+     --output-directory ../artifacts
    ```
 
-   Use the new release's versioned directory; preserve earlier artifacts.
+   Retain only the current release artifacts; older revisions remain in Git history.
 
 5. Record the source commit, `Cargo.lock` hash, Docker image digest, ELF size,
    SHA-256, SHA-512, disassembly review, and locally derived vkey.
@@ -28,11 +28,11 @@
    an EVM transaction.
 10. Commit the artifact and complete evidence, require CI to pass, create a
     signed version tag, and push the commit and tag to the release remote.
-11. Attach the ELF, vkey, serialized proof, EVM proof encoding, public values,
-    request ID, and `release/SHA256SUMS` to the GitHub release using the flat
-    filenames in that manifest. Download every asset into an empty directory
-    and require `sha256sum --check SHA256SUMS` to pass before announcing the
-    release.
+11. Create `SHA256SUMS` for the exact flat release asset set, including the ELF,
+    vkey, serialized proof, EVM proof encoding, public values and request ID.
+    Attach those files and the checksum manifest to the GitHub release.
+    Download every asset into an empty directory and require
+    `sha256sum --check SHA256SUMS` to pass before announcing the release.
 
 The CI workflow validates code and dependencies but intentionally does not
 build a release ELF, access secrets, execute the multi-billion-cycle guest, or

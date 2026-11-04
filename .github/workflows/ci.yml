@@ -24,19 +24,19 @@ jobs:
       - name: Check prover-client formatting
         run: cargo fmt --manifest-path network-prover/Cargo.toml --all -- --check
       - name: Lint workspace
-        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+        run: cargo clippy --release --workspace --all-targets --locked -- -D warnings
       - name: Lint executor profiling mode
-        run: cargo clippy -p randomx-sp1-executor --all-targets --features profiling --locked -- -D warnings
+        run: cargo clippy --release -p randomx-sp1-executor --all-targets --features profiling --locked -- -D warnings
       - name: Lint soft-float SP1 guest
-        run: cargo clippy -p randomx-softfp --all-targets --features sp1-guest --locked -- -D warnings
+        run: cargo clippy --release -p randomx-softfp --all-targets --features sp1-guest --locked -- -D warnings
       - name: Lint profiling probe guests
-        run: cargo clippy -p randomx-sp1-program --all-targets --features profile-probes --locked -- -D warnings
+        run: cargo clippy --release -p randomx-sp1-program --all-targets --features profile-probes --locked -- -D warnings
       - name: Lint audit feature
-        run: cargo clippy -p randomx-sp1 --all-targets --features differential-audit --locked -- -D warnings
+        run: cargo clippy --release -p randomx-sp1 --all-targets --features differential-audit --locked -- -D warnings
       - name: Build public documentation
         env:
           RUSTDOCFLAGS: -D warnings
-        run: cargo doc -p randomx-sp1 --no-deps --locked
+        run: cargo doc --release -p randomx-sp1 --no-deps --locked
 
   test:
     name: Release tests
@@ -62,9 +62,9 @@ jobs:
       - name: Install host build dependencies
         run: sudo apt-get update && sudo apt-get install --no-install-recommends -y protobuf-compiler libprotobuf-dev
       - name: Lint prover client
-        run: cargo clippy --manifest-path network-prover/Cargo.toml --all-targets --locked -- -D warnings
+        run: cargo clippy --release --manifest-path network-prover/Cargo.toml --all-targets --locked -- -D warnings
       - name: Test prover client
-        run: cargo test --manifest-path network-prover/Cargo.toml --locked
+        run: cargo test --release --manifest-path network-prover/Cargo.toml --locked
 
   consumer:
     name: Pinned Git dependency
@@ -108,4 +108,4 @@ jobs:
       - name: Audit guest workspace
         run: cargo audit -D unsound
       - name: Audit prover client
-        run: cargo audit --file network-prover/Cargo.lock --ignore RUSTSEC-2026-0002 --ignore RUSTSEC-2026-0253 -D unsound
+        run: cargo audit --file network-prover/Cargo.lock -D unsound

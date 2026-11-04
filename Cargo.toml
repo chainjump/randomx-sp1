@@ -14,7 +14,7 @@ resolver = "2"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 publish = false
-rust-version = "1.91"
+rust-version = "1.91.1"
 version = "0.1.1"
 
 [workspace.dependencies]
@@ -30,11 +30,21 @@ serde = { version = "=1.0.229", features = ["derive"] }
 serde_json = "1"
 softfloat = "=1.0.0"
 softfloat-wrapper = "=0.3.4"
-sp1-core-executor = "=6.3.1"
-sp1-core-executor-runner = "=6.3.1"
-sp1-zkvm = "=6.3.1"
+sp1-core-executor = "=6.10.0"
+sp1-core-executor-runner = "=6.10.0"
+sp1-zkvm = "=6.10.0"
 strum = { version = "=0.24.1", features = ["derive"] }
 tiny-keccak = { version = "=2.0.2", features = ["keccak"] }
 
 [profile.release]
 lto = "thin"
+codegen-units = 1
+strip = "symbols"
+
+[profile.dev]
+debug = 0
+incremental = false
+
+[profile.test]
+debug = 0
+incremental = false

@@ -1,9 +1,11 @@
 # RandomX correctness and production-readiness review
 
-The later [production validation record](../production-2026-09-05/README.md)
+The later [production validation record](https://github.com/chainjump/randomx-sp1/blob/957851b4b16a961c350cb45dab11f5409bcda407/evidence/production-2026-09-05/README.md)
 completes the corrected standalone guest build, execution, network proof,
 and local/EVM verification. The status below describes the earlier source
-review and is retained as historical context.
+review and is retained as historical context. Superseded binary and proof
+artifacts have since been removed; current build provenance is in
+[the artifact manifest](../../artifacts/MANIFEST.json).
 
 Review date: 2026-09-05 UTC. Corrected source:
 [`48e096823fd332076c2b5ab0e272beee27b2b473`](https://github.com/chainjump/randomx-sp1/commit/48e096823fd332076c2b5ab0e272beee27b2b473).

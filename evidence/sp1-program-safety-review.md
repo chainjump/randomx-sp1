@@ -27,12 +27,11 @@ This is a code review and test record, not a formal verification claim.
 
 ## Build status
 
-The source and dependency review for that revision was completed. That source
-was built twice with SP1 6.3.1's pinned Docker image; the byte-identical ELF, locally
-derived vkey, disassembly review, and real-block execution measurements are
-recorded in `reproducible-build-2026-07-30.md`. The exact ELF was subsequently
-proven on the Succinct Prover Network, verified locally, and accepted by an
-Ethereum-mainnet verifier simulation as recorded in `network-proof/README.md`.
+This review concerned an older guest. Its build report and proof bundle have
+been removed during the SP1 upgrade. Current build identity and execution are
+recorded in [`artifacts/MANIFEST.json`](../artifacts/MANIFEST.json); fresh proof
+validation remains pending. This dated source review does not validate the new
+SP1 toolchain or compiled ELF.
 
 ## SP1 security guidance applied
 

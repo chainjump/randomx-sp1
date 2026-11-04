@@ -1,0 +1,130 @@
+{
+  "randomx-sp1": [
+    {
+      "kind": "vulnerability",
+      "id": "RUSTSEC-2026-0387",
+      "package": "crypto-bigint",
+      "version": "0.5.5",
+      "title": "Multiple timing variability issues in operations intended to be constant-time",
+      "patched": [
+        ">=0.7.6"
+      ]
+    },
+    {
+      "kind": "unmaintained",
+      "id": "RUSTSEC-2021-0139",
+      "package": "ansi_term",
+      "version": "0.12.1",
+      "title": "ansi_term is Unmaintained",
+      "patched": []
+    },
+    {
+      "kind": "unmaintained",
+      "id": "RUSTSEC-2025-0141",
+      "package": "bincode",
+      "version": "1.3.3",
+      "title": "Bincode is unmaintained",
+      "patched": []
+    },
+    {
+      "kind": "unmaintained",
+      "id": "RUSTSEC-2025-0119",
+      "package": "number_prefix",
+      "version": "0.4.0",
+      "title": "number_prefix crate is unmaintained",
+      "patched": []
+    },
+    {
+      "kind": "unmaintained",
+      "id": "RUSTSEC-2024-0436",
+      "package": "paste",
+      "version": "1.0.15",
+      "title": "paste - no longer maintained",
+      "patched": []
+    },
+    {
+      "kind": "unmaintained",
+      "id": "RUSTSEC-2026-0173",
+      "package": "proc-macro-error2",
+      "version": "2.0.1",
+      "title": "proc-macro-error2 is unmaintained",
+      "patched": []
+    }
+  ],
+  "randomx-sp1_network-prover": [
+    {
+      "kind": "vulnerability",
+      "id": "RUSTSEC-2026-0387",
+      "package": "crypto-bigint",
+      "version": "0.5.5",
+      "title": "Multiple timing variability issues in operations intended to be constant-time",
+      "patched": [
+        ">=0.7.6"
+      ]
+    },
+    {
+      "kind": "unmaintained",
+      "id": "RUSTSEC-2021-0139",
+      "package": "ansi_term",
+      "version": "0.12.1",
+      "title": "ansi_term is Unmaintained",
+      "patched": []
+    },
+    {
+      "kind": "unmaintained",
+      "id": "RUSTSEC-2025-0012",
+      "package": "backoff",
+      "version": "0.4.0",
+      "title": "`backoff` is unmaintained.",
+      "patched": []
+    },
+    {
+      "kind": "unmaintained",
+      "id": "RUSTSEC-2025-0141",
+      "package": "bincode",
+      "version": "1.3.3",
+      "title": "Bincode is unmaintained",
+      "patched": []
+    },
+    {
+      "kind": "unmaintained",
+      "id": "RUSTSEC-2024-0388",
+      "package": "derivative",
+      "version": "2.2.0",
+      "title": "`derivative` is unmaintained; consider using an alternative",
+      "patched": []
+    },
+    {
+      "kind": "unmaintained",
+      "id": "RUSTSEC-2024-0384",
+      "package": "instant",
+      "version": "0.1.13",
+      "title": "`instant` is unmaintained",
+      "patched": []
+    },
+    {
+      "kind": "unmaintained",
+      "id": "RUSTSEC-2025-0119",
+      "package": "number_prefix",
+      "version": "0.4.0",
+      "title": "number_prefix crate is unmaintained",
+      "patched": []
+    },
+    {
+      "kind": "unmaintained",
+      "id": "RUSTSEC-2024-0436",
+      "package": "paste",
+      "version": "1.0.15",
+      "title": "paste - no longer maintained",
+      "patched": []
+    },
+    {
+      "kind": "unmaintained",
+      "id": "RUSTSEC-2026-0173",
+      "package": "proc-macro-error2",
+      "version": "2.0.1",
+      "title": "proc-macro-error2 is unmaintained",
+      "patched": []
+    }
+  ]
+}

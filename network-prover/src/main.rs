@@ -2,7 +2,7 @@ use std::{env, fs, path::Path, str::FromStr, time::Duration};
 
 use alloy_primitives::{keccak256, Address, Bytes, B256};
 use alloy_sol_types::{sol, SolCall};
-use anyhow::{bail, Context, Result};
+use anyhow::{bail, ensure, Context, Result};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use sp1_sdk::{
@@ -21,7 +21,7 @@ const DEFAULT_AUCTION_TIMEOUT_SECS: u64 = 600;
 const MIN_REQUEST_TIMEOUT_SECS: u64 = 600;
 const PROVE_WEI: u128 = 1_000_000_000_000_000_000;
 const APPROVED_ELF_SHA256: Option<&str> =
-    Some("a2c35c9e93f6bf4d891be3d21ad22caa34b6e710805f2e634c246aaa6a1b3884");
+    Some("2f3d772c9dcf6e077d254d934d092d242bb1ed4682f0a1ce64d980fa023cd79a");
 const USAGE: &str = "usage:
   randomx-sp1-network-prover account <private-key-file> [pgu-limit]
   randomx-sp1-network-prover prove <private-key-file> <elf> <request-id-file> <proof-file> <vkey-file>
@@ -407,6 +407,15 @@ async fn query_quote(client: &NetworkClient, pgu_limit: u64) -> Result<Quote> {
 
     let raw_price = parse_u64(&params.max_price_per_pgu, "max price per PGU")?;
     let sdk_price_cap = align_to_tick(raw_price.saturating_mul(120) / 100, params.tick_size);
+    let network_floor = if params.network_floor_price_per_pgu.is_empty() {
+        0
+    } else {
+        parse_u64(&params.network_floor_price_per_pgu, "minimum price per PGU")?
+    };
+    ensure!(
+        sdk_price_cap >= network_floor,
+        "quoted proof price cap is below the network minimum"
+    );
     let base_fee = parse_u64(&params.base_fee, "Groth16 base fee")?;
     let cost_cap = u128::from(base_fee)
         .checked_add(u128::from(sdk_price_cap) * u128::from(pgu_limit))
@@ -649,13 +658,13 @@ mod tests {
         assert!(error.to_string().contains("ELF SHA-256 mismatch"));
         assert_eq!(
             APPROVED_ELF_SHA256,
-            Some("a2c35c9e93f6bf4d891be3d21ad22caa34b6e710805f2e634c246aaa6a1b3884")
+            Some("2f3d772c9dcf6e077d254d934d092d242bb1ed4682f0a1ce64d980fa023cd79a")
         );
     }
 
     #[test]
     fn retained_release_elf_is_approved() {
-        validate_elf(include_bytes!("../../artifacts/v0.1.1/randomx-sp1-program")).unwrap();
+        validate_elf(include_bytes!("../../artifacts/randomx-sp1-program")).unwrap();
     }
 
     #[test]

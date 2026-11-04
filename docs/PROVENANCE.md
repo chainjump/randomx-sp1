@@ -1,43 +1,36 @@
-# Provenance and recovery
+# Build and source provenance
 
-The optimized implementation and its development history live entirely in
-this Git repository. The public library is `randomx-sp1`; its internal fork
-lineage and licenses are recorded in `ATTRIBUTION.md`.
+The implementation and source history live in
+[`chainjump/randomx-sp1`](https://github.com/chainjump/randomx-sp1).
+Its upstream lineage and licenses are recorded in `ATTRIBUTION.md`.
 
-The canonical public remote is
-[`https://github.com/chainjump/randomx-sp1`](https://github.com/chainjump/randomx-sp1).
-Release `v0.1.0` is identified by its signed Git tag. The guest source and
-`Cargo.lock` did not change between reviewed source commit
-`9eeaf6349e4f2cdd2576dc79b5629f05e197e6bb`, the reproducible build, the live
-proof, and the release.
+The current standalone guest uses SP1 **6.10.0** and the corrected RandomX
+v0.1.1 source. `artifacts/MANIFEST.json` records its ELF size and hash, EVM vkey,
+native network VK hash, toolchain, and local execution. The two identifiers are
+different encodings of the same verifying key; a downstream parent program
+must derive its own key from its complete ELF.
 
-The subsequent superscalar correctness fix is committed in
-`48e096823fd332076c2b5ab0e272beee27b2b473`. The retained `v0.1.0` ELF, vkey and
-proof below all predate that fix. The
-[2026-09-05 review](../evidence/randomx-review-2026-09-05/README.md) records the
-new host-side evidence; a production guest using the corrected revision still
-needs its own build, execution, proof and verification record.
+Two independent locked builds used
+`ghcr.io/succinctlabs/sp1:v6.10.0`, image digest
+`sha256:9363a70004271de441e863612c7aefbbc5c36f371f111cd8abb1672fa5ea99f1`,
+and produced byte-identical ELFs. Guest compilation used
+`succinct-1.96.0-64bit-v3`; host tooling uses Rust 1.97.1. The vkey is derived
+with the SP1 6.10.0 light prover, without proof generation or network access.
 
-## Retained identities
+Check `artifacts/SOURCE_SHA256SUMS` from the repository root and
+`artifacts/SHA256SUMS` from the artifact directory. The reproducibility record
+and dependency audit are retained beside the current ELF. Older release
+ELFs, keys, proofs and proof receipts have been removed. No network proof or
+gateway validation has been performed for this guest; those release gates
+remain open.
 
-- `artifacts/randomx-sp1-program` is the reproducible SP1 ELF with SHA-256
-  `d3a15025cf7619615b1be5d35c7d8e3910aac8a399f009319a44235910518940`.
-- `artifacts/randomx-sp1-program.vkey` is the vkey derived from that ELF.
-- `evidence/network-proof/` retains the fulfilled request ID, serialized
-  Groth16 proof, public values, verifier-ready EVM encoding, and checksums.
-- `release/SHA256SUMS` covers the flat files attached to the GitHub release.
+The canonical differential corpus and source correctness review remain
+applicable to the unchanged hashing implementation. Dated review records
+describe their original source snapshots, not this SP1 release. The current
+host dependency audit reports `RUSTSEC-2026-0387` in transitive
+`crypto-bigint 0.5.5` and maintenance warnings; see the exact findings in
+`artifacts/dependency-audit.json`. The patched major version is incompatible
+with the current SP1/elliptic-curve dependency line.
 
-The exact build inputs, Docker image digest, lockfile hash, ELF hashes,
-disassembly review, execution measurements, and vkey are recorded in
-`evidence/reproducible-build-2026-07-30.md`. The request, proof, public output,
-cost, local verification, and Ethereum-mainnet verification are recorded in
-`evidence/network-proof/README.md`.
-
-## Recovery
-
-The source and retained binary data can be recovered from the signed release
-or this Git history. The ELF can also be rebuilt from the pinned source and
-Docker image and checked byte-for-byte; its vkey can then be derived locally.
-Rebuilding source does not recreate the paid network proof, so the proof data
-is retained both in Git and as release assets. A downstream parent program has
-a different ELF and must establish and retain its own identity and proof.
+Rebuild commands are in `README.md` and `RELEASING.md`. A rebuilt ELF and key
+do not recreate a paid network proof.
