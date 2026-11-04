@@ -24,8 +24,8 @@ tokio = { version = "=1.53.3", features = ["macros", "rt-multi-thread"] }
 resolver = "2"
 
 [profile.release]
-lto = "thin"
-codegen-units = 1
+lto = "off"
+codegen-units = 16
 strip = "symbols"
 
 [profile.dev]

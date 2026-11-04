@@ -51,9 +51,9 @@ cargo audit --file network-prover/Cargo.lock \
   -D unsound
 ```
 
-The nested workspace intentionally uses the root workspace's ThinLTO release
-profile so Cargo can reuse the existing SP1 host dependency cache without
-changing the guest workspace or its lockfile.
+The nested workspace disables LTO and shares its release profile with the
+Chainjump requester and solver, allowing reuse of compiled host dependencies.
+The guest workspace and its build profile are separate.
 
 The prior SP1 6.3.1 audit had two narrowly scoped exceptions for `lru 0.12.5`:
 `RUSTSEC-2026-0002` affects `IterMut::next` and `next_back`, and
